@@ -1,0 +1,6 @@
+@TicketsHex.API_HostAddress = http://localhost:5053
+
+GET {{TicketsHex.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
