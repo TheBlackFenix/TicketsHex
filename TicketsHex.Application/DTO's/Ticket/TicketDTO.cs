@@ -14,6 +14,8 @@ namespace TicketsHex.Application.DTO_s.Ticket
         string Descripcion,
         TicketEstado TicketEstado,
         int IdUsuarioAsignado,
-        DateTimeOffset FechaAsignacion
+        DateTimeOffset FechaAsignacion,
+        DateTimeOffset FechaUltimaModificacion,
+        IEnumerable<TicketHistoryDTO> Comentarios
     );
 }

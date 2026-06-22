@@ -11,7 +11,7 @@ namespace TicketsHex.Application.Puertos.Entrada.Ticket
     public interface ITicketCommand
     {
         Task<Guid> CrearTicketAsync(CrearTicketRequest request);
-        Task ActualizarEstadoAsync(Guid ticketId, TicketEstado nuevoEstado, int idUsuario, Roles rol, string? comentario);
-        Task ReasignarTicketAsync(Guid ticketId, int nuevoUsuarioId, int idUsuarioAction, Roles rol, string? comentario);
+        Task ActualizarEstadoAsync(Guid ticketId, TicketEstado nuevoEstado, int idUsuario, Rol rol, string? comentario);
+        Task ReasignarTicketAsync(Guid ticketId, int nuevoUsuarioId, int idUsuarioAction, Rol rol, string? comentario);
     }
 }

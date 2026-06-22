@@ -10,7 +10,7 @@ namespace TicketsHex.Application.DTO_s.Ticket
     public record ActualizarEstadoRequest(
         TicketEstado NuevoEstado,
         int IdUsuarioActualizacion,
-        Roles RolUsuario,
+        Rol RolUsuario,
         string? Comentario
     );
 }

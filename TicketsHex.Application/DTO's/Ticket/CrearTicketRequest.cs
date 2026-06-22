@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace TicketsHex.Application.DTO_s.Ticket
 {
     public record CrearTicketRequest(
-        string CodigoCaso,
+        int CodigoCaso,
         string Titulo,
         string Descripcion,
         int IdUsuarioAsignado

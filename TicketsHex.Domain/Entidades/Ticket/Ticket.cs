@@ -14,7 +14,7 @@ namespace TicketsHex.Domain.Entidades.Ticket
         public DescripcionVO Descripcion { get; private set; }
         public DateTimeOffset FechaAsignacion { get; private set; }
         public DateTimeOffset? FechaUltimaActualizacion { get; private set; }
-        public int IdUsuarioAsignado { get; private set; }
+        public int? IdUsuarioAsignado { get; private set; }
         public TicketEstado TicketEstado { get; private set; }
 
         // Exponer la colección como de solo lectura para proteger el encapsulamiento
@@ -39,31 +39,27 @@ namespace TicketsHex.Domain.Entidades.Ticket
         }
 
         // Factory Method (Sustituye al método CrearTicket difuso)
-        public static Ticket Crear(CodigoCasoVO codigoCaso, TituloVO titulo, DescripcionVO descripcion, int idUsuarioAsignado)
+        public Ticket (int codigoCaso, string titulo, string descripcion, int? idUsuarioAsignado)
         {
-            if (idUsuarioAsignado <= 0)
+            if (idUsuarioAsignado is not null && idUsuarioAsignado <= 0)
                 throw new ArgumentException("El ID del usuario asignado debe ser un número positivo.", nameof(idUsuarioAsignado));
 
-            var ticket = new Ticket
-            {
-                Id = Guid.NewGuid(),
-                CodigoCaso = codigoCaso,
-                Titulo = titulo,
-                Descripcion = descripcion,
-                FechaAsignacion = DateTimeOffset.UtcNow,
-                FechaUltimaActualizacion = DateTimeOffset.UtcNow,
-                IdUsuarioAsignado = idUsuarioAsignado,
-                TicketEstado = TicketEstado.EnAnalisis
-            };
+
+            Id = Guid.NewGuid();
+            CodigoCaso =  new CodigoCasoVO(codigoCaso);
+            Titulo = new TituloVO(titulo);
+            Descripcion = new DescripcionVO(descripcion);
+            FechaAsignacion = DateTimeOffset.UtcNow;
+            FechaUltimaActualizacion = DateTimeOffset.UtcNow;
+            IdUsuarioAsignado = idUsuarioAsignado;
+            TicketEstado = TicketEstado.EnAnalisis;
 
             // Registrar la creación en el historial
-            ticket._historial.Add(new TicketModificacion(
-                TicketEstado.EnAnalisis, TicketEstado.EnAnalisis, idUsuarioAsignado, Roles.Planner, "Creación inicial del ticket."));
-
-            return ticket;
+            _historial.Add(new TicketModificacion(
+                TicketEstado.EnAnalisis, TicketEstado.EnAnalisis, idUsuarioAsignado, Rol.Planner, "Creación inicial del ticket."));
         }
 
-        public void ActualizarEstado(TicketEstado nuevoEstado, int idUsuarioActualizacion, Roles rolActualiza, string? comentario)
+        public void ActualizarEstado(TicketEstado nuevoEstado, int idUsuarioActualizacion, Rol rolActualiza, string? comentario)
         {
             if (nuevoEstado == TicketEstado)
                 throw new InvalidOperationException("El nuevo estado debe ser diferente al estado actual.");
@@ -80,13 +76,13 @@ namespace TicketsHex.Domain.Entidades.Ticket
             _historial.Add(new TicketModificacion(estadoAnterior, nuevoEstado, idUsuarioActualizacion, rolActualiza, comentario));
         }
 
-        public void ReasignarTicket(int nuevoIdUsuarioAsignado, int idUsuarioActualizacion, Roles rolActualiza, string? comentario)
+        public void ReasignarTicket(int nuevoIdUsuarioAsignado, int idUsuarioActualizacion, Rol rolActualiza, string? comentario)
         {
             if (nuevoIdUsuarioAsignado <= 0)
                 throw new ArgumentException("El ID del nuevo usuario asignado debe ser un número positivo.", nameof(nuevoIdUsuarioAsignado));
             if (nuevoIdUsuarioAsignado == IdUsuarioAsignado)
                 throw new InvalidOperationException("El nuevo usuario asignado debe ser diferente al actual.");
-            if (rolActualiza != Roles.LiderTecnico && rolActualiza != Roles.Planner)
+            if (rolActualiza != Rol.LiderTecnico && rolActualiza != Rol.Planner)
                 throw new InvalidOperationException("Solo los roles de Líder Técnico o Planner pueden reasignar tickets.");
 
             IdUsuarioAsignado = nuevoIdUsuarioAsignado;
@@ -95,11 +91,11 @@ namespace TicketsHex.Domain.Entidades.Ticket
             _historial.Add(new TicketModificacion(TicketEstado, TicketEstado, idUsuarioActualizacion, rolActualiza, $"Reasignado. Nuevo usuario: {nuevoIdUsuarioAsignado}. Obs: {comentario}"));
         }
 
-        public void ActualizarDescripcion(DescripcionVO nuevaDescripcion, int idUsuarioActualizacion, Roles rolActualiza)
+        public void ActualizarDescripcion(DescripcionVO nuevaDescripcion, int idUsuarioActualizacion, Rol rolActualiza)
         {
             ArgumentNullException.ThrowIfNull(nuevaDescripcion);
 
-            if (rolActualiza != Roles.Desarrollador && rolActualiza != Roles.LiderTecnico)
+            if (rolActualiza != Rol.Desarrollador && rolActualiza != Rol.LiderTecnico)
                 throw new InvalidOperationException("Solo los roles de Desarrollador o Líder Técnico pueden actualizar la descripción.");
 
             Descripcion = nuevaDescripcion;
@@ -107,7 +103,7 @@ namespace TicketsHex.Domain.Entidades.Ticket
             _historial.Add(new TicketModificacion(TicketEstado, TicketEstado, idUsuarioActualizacion, rolActualiza, "Descripción actualizada."));
         }
 
-        public void AgregarComentarioLibre(string nuevoComentario, int idUsuarioActualizacion, Roles rolActualiza)
+        public void AgregarComentarioLibre(string nuevoComentario, int idUsuarioActualizacion, Rol rolActualiza)
         {
             if (string.IsNullOrWhiteSpace(nuevoComentario))
                 throw new ArgumentException("El comentario no puede estar vacío.", nameof(nuevoComentario));

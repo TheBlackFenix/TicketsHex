@@ -4,27 +4,27 @@ namespace TicketsHex.Domain.Entidades.Ticket
 {
     public static class TicketWorkflow
     {
-        private record ReglaTransicion(TicketEstado[] EstadosPrevios, Roles[] RolesPermitidos, bool RequiereComentario = false);
+        private record ReglaTransicion(TicketEstado[] EstadosPrevios, Rol[] RolesPermitidos, bool RequiereComentario = false);
 
         private static readonly Dictionary<TicketEstado, ReglaTransicion> ReglasDeTransicion = new()
         {
-            [TicketEstado.EnProceso] = new([TicketEstado.EnAnalisis], [Roles.Desarrollador, Roles.LiderTecnico]),
-            [TicketEstado.Bloqueado] = new([TicketEstado.EnProceso], [Roles.Desarrollador, Roles.LiderTecnico], true),
-            [TicketEstado.Entregado] = new([TicketEstado.EnProceso], [Roles.Desarrollador, Roles.LiderTecnico]),
-            [TicketEstado.DespliegueApitesting] = new([TicketEstado.Entregado], [Roles.LiderTecnico]),
-            [TicketEstado.EnRevisionApitesting] = new([TicketEstado.DespliegueApitesting], [Roles.QA, Roles.Desarrollador]),
-            [TicketEstado.AprobadoApitesting] = new([TicketEstado.EnRevisionApitesting], [Roles.QA, Roles.Desarrollador]),
-            [TicketEstado.DespligueQA] = new([TicketEstado.AprobadoApitesting], [Roles.LiderTecnico]),
-            [TicketEstado.EnRevisionQA] = new([TicketEstado.DespligueQA], [Roles.QA]),
-            [TicketEstado.AprobadoQA] = new([TicketEstado.EnRevisionQA], [Roles.QA]),
-            [TicketEstado.PendienteCertificacion] = new([TicketEstado.AprobadoQA], [Roles.Planner]),
-            [TicketEstado.Certificado] = new([TicketEstado.PendienteCertificacion], [Roles.Planner, Roles.QA]),
-            [TicketEstado.DespliegueProduccion] = new([TicketEstado.AprobadoQA], [Roles.LiderTecnico]),
-            [TicketEstado.BUG] = new([TicketEstado.EnProceso, TicketEstado.EnRevisionApitesting, TicketEstado.EnRevisionQA], [Roles.Desarrollador, Roles.QA, Roles.LiderTecnico], true),
-            [TicketEstado.Rollback] = new([TicketEstado.DespliegueProduccion], [Roles.LiderTecnico])
+            [TicketEstado.EnProceso] = new([TicketEstado.EnAnalisis], [Rol.Desarrollador, Rol.LiderTecnico]),
+            [TicketEstado.Bloqueado] = new([TicketEstado.EnProceso], [Rol.Desarrollador, Rol.LiderTecnico], true),
+            [TicketEstado.Entregado] = new([TicketEstado.EnProceso], [Rol.Desarrollador, Rol.LiderTecnico]),
+            [TicketEstado.DespliegueApitesting] = new([TicketEstado.Entregado], [Rol.LiderTecnico]),
+            [TicketEstado.EnRevisionApitesting] = new([TicketEstado.DespliegueApitesting], [Rol.QA, Rol.Desarrollador]),
+            [TicketEstado.AprobadoApitesting] = new([TicketEstado.EnRevisionApitesting], [Rol.QA, Rol.Desarrollador]),
+            [TicketEstado.DespligueQA] = new([TicketEstado.AprobadoApitesting], [Rol.LiderTecnico]),
+            [TicketEstado.EnRevisionQA] = new([TicketEstado.DespligueQA], [Rol.QA]),
+            [TicketEstado.AprobadoQA] = new([TicketEstado.EnRevisionQA], [Rol.QA]),
+            [TicketEstado.PendienteCertificacion] = new([TicketEstado.AprobadoQA], [Rol.Planner]),
+            [TicketEstado.Certificado] = new([TicketEstado.PendienteCertificacion], [Rol.Planner, Rol.QA]),
+            [TicketEstado.DespliegueProduccion] = new([TicketEstado.AprobadoQA], [Rol.LiderTecnico]),
+            [TicketEstado.BUG] = new([TicketEstado.EnProceso, TicketEstado.EnRevisionApitesting, TicketEstado.EnRevisionQA], [Rol.Desarrollador, Rol.QA, Rol.LiderTecnico], true),
+            [TicketEstado.Rollback] = new([TicketEstado.DespliegueProduccion], [Rol.LiderTecnico])
         };
 
-        public static void ValidarTransicion(TicketEstado estadoActual, TicketEstado nuevoEstado, Roles rolActualiza, string? comentario)
+        public static void ValidarTransicion(TicketEstado estadoActual, TicketEstado nuevoEstado, Rol rolActualiza, string? comentario)
         {
             if (!ReglasDeTransicion.TryGetValue(nuevoEstado, out var regla))
                 throw new InvalidOperationException($"No hay reglas de transición definidas para el estado objetivo: {nuevoEstado}.");

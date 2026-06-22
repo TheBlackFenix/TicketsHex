@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TicketsHex.Domain.Enums
 {
-    public enum Roles
+    public enum Rol
     {
         Desarrollador = 2,
         QA = 3,
