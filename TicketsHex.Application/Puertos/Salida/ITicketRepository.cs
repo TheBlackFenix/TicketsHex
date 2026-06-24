@@ -10,10 +10,10 @@ namespace TicketsHex.Application.Puertos.Salida
 {
     public interface ITicketRepository
     {
-        Task<TicketDTO> ObtenerPorIdAsync(Guid id);
-        Task<IEnumerable<TicketDTO>> ObtenerTodosAsync();
-        Task<TicketDTO?> ObtenerTicketPorCodigoYUsuerioAsync(Guid id, int idUsuarioAsignado);
-        Task<IEnumerable<TicketDTO>> ObtenerTodosPorIdUsuarioAsignadoAsync(int idUsuarioAsignado);
+        Task<Ticket> ObtenerPorIdAsync(Guid id);
+        Task<IEnumerable<Ticket>> ObtenerTodosAsync();
+        Task<Ticket> ObtenerTicketPorCodigoYUsuerioAsync(Guid id, int idUsuarioAsignado);
+        Task<IEnumerable<Ticket>> ObtenerTodosPorIdUsuarioAsignadoAsync(int idUsuarioAsignado);
         Task GuardarAsync(Ticket ticket);
         Task ActualizarAsync(Ticket ticket);
         Task EliminarAsync(Guid id);

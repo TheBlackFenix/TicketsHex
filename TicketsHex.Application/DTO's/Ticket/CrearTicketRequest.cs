@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TicketsHex.Domain.Enums;
 
 namespace TicketsHex.Application.DTO_s.Ticket
 {
     public record CrearTicketRequest(
-        int CodigoCaso,
+        string CodigoCaso,
+        TicketOrigen OrigenTicket,
         string Titulo,
         string Descripcion,
-        int IdUsuarioAsignado
+        long IdUsuarioAsignado
     );
 }

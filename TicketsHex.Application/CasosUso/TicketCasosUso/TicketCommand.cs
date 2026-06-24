@@ -27,9 +27,9 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
         public async Task<Guid> CrearTicketAsync(CrearTicketRequest request)
         {
 
-            var ticket = new Ticket(request.CodigoCaso, request.Titulo, request.Descripcion, request.IdUsuarioAsignado);
+            var ticket = new Ticket(request.CodigoCaso, request.Titulo, request.Descripcion, request.IdUsuarioAsignado, request.OrigenTicket);
             await _ticketRepository.GuardarAsync(ticket);
-            return ticket.Id;
+            return ticket.IdTicket;
         }
 
         public async Task ReasignarTicketAsync(Guid ticketId, int nuevoUsuarioId, int idUsuarioAction, Rol rol, string? comentario)

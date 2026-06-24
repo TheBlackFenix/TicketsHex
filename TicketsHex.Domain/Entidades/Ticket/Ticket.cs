@@ -5,93 +5,107 @@ namespace TicketsHex.Domain.Entidades.Ticket
 {
     public class Ticket
     {
-        // Lista interna para persistencia encubierta (Backing Field)
-        private readonly List<TicketModificacion> _historial = new();
+        // Propiedades directas que hacen match con las columnas de Postgres
+        public Guid IdTicket { get; set; }
+        public CodigoCasoVO IdCaso { get; set; } // Mantiene el VO
+        public TituloVO Titulo { get; set; }     // Mantiene el VO
+        public DescripcionVO Descripcion { get; set; } // Mantiene el VO
+        public DateTimeOffset FechaCreacion { get; set; }
+        public DateTimeOffset? FechaUltimaActualizacion { get; set; }
+        public long? UsuarioAsignado { get; set; }
+        public TicketOrigen OrigenTicket { get; set; }
+        public TicketEstado IdEstado { get; set; }
+        public string? CarpetaMedios { get; set; }
+        public string? CausaRaiz { get; set; }
+        public string? SolucionPropuesta { get; set; }
 
-        public Guid Id { get; private set; }
-        public CodigoCasoVO CodigoCaso { get; private set; }
-        public TituloVO Titulo { get; private set; }
-        public DescripcionVO Descripcion { get; private set; }
-        public DateTimeOffset FechaAsignacion { get; private set; }
-        public DateTimeOffset? FechaUltimaActualizacion { get; private set; }
-        public int? IdUsuarioAsignado { get; private set; }
-        public TicketEstado TicketEstado { get; private set; }
+        // Propiedades de Navegación directas de EF Core (Baja complejidad)
+        public virtual ICollection<HistoricoEstadosTicket> HistoricoEstados { get; set; } = new List<HistoricoEstadosTicket>();
 
-        // Exponer la colección como de solo lectura para proteger el encapsulamiento
-        public IReadOnlyCollection<TicketModificacion> Historial => _historial.AsReadOnly();
+        // Constructor vacío requerido por EF Core
+        public Ticket() { }
 
-        // Constructor privado para el flujo controlado (Factory y ORMs)
-        private Ticket() { }
-
-        // Constructor completo para cuando se reconstruye desde base de datos
-        public Ticket(Guid id, CodigoCasoVO codigoCaso, TituloVO titulo, DescripcionVO descripcion,
-                      DateTimeOffset fechaAsignacion, DateTimeOffset? fechaUltimaActualizacion,
-                      int idUsuarioAsignado, TicketEstado ticketEstado)
-        {
-            Id = id;
-            CodigoCaso = codigoCaso;
-            Titulo = titulo;
-            Descripcion = descripcion;
-            FechaAsignacion = fechaAsignacion;
-            FechaUltimaActualizacion = fechaUltimaActualizacion;
-            IdUsuarioAsignado = idUsuarioAsignado;
-            TicketEstado = ticketEstado;
-        }
 
         // Factory Method (Sustituye al método CrearTicket difuso)
-        public Ticket (int codigoCaso, string titulo, string descripcion, int? idUsuarioAsignado)
+        // Constructor de inicialización de negocio (Ajustado)
+        public Ticket(string codigoCaso, string titulo, string descripcion, long? usuarioAsignado, TicketOrigen origenTicket = TicketOrigen.SAIA)
         {
-            if (idUsuarioAsignado is not null && idUsuarioAsignado <= 0)
-                throw new ArgumentException("El ID del usuario asignado debe ser un número positivo.", nameof(idUsuarioAsignado));
+            if (usuarioAsignado is not null && usuarioAsignado <= 0)
+                throw new ArgumentException("El ID del usuario asignado debe ser un número positivo.", nameof(usuarioAsignado));
 
-
-            Id = Guid.NewGuid();
-            CodigoCaso =  new CodigoCasoVO(codigoCaso);
+            IdTicket = Guid.NewGuid();
+            IdCaso = new CodigoCasoVO(codigoCaso); // Mapeado a VARCHAR(20) en tu script
             Titulo = new TituloVO(titulo);
             Descripcion = new DescripcionVO(descripcion);
-            FechaAsignacion = DateTimeOffset.UtcNow;
+            FechaCreacion = DateTimeOffset.UtcNow;
             FechaUltimaActualizacion = DateTimeOffset.UtcNow;
-            IdUsuarioAsignado = idUsuarioAsignado;
-            TicketEstado = TicketEstado.EnAnalisis;
+            UsuarioAsignado = usuarioAsignado;
+            OrigenTicket = origenTicket;
+            IdEstado = TicketEstado.EnAnalisis;
 
-            // Registrar la creación en el historial
-            _historial.Add(new TicketModificacion(
-                TicketEstado.EnAnalisis, TicketEstado.EnAnalisis, idUsuarioAsignado, Rol.Planner, "Creación inicial del ticket."));
+            // Registrar la creación en la colección relacional de forma simple
+            HistoricoEstados.Add(new HistoricoEstadosTicket
+            {
+                IdHistorico = Guid.NewGuid(),
+                IdTicket = this.IdTicket,
+                IdEstadoOrigen = null, // Al ser creación, no viene de ningún estado previo
+                IdEstadoDestino = TicketEstado.EnAnalisis,
+                IdUsuarioAccion = usuarioAsignado ?? 0, // ID del planner o creador
+                Comentario = "Creación inicial del ticket.",
+                FechaCambio = DateTimeOffset.UtcNow
+            });
         }
 
-        public void ActualizarEstado(TicketEstado nuevoEstado, int idUsuarioActualizacion, Rol rolActualiza, string? comentario)
+        public void ActualizarEstado(TicketEstado nuevoEstado, long idUsuarioActualizacion, Rol rolActualiza, string? comentario)
         {
-            if (nuevoEstado == TicketEstado)
+            if (nuevoEstado == IdEstado)
                 throw new InvalidOperationException("El nuevo estado debe ser diferente al estado actual.");
 
-            // SRP: Delegamos la evaluación de transiciones de negocio a su propia estructura
-            TicketWorkflow.ValidarTransicion(TicketEstado, nuevoEstado, rolActualiza, comentario);
+            // La máquina de estados sigue validando con las reglas del negocio
+            TicketWorkflow.ValidarTransicion(IdEstado, nuevoEstado, rolActualiza, comentario);
 
-            // Aplicar cambios internos
-            var estadoAnterior = TicketEstado;
-            TicketEstado = nuevoEstado;
+            var estadoAnterior = IdEstado;
+            IdEstado = nuevoEstado;
             FechaUltimaActualizacion = DateTimeOffset.UtcNow;
 
-            // Registrar trazabilidad inmutable
-            _historial.Add(new TicketModificacion(estadoAnterior, nuevoEstado, idUsuarioActualizacion, rolActualiza, comentario));
+            // Trazabilidad directa en la tabla relacional
+            HistoricoEstados.Add(new HistoricoEstadosTicket
+            {
+                IdHistorico = Guid.NewGuid(),
+                IdTicket = this.IdTicket,
+                IdEstadoOrigen = estadoAnterior,
+                IdEstadoDestino = nuevoEstado,
+                IdUsuarioAccion = idUsuarioActualizacion,
+                Comentario = comentario,
+                FechaCambio = DateTimeOffset.UtcNow
+            });
         }
 
-        public void ReasignarTicket(int nuevoIdUsuarioAsignado, int idUsuarioActualizacion, Rol rolActualiza, string? comentario)
+        public void ReasignarTicket(long nuevoIdUsuarioAsignado, long idUsuarioActualizacion, Rol rolActualiza, string? comentario)
         {
             if (nuevoIdUsuarioAsignado <= 0)
                 throw new ArgumentException("El ID del nuevo usuario asignado debe ser un número positivo.", nameof(nuevoIdUsuarioAsignado));
-            if (nuevoIdUsuarioAsignado == IdUsuarioAsignado)
+            if (nuevoIdUsuarioAsignado == UsuarioAsignado)
                 throw new InvalidOperationException("El nuevo usuario asignado debe ser diferente al actual.");
             if (rolActualiza != Rol.LiderTecnico && rolActualiza != Rol.Planner)
                 throw new InvalidOperationException("Solo los roles de Líder Técnico o Planner pueden reasignar tickets.");
 
-            IdUsuarioAsignado = nuevoIdUsuarioAsignado;
+            UsuarioAsignado = nuevoIdUsuarioAsignado;
             FechaUltimaActualizacion = DateTimeOffset.UtcNow;
 
-            _historial.Add(new TicketModificacion(TicketEstado, TicketEstado, idUsuarioActualizacion, rolActualiza, $"Reasignado. Nuevo usuario: {nuevoIdUsuarioAsignado}. Obs: {comentario}"));
+            HistoricoEstados.Add(new HistoricoEstadosTicket
+            {
+                IdHistorico = Guid.NewGuid(),
+                IdTicket = this.IdTicket,
+                IdEstadoOrigen = IdEstado,
+                IdEstadoDestino = IdEstado, // El estado no cambia, sólo se audita la reasignación
+                IdUsuarioAccion = idUsuarioActualizacion,
+                Comentario = $"Reasignado. Nuevo usuario: {nuevoIdUsuarioAsignado}. Obs: {comentario}",
+                FechaCambio = DateTimeOffset.UtcNow
+            });
         }
 
-        public void ActualizarDescripcion(DescripcionVO nuevaDescripcion, int idUsuarioActualizacion, Rol rolActualiza)
+        public void ActualizarDescripcion(DescripcionVO nuevaDescripcion, long idUsuarioActualizacion, Rol rolActualiza)
         {
             ArgumentNullException.ThrowIfNull(nuevaDescripcion);
 
@@ -100,16 +114,36 @@ namespace TicketsHex.Domain.Entidades.Ticket
 
             Descripcion = nuevaDescripcion;
             FechaUltimaActualizacion = DateTimeOffset.UtcNow;
-            _historial.Add(new TicketModificacion(TicketEstado, TicketEstado, idUsuarioActualizacion, rolActualiza, "Descripción actualizada."));
+
+            HistoricoEstados.Add(new HistoricoEstadosTicket
+            {
+                IdHistorico = Guid.NewGuid(),
+                IdTicket = this.IdTicket,
+                IdEstadoOrigen = IdEstado,
+                IdEstadoDestino = IdEstado,
+                IdUsuarioAccion = idUsuarioActualizacion,
+                Comentario = "Descripción actualizada.",
+                FechaCambio = DateTimeOffset.UtcNow
+            });
         }
 
-        public void AgregarComentarioLibre(string nuevoComentario, int idUsuarioActualizacion, Rol rolActualiza)
+        public void AgregarComentarioLibre(string nuevoComentario, long idUsuarioActualizacion, Rol rolActualiza)
         {
             if (string.IsNullOrWhiteSpace(nuevoComentario))
                 throw new ArgumentException("El comentario no puede estar vacío.", nameof(nuevoComentario));
 
             FechaUltimaActualizacion = DateTimeOffset.UtcNow;
-            _historial.Add(new TicketModificacion(TicketEstado, TicketEstado, idUsuarioActualizacion, rolActualiza, nuevoComentario));
+
+            HistoricoEstados.Add(new HistoricoEstadosTicket
+            {
+                IdHistorico = Guid.NewGuid(),
+                IdTicket = this.IdTicket,
+                IdEstadoOrigen = IdEstado,
+                IdEstadoDestino = IdEstado,
+                IdUsuarioAccion = idUsuarioActualizacion,
+                Comentario = nuevoComentario,
+                FechaCambio = DateTimeOffset.UtcNow
+            });
         }
     }
 }

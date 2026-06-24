@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TicketsHex.Domain.Enums
 {
-    public enum TicketFuente
+    public enum TicketOrigen
     {
         SAIA = 1,
         GLPI = 2,

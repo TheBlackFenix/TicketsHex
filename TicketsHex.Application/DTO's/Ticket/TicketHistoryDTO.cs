@@ -9,11 +9,10 @@ namespace TicketsHex.Application.DTO_s.Ticket
 {
     public record TicketHistoryDTO
     {
-        public TicketEstado EstadoOrigen { get; private set; }
-        public TicketEstado EstadoDestino { get; private set; }
-        public int? IdUsuarioAccion { get; private set; }
-        public Rol RolUsuario { get; private set; }
-        public string? Comentario { get; private set; }
-        public DateTimeOffset FechaAccion { get; private set; }
+        public TicketEstado EstadoOrigen { get; set; }
+        public TicketEstado EstadoDestino { get; set; }
+        public long? IdUsuarioAccion { get; set; }
+        public string? Comentario { get; set; }
+        public DateTimeOffset FechaAccion { get; set; }
     }
 }

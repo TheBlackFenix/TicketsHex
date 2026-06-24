@@ -8,14 +8,14 @@ using TicketsHex.Domain.Enums;
 namespace TicketsHex.Application.DTO_s.Ticket
 {
     public record TicketDTO(
-        Guid Id,
-        string CodigoCaso,
+        Guid IdTicket,
+        string IdCaso,
         string Titulo,
         string Descripcion,
         TicketEstado TicketEstado,
-        int IdUsuarioAsignado,
-        DateTimeOffset FechaAsignacion,
-        DateTimeOffset FechaUltimaModificacion,
+        long? IdUsuarioAsignado,
+        DateTimeOffset FechaCreacion,
+        DateTimeOffset?FechaUltimaActualizacion,
         IEnumerable<TicketHistoryDTO> Comentarios
     );
 }

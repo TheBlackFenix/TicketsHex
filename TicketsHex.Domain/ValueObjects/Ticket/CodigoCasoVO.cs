@@ -10,12 +10,12 @@ namespace TicketsHex.Domain.ValueObjects.Ticket
     public class CodigoCasoVO
     {
         public string Valor { get; private set; }
-        public CodigoCasoVO(int valor, TicketFuente fuente = TicketFuente.SAIA)
+        public CodigoCasoVO(string valor)
         {
-            if (valor <= 0)
-                throw new ArgumentException("El código de caso debe ser un número positivo.", nameof(valor));
+            if (string.IsNullOrWhiteSpace(valor))
+                throw new ArgumentException("El código de caso no puede estar vacío.", nameof(valor));
 
-            Valor = $"{fuente}-{valor}";
+            Valor = valor;
         }
     }
 }
