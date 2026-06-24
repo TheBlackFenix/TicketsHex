@@ -18,4 +18,14 @@
     <ProjectReference Include="..\TicketsHex.Application\TicketsHex.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Certificados\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Certificados\ca.pem">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
