@@ -17,7 +17,7 @@ namespace TicketsHex.infrastructure
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
             // 1. Configurar la conexión a PostgreSQL
-            var connectionString = configuration.GetConnectionString("PostgresConnection");
+            var connectionString = configuration.GetConnectionString("DefaultConnection");
 
             services.AddDbContext<MantenimientoContext>(options =>
                 options.UseNpgsql(connectionString));

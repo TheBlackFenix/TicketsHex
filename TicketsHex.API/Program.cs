@@ -1,44 +1,102 @@
-var builder = WebApplication.CreateBuilder(args);
+using Microsoft.AspNetCore.ResponseCompression;
+using Serilog;
+using System.IO.Compression;
+using TicketsHex.API.Endpoints;
+using TicketsHex.API.Middelwares;
+using TicketsHex.API.Middelwares.ExceptionHandling;
+using TicketsHex.Application;
+using TicketsHex.infrastructure;
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
-var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.AspNetCore", Serilog.Events.LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
+try
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    Log.Information("Iniciando el servicio");
+
+    var builder = WebApplication.CreateBuilder(args);
+    builder.Configuration
+    .AddJsonFile("ErrorMessages.json", optional: false, reloadOnChange: true);
+
+    builder.Services.Configure<ExceptionHandlingOptions>(
+        builder.Configuration.GetSection("ExceptionHandling"));
+    builder.Services.AddSingleton<ExceptionMessageResolver>();
+
+    builder.Services.ConfigureHttpJsonOptions(options =>
+    {
+        options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
+    // Add services to the container.
+    builder.Services.AddSerilog((services, configuration) =>
+    {
+        configuration.ReadFrom.Configuration(builder.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext();
+    });
+    // Add services to the container.1
+    // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+    builder.Services
+        .AddApplication()
+        .AddInfrastructure(builder.Configuration);
+
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
+
+    builder.Services.AddResponseCompression(options =>
+    {
+        options.EnableForHttps = true;
+
+        options.Providers.Add<BrotliCompressionProvider>();
+        options.Providers.Add<GzipCompressionProvider>();
+
+        options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
+        {
+        "application/json",
+        "text/plain",
+        "text/csv",
+        "application/xml",
+        "text/xml"
+        });
+    });
+
+    builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+    {
+        options.Level = CompressionLevel.Fastest;
+    });
+
+    builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+    {
+        options.Level = CompressionLevel.Fastest;
+    });
+
+    var app = builder.Build();
+    app.UseGlobalExceptionHandling();
+
+    // Configure the HTTP request pipeline.
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+    app.UseResponseCompression();
+    app.UseHttpsRedirection();
+    app.MapTicketEndpoints();
+
+    await app.RunAsync();
+
 }
-
-app.UseHttpsRedirection();
-
-var summaries = new[]
+catch (Exception ex)
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
+    Log.Fatal(ex, "Ocurrió un error inesperado");
+}
+finally
 {
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
-
-app.Run();
-
-internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    Log.Information("Terminando el servicio");
+    await Log.CloseAndFlushAsync();
 }

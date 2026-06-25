@@ -8,6 +8,7 @@ using TicketsHex.Domain.Enums;
 namespace TicketsHex.Application.DTO_s.Ticket
 {
     public record ActualizarEstadoRequest(
+        Guid IdTicket,
         TicketEstado NuevoEstado,
         int IdUsuarioActualizacion,
         Rol RolUsuario,

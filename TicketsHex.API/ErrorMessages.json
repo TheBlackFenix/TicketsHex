@@ -1,0 +1,60 @@
+{
+  "ExceptionHandling": {
+    "Default": {
+      "StatusCode": 500,
+      "Title": "Error interno del servidor",
+      "Detail": "Ocurrió un error inesperado en el sistema.",
+      "UseExceptionMessage": false
+    },
+    "Mappings": {
+      "ArgumentException": {
+        "StatusCode": 400,
+        "Title": "Error de validación",
+        "Detail": "La solicitud contiene datos inválidos.",
+        "UseExceptionMessage": true
+      },
+      "ArgumentNullException": {
+        "StatusCode": 400,
+        "Title": "Error de validación",
+        "Detail": "La solicitud contiene datos incompletos.",
+        "UseExceptionMessage": true
+      },
+      "FileNotFoundException": {
+        "StatusCode": 404,
+        "Title": "Archivo no encontrado",
+        "Detail": "El archivo solicitado no existe.",
+        "UseExceptionMessage": true
+      },
+      "IOException": {
+        "StatusCode": 409,
+        "Title": "Error con el archivo",
+        "Detail": "No se pudo completar la operación sobre el archivo.",
+        "UseExceptionMessage": true
+      },
+      "UnauthorizedAccessException": {
+        "StatusCode": 403,
+        "Title": "Acceso no permitido",
+        "Detail": "No tienes permiso para acceder a este recurso.",
+        "UseExceptionMessage": false
+      },
+      "InvalidOperationException": {
+        "StatusCode": 409,
+        "Title": "Operación no permitida",
+        "Detail": "No se pudo completar la operación solicitada.",
+        "UseExceptionMessage": true
+      },
+      "DbException": {
+        "StatusCode": 500,
+        "Title": "Error de persistencia",
+        "Detail": "Ocurrió un error obteniendo o procesando la información.",
+        "UseExceptionMessage": false
+      },
+      "DataException": {
+        "StatusCode": 500,
+        "Title": "Error de datos",
+        "Detail": "Ocurrió un error procesando la información.",
+        "UseExceptionMessage": false
+      }
+    }
+  }
+}

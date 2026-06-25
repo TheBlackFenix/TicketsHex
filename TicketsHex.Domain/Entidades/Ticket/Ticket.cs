@@ -7,13 +7,13 @@ namespace TicketsHex.Domain.Entidades.Ticket
     {
         // Propiedades directas que hacen match con las columnas de Postgres
         public Guid IdTicket { get; set; }
-        public CodigoCasoVO IdCaso { get; set; } // Mantiene el VO
+        public CodigoCasoVO CodigoCaso { get; set; } // Mantiene el VO
         public TituloVO Titulo { get; set; }     // Mantiene el VO
         public DescripcionVO Descripcion { get; set; } // Mantiene el VO
-        public DateTimeOffset FechaCreacion { get; set; }
+        public DateTimeOffset FechaAsignacion { get; set; }
         public DateTimeOffset? FechaUltimaActualizacion { get; set; }
-        public long? UsuarioAsignado { get; set; }
-        public TicketOrigen OrigenTicket { get; set; }
+        public long? IdUsuarioAsignado { get; set; }
+        public TicketOrigen IdOrigen { get; set; }
         public TicketEstado IdEstado { get; set; }
         public string? CarpetaMedios { get; set; }
         public string? CausaRaiz { get; set; }
@@ -34,13 +34,13 @@ namespace TicketsHex.Domain.Entidades.Ticket
                 throw new ArgumentException("El ID del usuario asignado debe ser un número positivo.", nameof(usuarioAsignado));
 
             IdTicket = Guid.NewGuid();
-            IdCaso = new CodigoCasoVO(codigoCaso); // Mapeado a VARCHAR(20) en tu script
+            CodigoCaso = new CodigoCasoVO(codigoCaso); // Mapeado a VARCHAR(20) en tu script
             Titulo = new TituloVO(titulo);
             Descripcion = new DescripcionVO(descripcion);
-            FechaCreacion = DateTimeOffset.UtcNow;
+            FechaAsignacion = DateTimeOffset.UtcNow;
             FechaUltimaActualizacion = DateTimeOffset.UtcNow;
-            UsuarioAsignado = usuarioAsignado;
-            OrigenTicket = origenTicket;
+            IdUsuarioAsignado = usuarioAsignado;
+            IdOrigen = origenTicket;
             IdEstado = TicketEstado.EnAnalisis;
 
             // Registrar la creación en la colección relacional de forma simple
@@ -85,12 +85,12 @@ namespace TicketsHex.Domain.Entidades.Ticket
         {
             if (nuevoIdUsuarioAsignado <= 0)
                 throw new ArgumentException("El ID del nuevo usuario asignado debe ser un número positivo.", nameof(nuevoIdUsuarioAsignado));
-            if (nuevoIdUsuarioAsignado == UsuarioAsignado)
+            if (nuevoIdUsuarioAsignado == IdUsuarioAsignado)
                 throw new InvalidOperationException("El nuevo usuario asignado debe ser diferente al actual.");
             if (rolActualiza != Rol.LiderTecnico && rolActualiza != Rol.Planner)
                 throw new InvalidOperationException("Solo los roles de Líder Técnico o Planner pueden reasignar tickets.");
 
-            UsuarioAsignado = nuevoIdUsuarioAsignado;
+            IdUsuarioAsignado = nuevoIdUsuarioAsignado;
             FechaUltimaActualizacion = DateTimeOffset.UtcNow;
 
             HistoricoEstados.Add(new HistoricoEstadosTicket

@@ -13,14 +13,13 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
         {
             _ticketRepository = ticketRepository;
         }
-        public async Task ActualizarEstadoAsync(Guid ticketId, TicketEstado nuevoEstado, int idUsuario, Rol rol, string? comentario)
+        public async Task ActualizarEstadoAsync(ActualizarEstadoRequest actualizarEstadoRequest)
         {
-            var ticket = await _ticketRepository.ObtenerPorIdAsync(ticketId);
+            var ticket = await _ticketRepository.ObtenerPorIdAsync(actualizarEstadoRequest.IdTicket);
             if (ticket == null) throw new KeyNotFoundException("Ticket no encontrado");
 
             // El dominio sigue ejecutando la lógica SOLID y la máquina de estados
-            ticket.ActualizarEstado(nuevoEstado, idUsuario, rol, comentario);
-
+            ticket.ActualizarEstado(actualizarEstadoRequest.NuevoEstado, actualizarEstadoRequest.IdUsuarioActualizacion, actualizarEstadoRequest.RolUsuario, actualizarEstadoRequest.Comentario);
             await _ticketRepository.ActualizarAsync(ticket);
         }
 
@@ -30,6 +29,13 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
             var ticket = new Ticket(request.CodigoCaso, request.Titulo, request.Descripcion, request.IdUsuarioAsignado, request.OrigenTicket);
             await _ticketRepository.GuardarAsync(ticket);
             return ticket.IdTicket;
+        }
+
+        public async Task EliminarTicketAsync(Guid ticketId)
+        {
+            var ticket = await _ticketRepository.ObtenerPorIdAsync(ticketId);
+            if (ticket == null) throw new KeyNotFoundException("Ticket no encontrado");
+            await _ticketRepository.EliminarAsync(ticketId);
         }
 
         public async Task ReasignarTicketAsync(Guid ticketId, int nuevoUsuarioId, int idUsuarioAction, Rol rol, string? comentario)

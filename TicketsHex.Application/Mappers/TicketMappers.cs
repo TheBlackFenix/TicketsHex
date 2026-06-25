@@ -12,13 +12,13 @@ namespace TicketsHex.Application.Mappers
 
             return new TicketDTO(
                 IdTicket: ticket.IdTicket,
-                IdCaso: ticket.IdCaso.Valor, // Extrayendo el tipo primitivo del Value Object
+                IdCaso: ticket.CodigoCaso.Valor, // Extrayendo el tipo primitivo del Value Object
                 Titulo: ticket.Titulo.Value,
                 Descripcion: ticket.Descripcion.Value,
                 TicketEstado: ticket.IdEstado,
-                IdUsuarioAsignado: ticket.UsuarioAsignado,
+                IdUsuarioAsignado: ticket.IdUsuarioAsignado,
                 FechaUltimaActualizacion: ticket.FechaUltimaActualizacion,
-                FechaCreacion: ticket.FechaCreacion,
+                FechaCreacion: ticket.FechaAsignacion,
                 Comentarios: ticket.HistoricoEstados.Select(h => h.ToHistoryDto())
             );
         }

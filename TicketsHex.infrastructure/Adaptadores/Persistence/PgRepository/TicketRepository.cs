@@ -50,14 +50,14 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqliteRepository
         {
             return await _dbContext.Tickets
             .Include(t => t.HistoricoEstados)
-            .FirstOrDefaultAsync(t => t.IdTicket == id && t.UsuarioAsignado == idUsuarioAsignado);
+            .FirstOrDefaultAsync(t => t.IdTicket == id && t.IdUsuarioAsignado == idUsuarioAsignado);
         }
 
         public async Task<IEnumerable<Ticket>> ObtenerTodosAsync()
         {
             return await _dbContext.Tickets
             .AsNoTracking() 
-            .OrderByDescending(t => t.FechaCreacion)
+            .OrderByDescending(t => t.FechaAsignacion)
             .ToListAsync();
         }
 
@@ -65,8 +65,8 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqliteRepository
         {
             return await _dbContext.Tickets
             .AsNoTracking() // Optimización sustancial para solo lectura
-            .Where(t => t.UsuarioAsignado == idUsuarioAsignado)
-            .OrderByDescending(t => t.FechaCreacion)
+            .Where(t => t.IdUsuarioAsignado == idUsuarioAsignado)
+            .OrderByDescending(t => t.FechaAsignacion)
             .ToListAsync();
         }
     }

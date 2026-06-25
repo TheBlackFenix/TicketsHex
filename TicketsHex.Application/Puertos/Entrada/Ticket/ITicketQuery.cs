@@ -2,7 +2,7 @@
 
 namespace TicketsHex.Application.Puertos.Entrada.Ticket
 {
-    internal interface ITicketQuery
+    public interface ITicketQuery
     {
         Task<TicketDTO> ObtenerTicketPorIdAsync(Guid id);
         Task<IEnumerable<TicketDTO>> ObtenerListaTicketsAsync();

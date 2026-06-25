@@ -24,11 +24,11 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqliteRepository.Con
 
             modelBuilder.Entity<Ticket>(b =>
             {
-                b.ToTable("Tickets");
+                b.ToTable("tickets");
                 b.HasKey(t => t.IdTicket);
 
                 // Conversión limpia de los Value Objects a columnas VARCHAR de Postgres
-                b.Property(t => t.IdCaso)
+                b.Property(t => t.CodigoCaso)
                     .HasColumnName("IdCaso")
                     .HasConversion(vo => vo.Valor, value => new CodigoCasoVO(value))
                     .IsRequired();
@@ -51,9 +51,10 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqliteRepository.Con
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
+
             modelBuilder.Entity<HistoricoEstadosTicket>(b =>
             {
-                b.ToTable("HistoricoEstadosTicket");
+                b.ToTable("historicoestadosticket");
                 b.HasKey(h => h.IdHistorico);
                 b.Property(h => h.IdEstadoOrigen).HasConversion<int?>();
                 b.Property(h => h.IdEstadoDestino).HasConversion<int>();
@@ -64,6 +65,16 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqliteRepository.Con
             //    b.ToTable("Usuarios");
             //    b.HasKey(u => u.IdUsuario);
             //});
+            // Convertir automáticamente todos los nombres de columnas a minúsculas
+            foreach (var entity in modelBuilder.Model.GetEntityTypes())
+            {
+                foreach (var property in entity.GetProperties())
+                {
+                    // Esto le quita el CamelCase y lo deja todo en minúsculas para Postgres
+                    property.SetColumnName(property.Name.ToLowerInvariant());
+                    // Nota: Si .ToLowerScalar() no te aparece, puedes usar .ToLower()
+                }
+            }
         }
     }
 }
