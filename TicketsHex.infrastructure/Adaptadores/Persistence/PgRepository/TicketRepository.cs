@@ -1,36 +1,25 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using TicketsHex.Application.Comun.Paginacion;
+using TicketsHex.Application.DTO_s.Ticket;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Ticket;
-using TicketsHex.infrastructure.Adaptadores.Persistence.SqliteRepository.Context;
+using TicketsHex.Domain.ValueObjects.Ticket;
+using TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context;
 
-namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqliteRepository
+namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository
 {
     public class TicketRepository : ITicketRepository
     {
         private readonly MantenimientoContext _dbContext;
+
         public TicketRepository(MantenimientoContext dbContext)
         {
             _dbContext = dbContext;
         }
+
         public async Task ActualizarAsync(Ticket ticket)
         {
-            _dbContext.Tickets.Update(ticket);
             await _dbContext.SaveChangesAsync();
-        }
-
-        public async Task EliminarAsync(Guid id)
-        {
-            var ticket = await _dbContext.Tickets.FindAsync(id);
-            if (ticket != null)
-            {
-                _dbContext.Tickets.Remove(ticket);
-                await _dbContext.SaveChangesAsync();
-            }
         }
 
         public async Task GuardarAsync(Ticket ticket)
@@ -39,35 +28,50 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqliteRepository
             await _dbContext.SaveChangesAsync();
         }
 
-        public async Task<Ticket> ObtenerPorIdAsync(Guid id)
+        public async Task<Ticket?> ObtenerPorIdAsync(Guid id, bool incluirEliminados = false)
         {
             return await _dbContext.Tickets
-            .Include(t => t.HistoricoEstados)
-            .FirstOrDefaultAsync(t => t.IdTicket == id);
+                .Include(t => t.HistoricoEstados)
+                .Where(t => incluirEliminados || t.Activo)
+                .FirstOrDefaultAsync(t => t.IdTicket == id);
         }
 
-        public async Task<Ticket> ObtenerTicketPorCodigoYUsuerioAsync(Guid id, int idUsuarioAsignado)
+        public async Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(TicketFiltroRequest filtro)
         {
-            return await _dbContext.Tickets
-            .Include(t => t.HistoricoEstados)
-            .FirstOrDefaultAsync(t => t.IdTicket == id && t.IdUsuarioAsignado == idUsuarioAsignado);
-        }
+            IQueryable<Ticket> query = _dbContext.Tickets.AsNoTracking();
 
-        public async Task<IEnumerable<Ticket>> ObtenerTodosAsync()
-        {
-            return await _dbContext.Tickets
-            .AsNoTracking() 
-            .OrderByDescending(t => t.FechaAsignacion)
-            .ToListAsync();
-        }
+            if (!filtro.IncluirEliminados)
+                query = query.Where(t => t.Activo);
+            if (filtro.Estado.HasValue)
+                query = query.Where(t => t.IdEstado == filtro.Estado.Value);
+            if (filtro.Origen.HasValue)
+                query = query.Where(t => t.IdOrigen == filtro.Origen.Value);
+            if (filtro.IdUsuarioAsignado.HasValue)
+                query = query.Where(t => t.IdUsuarioAsignado == filtro.IdUsuarioAsignado.Value);
+            if (!string.IsNullOrWhiteSpace(filtro.CodigoCaso))
+            {
+                var codigo = new CodigoCasoVO(filtro.CodigoCaso);
+                query = query.Where(t => t.CodigoCaso == codigo);
+            }
+            if (filtro.Desde.HasValue)
+                query = query.Where(t => t.FechaAsignacion >= filtro.Desde.Value);
+            if (filtro.Hasta.HasValue)
+                query = query.Where(t => t.FechaAsignacion <= filtro.Hasta.Value);
 
-        public async Task<IEnumerable<Ticket>> ObtenerTodosPorIdUsuarioAsignadoAsync(int idUsuarioAsignado)
-        {
-            return await _dbContext.Tickets
-            .AsNoTracking() // Optimización sustancial para solo lectura
-            .Where(t => t.IdUsuarioAsignado == idUsuarioAsignado)
-            .OrderByDescending(t => t.FechaAsignacion)
-            .ToListAsync();
+            var total = await query.CountAsync();
+            var tickets = await query
+                .Include(t => t.HistoricoEstados)
+                .AsSplitQuery()
+                .OrderByDescending(t => t.FechaAsignacion)
+                .Skip((filtro.Pagina - 1) * filtro.TamanoPagina)
+                .Take(filtro.TamanoPagina)
+                .ToListAsync();
+
+            return new PaginaResultado<Ticket>(
+                tickets,
+                filtro.Pagina,
+                filtro.TamanoPagina,
+                total);
         }
     }
 }

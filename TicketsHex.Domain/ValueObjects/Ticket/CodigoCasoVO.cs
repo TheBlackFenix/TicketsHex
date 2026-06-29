@@ -14,6 +14,8 @@ namespace TicketsHex.Domain.ValueObjects.Ticket
         {
             if (string.IsNullOrWhiteSpace(valor))
                 throw new ArgumentException("El código de caso no puede estar vacío.", nameof(valor));
+            if (valor.Length > 20)
+                throw new ArgumentException("El código de caso no puede superar 20 caracteres.", nameof(valor));
 
             Valor = valor;
         }

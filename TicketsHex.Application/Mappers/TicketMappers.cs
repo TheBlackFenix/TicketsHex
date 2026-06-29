@@ -16,10 +16,17 @@ namespace TicketsHex.Application.Mappers
                 Titulo: ticket.Titulo.Value,
                 Descripcion: ticket.Descripcion.Value,
                 TicketEstado: ticket.IdEstado,
+                Origen: ticket.IdOrigen,
                 IdUsuarioAsignado: ticket.IdUsuarioAsignado,
+                CausaRaiz: ticket.CausaRaiz,
+                SolucionPropuesta: ticket.SolucionPropuesta,
                 FechaUltimaActualizacion: ticket.FechaUltimaActualizacion,
                 FechaCreacion: ticket.FechaAsignacion,
-                Comentarios: ticket.HistoricoEstados.Select(h => h.ToHistoryDto())
+                Activo: ticket.Activo,
+                FechaEliminacion: ticket.FechaEliminacion,
+                Comentarios: ticket.HistoricoEstados
+                    .OrderByDescending(h => h.FechaCambio)
+                    .Select(h => h.ToHistoryDto())
             );
         }
 

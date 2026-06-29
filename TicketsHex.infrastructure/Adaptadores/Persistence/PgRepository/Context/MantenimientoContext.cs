@@ -1,13 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using TicketsHex.Domain.Entidades.Ticket;
+using TicketsHex.Domain.Entidades.Usuario;
 using TicketsHex.Domain.ValueObjects.Ticket;
 
-namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqliteRepository.Context
+namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
 {
     public class MantenimientoContext : DbContext
     {
@@ -15,11 +11,10 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqliteRepository.Con
 
         public DbSet<Ticket> Tickets => Set<Ticket>();
         public DbSet<HistoricoEstadosTicket> HistoricoEstados => Set<HistoricoEstadosTicket>();
-        //public DbSet<Usuario> Usuarios => Set<Usuario>();
+        public DbSet<Usuario> Usuarios => Set<Usuario>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Configuramos el esquema por defecto si decidiste usar uno personalizado
             modelBuilder.HasDefaultSchema("public");
 
             modelBuilder.Entity<Ticket>(b =>
@@ -27,30 +22,36 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqliteRepository.Con
                 b.ToTable("tickets");
                 b.HasKey(t => t.IdTicket);
 
-                // Conversión limpia de los Value Objects a columnas VARCHAR de Postgres
                 b.Property(t => t.CodigoCaso)
-                    .HasColumnName("IdCaso")
                     .HasConversion(vo => vo.Valor, value => new CodigoCasoVO(value))
+                    .HasMaxLength(20)
                     .IsRequired();
 
                 b.Property(t => t.Titulo)
                     .HasConversion(vo => vo.Value, value => new TituloVO(value))
+                    .HasMaxLength(100)
                     .IsRequired();
 
                 b.Property(t => t.Descripcion)
                     .HasConversion(vo => vo.Value, value => new DescripcionVO(value))
+                    .HasMaxLength(500)
                     .IsRequired();
 
-                // Mapeo del Enum como entero
-                b.Property(t => t.IdEstado).HasColumnName("IdEstado").HasConversion<int>();
+                b.Property(t => t.IdOrigen).HasConversion<int>();
+                b.Property(t => t.IdEstado).HasConversion<int>();
+                b.Property(t => t.CausaRaiz).HasMaxLength(1000);
+                b.Property(t => t.SolucionPropuesta).HasMaxLength(1000);
 
-                // Relación clásica de EF Core: 1 ticket tiene muchos históricos
                 b.HasMany(t => t.HistoricoEstados)
                     .WithOne()
                     .HasForeignKey(h => h.IdTicket)
                     .OnDelete(DeleteBehavior.Cascade);
-            });
 
+                b.HasOne<Usuario>()
+                    .WithMany()
+                    .HasForeignKey(t => t.IdUsuarioAsignado)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
 
             modelBuilder.Entity<HistoricoEstadosTicket>(b =>
             {
@@ -58,22 +59,28 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqliteRepository.Con
                 b.HasKey(h => h.IdHistorico);
                 b.Property(h => h.IdEstadoOrigen).HasConversion<int?>();
                 b.Property(h => h.IdEstadoDestino).HasConversion<int>();
+                b.Property(h => h.Comentario).HasMaxLength(1000);
+
+                b.HasOne<Usuario>()
+                    .WithMany()
+                    .HasForeignKey(h => h.IdUsuarioAccion)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
-            //modelBuilder.Entity<Usuario>(b =>
-            //{
-            //    b.ToTable("Usuarios");
-            //    b.HasKey(u => u.IdUsuario);
-            //});
-            // Convertir automáticamente todos los nombres de columnas a minúsculas
+            modelBuilder.Entity<Usuario>(b =>
+            {
+                b.ToTable("usuarios");
+                b.HasKey(u => u.IdUsuario);
+                b.Property(u => u.NombreUsuario).HasMaxLength(50).IsRequired();
+                b.Property(u => u.Nombres).HasMaxLength(100).IsRequired();
+                b.Property(u => u.Apellidos).HasMaxLength(100);
+                b.Property(u => u.IdRol).HasConversion<int>();
+            });
+
             foreach (var entity in modelBuilder.Model.GetEntityTypes())
             {
                 foreach (var property in entity.GetProperties())
-                {
-                    // Esto le quita el CamelCase y lo deja todo en minúsculas para Postgres
                     property.SetColumnName(property.Name.ToLowerInvariant());
-                    // Nota: Si .ToLowerScalar() no te aparece, puedes usar .ToLower()
-                }
             }
         }
     }

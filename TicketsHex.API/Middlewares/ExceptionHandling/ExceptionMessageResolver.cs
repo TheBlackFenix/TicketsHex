@@ -32,6 +32,9 @@ namespace TicketsHex.API.Middelwares.ExceptionHandling
         {
             return exception switch
             {
+                Application.Comun.Excepciones.RecursoNoEncontradoException => "RecursoNoEncontradoException",
+                Application.Comun.Excepciones.ConflictoException => "ConflictoException",
+                Application.Comun.Excepciones.UsuarioNoAutenticadoException => "UsuarioNoAutenticadoException",
                 System.Data.Common.DbException => "DbException",
                 System.Data.DataException => "DataException",
                 ArgumentNullException => "ArgumentNullException",

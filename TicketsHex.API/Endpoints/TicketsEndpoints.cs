@@ -1,7 +1,9 @@
-﻿using TicketsHex.API.Reponses;
-using TicketsHex.Application.CasosUso.TicketCasosUso;
+using Microsoft.AspNetCore.Mvc;
+using TicketsHex.API.Reponses;
+using TicketsHex.Application.Comun.Paginacion;
 using TicketsHex.Application.DTO_s.Ticket;
 using TicketsHex.Application.Puertos.Entrada.Ticket;
+using TicketsHex.API.Servicios;
 
 namespace TicketsHex.API.Endpoints
 {
@@ -10,53 +12,69 @@ namespace TicketsHex.API.Endpoints
         public static IEndpointRouteBuilder MapTicketEndpoints(this IEndpointRouteBuilder app)
         {
             var group = app.MapGroup("/api/tickets")
-                           .WithTags("Tickets")
-                           .WithOpenApi();
+                .WithTags("Tickets")
+                .WithOpenApi()
+                .ConUsuarioActualTemporal();
 
-            group.MapGet("/", async (ITicketQuery ticketsQueries) =>
+            group.MapGet("/", async (
+                [AsParameters] TicketFiltroRequest filtro,
+                ITicketQuery queries) =>
             {
-                var tickets = await ticketsQueries.ObtenerListaTicketsAsync();
-
-                return Results.Ok(
-                    ApiResponse<IEnumerable<TicketDTO>>.Ok(
-                        tickets,
-                        "Tickets consultados correctamente."));
+                var tickets = await queries.ObtenerListaTicketsAsync(filtro);
+                return Results.Ok(ApiResponse<PaginaResultado<TicketDTO>>.Ok(
+                    tickets,
+                    "Tickets consultados correctamente."));
             });
 
-            group.MapGet("/{id:guid}", async (Guid id, ITicketQuery ticketsQueries) =>
+            group.MapGet("/mis-tickets", async (
+                [AsParameters] TicketFiltroRequest filtro,
+                ITicketQuery queries) =>
             {
-                var ticket = await ticketsQueries.ObtenerTicketPorIdAsync(id);
-
-                return ticket is not null
-                    ? Results.Ok(ApiResponse<TicketDTO>.Ok(ticket, "Ticket consultado correctamente."))
-                    : Results.NotFound();
+                var tickets = await queries.ObtenerMisTicketsAsync(filtro);
+                return Results.Ok(ApiResponse<PaginaResultado<TicketDTO>>.Ok(
+                    tickets,
+                    "Tickets asignados consultados correctamente."));
             });
 
-            group.MapPost("/", async (CrearTicketRequest ticketDto, ITicketCommand ticketCommands) =>
+            group.MapGet("/{id:guid}", async (Guid id, ITicketQuery queries) =>
             {
-                var guid = await ticketCommands.CrearTicketAsync(ticketDto);
+                var ticket = await queries.ObtenerTicketPorIdAsync(id);
+                return Results.Ok(ApiResponse<TicketDTO>.Ok(
+                    ticket,
+                    "Ticket consultado correctamente."));
+            });
 
+            group.MapPost("/", async (CrearTicketRequest request, ITicketCommand commands) =>
+            {
+                var id = await commands.CrearTicketAsync(request);
                 return Results.Created(
-                    $"/api/tickets/{guid}",
-                    ApiResponse<Guid>.Ok(guid, "Ticket creado correctamente."));
+                    $"/api/tickets/{id}",
+                    ApiResponse<Guid>.Ok(id, "Ticket creado correctamente."));
             });
 
-            group.MapPut("/{id:guid}", async (Guid id, ActualizarEstadoRequest ticket, ITicketCommand ticketCommands) =>
+            group.MapPatch("/{id:guid}", async (
+                Guid id,
+                ActualizarTicketRequest request,
+                ITicketCommand commands) =>
             {
-                if (id != ticket.IdTicket)
-                    return Results.BadRequest("El id de la URL no coincide con el Guid del cuerpo.");
-
-                await ticketCommands.ActualizarEstadoAsync(ticket);
-                return Results.Ok(ApiResponse<bool>.Ok(true, "Estado del ticket actualizado correctamente."));
+                await commands.ActualizarTicketAsync(id, request);
+                return Results.Ok(ApiResponse<bool>.Ok(
+                    true,
+                    "Ticket actualizado correctamente."));
             });
 
-            group.MapDelete("/{id:guid}", async (Guid id, ITicketCommand ticketCommands) =>
+            group.MapDelete("/{id:guid}", async (
+                Guid id,
+                [FromQuery] string? comentario,
+                ITicketCommand commands) =>
             {
-                await ticketCommands.EliminarTicketAsync(id);
-
-                return Results.Ok(ApiResponse<bool>.Ok(true, "Ticket eliminado correctamente."));
+                await commands.EliminarTicketAsync(id, comentario);
+                return Results.Ok(ApiResponse<bool>.Ok(
+                    true,
+                    "Ticket eliminado correctamente."));
             });
 
+            app.MapUsuariosEndpoints();
             return app;
         }
     }

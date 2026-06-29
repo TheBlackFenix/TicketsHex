@@ -1,51 +1,127 @@
-﻿using TicketsHex.Application.DTO_s.Ticket;
+using TicketsHex.Application.Comun.Excepciones;
+using TicketsHex.Application.DTO_s.Ticket;
 using TicketsHex.Application.Puertos.Entrada.Ticket;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Ticket;
-using TicketsHex.Domain.Enums;
+using TicketsHex.Domain.ValueObjects.Ticket;
 
 namespace TicketsHex.Application.CasosUso.TicketCasosUso
 {
     public class TicketCommand : ITicketCommand
     {
         private readonly ITicketRepository _ticketRepository;
-        public TicketCommand(ITicketRepository ticketRepository)
+        private readonly IUsuarioRepository _usuarioRepository;
+        private readonly IUsuarioActual _usuarioActual;
+
+        public TicketCommand(
+            ITicketRepository ticketRepository,
+            IUsuarioRepository usuarioRepository,
+            IUsuarioActual usuarioActual)
         {
             _ticketRepository = ticketRepository;
-        }
-        public async Task ActualizarEstadoAsync(ActualizarEstadoRequest actualizarEstadoRequest)
-        {
-            var ticket = await _ticketRepository.ObtenerPorIdAsync(actualizarEstadoRequest.IdTicket);
-            if (ticket == null) throw new KeyNotFoundException("Ticket no encontrado");
-
-            // El dominio sigue ejecutando la lógica SOLID y la máquina de estados
-            ticket.ActualizarEstado(actualizarEstadoRequest.NuevoEstado, actualizarEstadoRequest.IdUsuarioActualizacion, actualizarEstadoRequest.RolUsuario, actualizarEstadoRequest.Comentario);
-            await _ticketRepository.ActualizarAsync(ticket);
+            _usuarioRepository = usuarioRepository;
+            _usuarioActual = usuarioActual;
         }
 
         public async Task<Guid> CrearTicketAsync(CrearTicketRequest request)
         {
+            await ValidarUsuarioExisteAsync(request.IdUsuarioAsignado);
 
-            var ticket = new Ticket(request.CodigoCaso, request.Titulo, request.Descripcion, request.IdUsuarioAsignado, request.OrigenTicket);
+            var ticket = new Ticket(
+                request.CodigoCaso,
+                request.Titulo,
+                request.Descripcion,
+                request.IdUsuarioAsignado,
+                _usuarioActual.IdUsuario,
+                request.OrigenTicket);
+
             await _ticketRepository.GuardarAsync(ticket);
             return ticket.IdTicket;
         }
 
-        public async Task EliminarTicketAsync(Guid ticketId)
+        public async Task ActualizarTicketAsync(Guid ticketId, ActualizarTicketRequest request)
         {
-            var ticket = await _ticketRepository.ObtenerPorIdAsync(ticketId);
-            if (ticket == null) throw new KeyNotFoundException("Ticket no encontrado");
-            await _ticketRepository.EliminarAsync(ticketId);
-        }
+            var ticket = await ObtenerTicketActivoAsync(ticketId);
+            var huboCambios = false;
 
-        public async Task ReasignarTicketAsync(Guid ticketId, int nuevoUsuarioId, int idUsuarioAction, Rol rol, string? comentario)
-        {
-            var ticket = await _ticketRepository.ObtenerPorIdAsync(ticketId);
-            if (ticket == null) throw new KeyNotFoundException("Ticket no encontrado");
+            if (request.Titulo is not null)
+            {
+                ticket.ActualizarTitulo(request.Titulo, _usuarioActual.IdUsuario, _usuarioActual.Rol);
+                huboCambios = true;
+            }
 
-            ticket.ReasignarTicket(nuevoUsuarioId, idUsuarioAction, rol, comentario);
+            if (request.Descripcion is not null)
+            {
+                ticket.ActualizarDescripcion(
+                    new DescripcionVO(request.Descripcion),
+                    _usuarioActual.IdUsuario,
+                    _usuarioActual.Rol);
+                huboCambios = true;
+            }
+
+            if (request.IdUsuarioAsignado.HasValue)
+            {
+                await ValidarUsuarioExisteAsync(request.IdUsuarioAsignado.Value);
+                ticket.ReasignarTicket(
+                    request.IdUsuarioAsignado.Value,
+                    _usuarioActual.IdUsuario,
+                    _usuarioActual.Rol,
+                    request.Comentario);
+                huboCambios = true;
+            }
+
+            if (request.CausaRaiz is not null || request.SolucionPropuesta is not null)
+            {
+                ticket.ActualizarDiagnostico(
+                    request.CausaRaiz,
+                    request.SolucionPropuesta,
+                    _usuarioActual.IdUsuario,
+                    _usuarioActual.Rol);
+                huboCambios = true;
+            }
+
+            if (request.NuevoEstado.HasValue)
+            {
+                ticket.ActualizarEstado(
+                    request.NuevoEstado.Value,
+                    _usuarioActual.IdUsuario,
+                    _usuarioActual.Rol,
+                    request.Comentario);
+                huboCambios = true;
+            }
+
+            if (!huboCambios && !string.IsNullOrWhiteSpace(request.Comentario))
+            {
+                ticket.AgregarComentarioLibre(
+                    request.Comentario,
+                    _usuarioActual.IdUsuario,
+                    _usuarioActual.Rol);
+                huboCambios = true;
+            }
+
+            if (!huboCambios)
+                throw new ArgumentException("Debe indicar al menos un campo para actualizar.");
 
             await _ticketRepository.ActualizarAsync(ticket);
+        }
+
+        public async Task EliminarTicketAsync(Guid ticketId, string? comentario)
+        {
+            var ticket = await ObtenerTicketActivoAsync(ticketId);
+            ticket.EliminarLogicamente(_usuarioActual.IdUsuario, _usuarioActual.Rol, comentario);
+            await _ticketRepository.ActualizarAsync(ticket);
+        }
+
+        private async Task<Ticket> ObtenerTicketActivoAsync(Guid ticketId)
+        {
+            return await _ticketRepository.ObtenerPorIdAsync(ticketId)
+                ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
+        }
+
+        private async Task ValidarUsuarioExisteAsync(long idUsuario)
+        {
+            if (!await _usuarioRepository.ExisteAsync(idUsuario))
+                throw new RecursoNoEncontradoException($"El usuario {idUsuario} no existe o está inactivo.");
         }
     }
 }

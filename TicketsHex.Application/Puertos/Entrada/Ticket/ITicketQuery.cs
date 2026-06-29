@@ -1,12 +1,12 @@
-﻿using TicketsHex.Application.DTO_s.Ticket;
+using TicketsHex.Application.Comun.Paginacion;
+using TicketsHex.Application.DTO_s.Ticket;
 
 namespace TicketsHex.Application.Puertos.Entrada.Ticket
 {
     public interface ITicketQuery
     {
         Task<TicketDTO> ObtenerTicketPorIdAsync(Guid id);
-        Task<IEnumerable<TicketDTO>> ObtenerListaTicketsAsync();
-        Task<TicketDTO> ObtenerTicketPorCodigoYUsuerioAsync(Guid id, int idUsuarioAsignado);
-        Task<IEnumerable<TicketDTO>> ObtenerTicketsPorUsuarioAsignadoAsync(int idUsuarioAsignado);
+        Task<PaginaResultado<TicketDTO>> ObtenerListaTicketsAsync(TicketFiltroRequest filtro);
+        Task<PaginaResultado<TicketDTO>> ObtenerMisTicketsAsync(TicketFiltroRequest filtro);
     }
 }
