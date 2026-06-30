@@ -115,10 +115,10 @@ CREATE TABLE IF NOT EXISTS RamasTicket (
 
 -- 5. DATA INICIAL (SEED MASTER DATA COINCIDENTE CON TUS ENUMS DE C#)
 INSERT INTO Roles (IdRol, NombreRol, Descripcion) VALUES
-(2, 'Desarrollador', 'Ingeniero encargado del mantenimiento técnico'),
-(3, 'QA', 'Analista de calidad y pruebas'),
-(4, 'LiderTecnico', 'Aprobador técnico y administrador del flujo'),
-(5, 'Planner', 'Planeador y certificador de entregas')
+(1, 'Desarrollador', 'Ingeniero encargado del mantenimiento técnico'),
+(2, 'QA', 'Analista de calidad y pruebas'),
+(3, 'LiderTecnico', 'Aprobador técnico y administrador del flujo'),
+(4, 'Planner', 'Planeador y certificador de entregas')
 ON CONFLICT (IdRol) DO NOTHING ;
 
 INSERT INTO EstadosTicket (IdEstado, Estado, Descripcion) VALUES

@@ -9,7 +9,7 @@ namespace TicketsHex.Domain.Entidades.Usuario
         public string Nombres { get; private set; } = string.Empty;
         public string? Apellidos { get; private set; }
         public Rol IdRol { get; private set; }
-        public int? IdArea { get; private set; }
+        public Area? IdArea { get; private set; }
         public bool Activo { get; private set; } = true;
 
         private Usuario() { }
@@ -20,7 +20,7 @@ namespace TicketsHex.Domain.Entidades.Usuario
             string nombres,
             string? apellidos,
             Rol rol,
-            int? idArea)
+            Area? idArea)
         {
             if (idUsuario <= 0)
                 throw new ArgumentException("El ID del usuario debe ser positivo.", nameof(idUsuario));
@@ -34,7 +34,7 @@ namespace TicketsHex.Domain.Entidades.Usuario
             string nombres,
             string? apellidos,
             Rol rol,
-            int? idArea)
+            Area? idArea)
         {
             if (string.IsNullOrWhiteSpace(nombreUsuario))
                 throw new ArgumentException("El nombre de usuario es obligatorio.", nameof(nombreUsuario));

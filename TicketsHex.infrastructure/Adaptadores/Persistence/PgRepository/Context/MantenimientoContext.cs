@@ -56,7 +56,10 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
             modelBuilder.Entity<HistoricoEstadosTicket>(b =>
             {
                 b.ToTable("historicoestadosticket");
-                b.HasKey(h => h.IdHistorico);
+                b.HasKey(e => e.IdHistorico);
+                // Le avisa a EF que tú te encargas de asignar el Id y que no espere que lo genere la DB
+                b.Property(e => e.IdHistorico)
+                      .ValueGeneratedNever();
                 b.Property(h => h.IdEstadoOrigen).HasConversion<int?>();
                 b.Property(h => h.IdEstadoDestino).HasConversion<int>();
                 b.Property(h => h.Comentario).HasMaxLength(1000);

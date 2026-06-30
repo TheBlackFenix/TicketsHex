@@ -6,11 +6,10 @@ using System.Threading.Tasks;
 
 namespace TicketsHex.Domain.Enums
 {
-    public enum Rol
+    public enum Area
     {
-        Desarrollador = 1,
-        QA = 2,
-        LiderTecnico = 3,
-        Planner = 4
+        Mantenimiento = 1,
+        Soporte = 2,
+        Vulnerabilidades = 3
     }
 }

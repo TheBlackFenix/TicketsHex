@@ -8,6 +8,6 @@ namespace TicketsHex.Application.DTO_s.Usuario
         string Nombres,
         string? Apellidos,
         Rol Rol,
-        int? IdArea,
+        Area? IdArea,
         bool Activo);
 }
