@@ -7,6 +7,24 @@
       "UseExceptionMessage": false
     },
     "Mappings": {
+      "RecursoNoEncontradoException": {
+        "StatusCode": 404,
+        "Title": "Recurso no encontrado",
+        "Detail": "El recurso solicitado no existe.",
+        "UseExceptionMessage": true
+      },
+      "ConflictoException": {
+        "StatusCode": 409,
+        "Title": "Conflicto",
+        "Detail": "La operación entra en conflicto con el estado actual.",
+        "UseExceptionMessage": true
+      },
+      "UsuarioNoAutenticadoException": {
+        "StatusCode": 401,
+        "Title": "Usuario no autenticado",
+        "Detail": "No fue posible determinar la identidad del usuario.",
+        "UseExceptionMessage": true
+      },
       "ArgumentException": {
         "StatusCode": 400,
         "Title": "Error de validación",

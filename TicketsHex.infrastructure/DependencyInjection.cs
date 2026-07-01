@@ -7,8 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using TicketsHex.Application.Puertos.Salida;
-using TicketsHex.infrastructure.Adaptadores.Persistence.SqliteRepository;
-using TicketsHex.infrastructure.Adaptadores.Persistence.SqliteRepository.Context;
+using TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository;
+using TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context;
 
 namespace TicketsHex.infrastructure
 {
@@ -24,6 +24,7 @@ namespace TicketsHex.infrastructure
 
             // 2. Registrar los Adaptadores de Salida (Repositorios)
             services.AddScoped<ITicketRepository, TicketRepository>();
+            services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 
             return services;
         }

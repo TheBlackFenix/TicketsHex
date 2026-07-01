@@ -8,7 +8,9 @@ namespace TicketsHex.Domain.Entidades.Ticket
 
         private static readonly Dictionary<TicketEstado, ReglaTransicion> ReglasDeTransicion = new()
         {
-            [TicketEstado.EnProceso] = new([TicketEstado.EnAnalisis], [Rol.Desarrollador, Rol.LiderTecnico]),
+            [TicketEstado.EnProceso] = new(
+                [TicketEstado.EnAnalisis, TicketEstado.Bloqueado, TicketEstado.BUG],
+                [Rol.Desarrollador, Rol.LiderTecnico]),
             [TicketEstado.Bloqueado] = new([TicketEstado.EnProceso], [Rol.Desarrollador, Rol.LiderTecnico], true),
             [TicketEstado.Entregado] = new([TicketEstado.EnProceso], [Rol.Desarrollador, Rol.LiderTecnico]),
             [TicketEstado.DespliegueApitesting] = new([TicketEstado.Entregado], [Rol.LiderTecnico]),

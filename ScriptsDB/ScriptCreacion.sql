@@ -45,7 +45,7 @@ ADD Column IF NOT EXISTS IdArea INT REFERENCES AreasTicket(IdArea);
 CREATE TABLE IF NOT EXISTS Tickets (
     IdTicket UUID PRIMARY KEY,
     CodigoCaso VARCHAR(20) NOT NULL UNIQUE, -- Unificado semánticamente con tu CodigoCasoVO
-    Titulo VARCHAR(200) NOT NULL,
+    Titulo VARCHAR(100) NOT NULL,
     Descripcion VARCHAR(500) NOT NULL,
     FechaAsignacion TIMESTAMPTZ NOT NULL DEFAULT NOW(), -- Uso de zonas horarias reales
     FechaUltimaActualizacion TIMESTAMPTZ,
@@ -54,11 +54,23 @@ CREATE TABLE IF NOT EXISTS Tickets (
     IdEstado INT REFERENCES EstadosTicket(IdEstado) NOT NULL,
     CarpetaMedios VARCHAR(200),
     CausaRaiz VARCHAR(1000),
-    SolucionPropuesta VARCHAR(1000)
+    SolucionPropuesta VARCHAR(1000),
+    Activo BOOLEAN NOT NULL DEFAULT TRUE,
+    FechaEliminacion TIMESTAMPTZ,
+    IdUsuarioEliminacion BIGINT REFERENCES Usuarios(IdUsuario)
 );
 
 ALTER TABLE IF EXISTS Tickets
 ADD Column IF NOT EXISTS IdOrigen INT REFERENCES OrigenesTicket(IdOrigen);
+
+ALTER TABLE IF EXISTS Tickets
+ADD COLUMN IF NOT EXISTS Activo BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE IF EXISTS Tickets
+ADD COLUMN IF NOT EXISTS FechaEliminacion TIMESTAMPTZ;
+
+ALTER TABLE IF EXISTS Tickets
+ADD COLUMN IF NOT EXISTS IdUsuarioEliminacion BIGINT REFERENCES Usuarios(IdUsuario);
 
 -- 3. TRAZABILIDAD (HISTÓRICO DE ESTADOS)
 CREATE TABLE IF NOT EXISTS HistoricoEstadosTicket (
@@ -73,6 +85,9 @@ CREATE TABLE IF NOT EXISTS HistoricoEstadosTicket (
 
 -- ÍNDICE DE CONTROL DE RENDIMIENTO PARA LA TRAZABILIDAD
 CREATE INDEX IF NOT EXISTS IX_HistoricoEstadosTicket_IdTicket ON HistoricoEstadosTicket(IdTicket);
+CREATE INDEX IF NOT EXISTS IX_Tickets_Activo_FechaAsignacion ON Tickets(Activo, FechaAsignacion DESC);
+CREATE INDEX IF NOT EXISTS IX_Tickets_UsuarioAsignado_Activo ON Tickets(IdUsuarioAsignado, Activo);
+CREATE INDEX IF NOT EXISTS IX_Tickets_Estado_Activo ON Tickets(IdEstado, Activo);
 
 
 -- 4. GESTIÓN DE CONFIGURACIÓN Y GIT (REPOSITORIOS Y RAMAS)
@@ -100,10 +115,10 @@ CREATE TABLE IF NOT EXISTS RamasTicket (
 
 -- 5. DATA INICIAL (SEED MASTER DATA COINCIDENTE CON TUS ENUMS DE C#)
 INSERT INTO Roles (IdRol, NombreRol, Descripcion) VALUES
-(2, 'Desarrollador', 'Ingeniero encargado del mantenimiento técnico'),
-(3, 'QA', 'Analista de calidad y pruebas'),
-(4, 'LiderTecnico', 'Aprobador técnico y administrador del flujo'),
-(5, 'Planner', 'Planeador y certificador de entregas')
+(1, 'Desarrollador', 'Ingeniero encargado del mantenimiento técnico'),
+(2, 'QA', 'Analista de calidad y pruebas'),
+(3, 'LiderTecnico', 'Aprobador técnico y administrador del flujo'),
+(4, 'Planner', 'Planeador y certificador de entregas')
 ON CONFLICT (IdRol) DO NOTHING ;
 
 INSERT INTO EstadosTicket (IdEstado, Estado, Descripcion) VALUES

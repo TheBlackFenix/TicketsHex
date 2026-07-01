@@ -1,6 +1,41 @@
-@TicketsHex.API_HostAddress = http://localhost:5053
+@host = http://localhost:5053
+@plannerId = 1
+@developerId = 2
+@ticketId = 00000000-0000-0000-0000-000000000000
 
-GET {{TicketsHex.API_HostAddress}}/weatherforecast/
-Accept: application/json
+### Crear usuario (contexto temporal de Planner)
+POST {{host}}/api/usuarios
+Content-Type: application/json
+X-User-Id: {{plannerId}}
+X-User-Role: Planner
 
-###
+{
+  "idUsuario": 2,
+  "nombreUsuario": "developer",
+  "nombres": "Usuario",
+  "apellidos": "Desarrollador",
+  "rol": "Desarrollador",
+  "idArea": 2
+}
+
+### Listado general del Planner
+GET {{host}}/api/tickets?pagina=1&tamanoPagina=20&incluirEliminados=false
+X-User-Id: {{plannerId}}
+X-User-Role: Planner
+
+### Tickets del desarrollador
+GET {{host}}/api/tickets/mis-tickets?pagina=1&tamanoPagina=20
+X-User-Id: {{developerId}}
+X-User-Role: Desarrollador
+
+### Actualización parcial técnica
+PATCH {{host}}/api/tickets/{{ticketId}}
+Content-Type: application/json
+X-User-Id: {{developerId}}
+X-User-Role: Desarrollador
+
+{
+  "causaRaiz": "Causa identificada",
+  "solucionPropuesta": "Solución propuesta",
+  "comentario": "Diagnóstico inicial"
+}
