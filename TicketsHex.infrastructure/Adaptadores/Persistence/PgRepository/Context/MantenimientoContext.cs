@@ -18,6 +18,7 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
         public DbSet<EstadoTicketParametro> EstadosTicket => Set<EstadoTicketParametro>();
         public DbSet<OrigenTicketParametro> OrigenesTicket => Set<OrigenTicketParametro>();
         public DbSet<AreaTicketParametro> AreasTicket => Set<AreaTicketParametro>();
+        public DbSet<SesionUsuario> SesionesUsuario => Set<SesionUsuario>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -83,6 +84,23 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
                 b.Property(u => u.Apellidos).HasMaxLength(100);
                 b.Property(u => u.IdRol).HasConversion<int>();
                 b.Property(u => u.IdArea).HasConversion<int?>();
+                b.Property(u => u.ContrasenaHash).HasMaxLength(500);
+                b.HasIndex(u => u.NombreUsuario).IsUnique();
+            });
+
+            modelBuilder.Entity<SesionUsuario>(b =>
+            {
+                b.ToTable("sesionesusuario");
+                b.HasKey(s => s.IdSesion);
+                b.Property(s => s.TokenHash).HasMaxLength(64).IsRequired();
+                b.HasIndex(s => s.TokenHash).IsUnique();
+                b.HasIndex(s => s.IdUsuario)
+                    .IsUnique()
+                    .HasFilter("\"fecharevocacion\" IS NULL");
+                b.HasOne<Usuario>()
+                    .WithMany()
+                    .HasForeignKey(s => s.IdUsuario)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<RolParametro>(b =>

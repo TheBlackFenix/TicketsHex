@@ -25,6 +25,18 @@
         "Detail": "No fue posible determinar la identidad del usuario.",
         "UseExceptionMessage": true
       },
+      "CuentaBloqueadaException": {
+        "StatusCode": 423,
+        "Title": "Cuenta bloqueada",
+        "Detail": "La cuenta está bloqueada por intentos fallidos.",
+        "UseExceptionMessage": true
+      },
+      "ContrasenaExpiradaException": {
+        "StatusCode": 403,
+        "Title": "Contraseña expirada",
+        "Detail": "La contraseña debe ser actualizada.",
+        "UseExceptionMessage": true
+      },
       "ArgumentException": {
         "StatusCode": 400,
         "Title": "Error de validación",

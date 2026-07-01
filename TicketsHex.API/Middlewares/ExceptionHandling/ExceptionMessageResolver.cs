@@ -35,6 +35,8 @@ namespace TicketsHex.API.Middelwares.ExceptionHandling
                 Application.Comun.Excepciones.RecursoNoEncontradoException => "RecursoNoEncontradoException",
                 Application.Comun.Excepciones.ConflictoException => "ConflictoException",
                 Application.Comun.Excepciones.UsuarioNoAutenticadoException => "UsuarioNoAutenticadoException",
+                Application.Comun.Excepciones.CuentaBloqueadaException => "CuentaBloqueadaException",
+                Application.Comun.Excepciones.ContrasenaExpiradaException => "ContrasenaExpiradaException",
                 System.Data.Common.DbException => "DbException",
                 System.Data.DataException => "DataException",
                 ArgumentNullException => "ArgumentNullException",
