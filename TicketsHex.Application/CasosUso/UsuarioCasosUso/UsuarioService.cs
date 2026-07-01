@@ -4,6 +4,7 @@ using TicketsHex.Application.Puertos.Entrada.Usuario;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Usuario;
 using TicketsHex.Domain.Enums;
+using TicketsHex.Domain.Servicios;
 
 namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
 {
@@ -11,11 +12,19 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
     {
         private readonly IUsuarioRepository _repository;
         private readonly IUsuarioActual _usuarioActual;
+        private readonly IAutenticacionRepository _autenticacionRepository;
+        private readonly IContrasenaHasher _contrasenaHasher;
 
-        public UsuarioService(IUsuarioRepository repository, IUsuarioActual usuarioActual)
+        public UsuarioService(
+            IUsuarioRepository repository,
+            IUsuarioActual usuarioActual,
+            IAutenticacionRepository autenticacionRepository,
+            IContrasenaHasher contrasenaHasher)
         {
             _repository = repository;
             _usuarioActual = usuarioActual;
+            _autenticacionRepository = autenticacionRepository;
+            _contrasenaHasher = contrasenaHasher;
         }
 
         public async Task<IReadOnlyCollection<UsuarioDTO>> ObtenerTodosAsync(bool incluirInactivos)
@@ -37,14 +46,18 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
             ValidarPlanner();
             if (await _repository.ObtenerPorIdAsync(request.IdUsuario) is not null)
                 throw new ConflictoException($"El usuario {request.IdUsuario} ya existe.");
+            if (await _autenticacionRepository.ObtenerUsuarioPorNombreAsync(request.NombreUsuario) is not null)
+                throw new ConflictoException($"El nombre de usuario {request.NombreUsuario} ya existe.");
 
+            ValidadorContrasena.Validar(request.Contrasena);
             var usuario = new Usuario(
                 request.IdUsuario,
                 request.NombreUsuario,
                 request.Nombres,
                 request.Apellidos,
                 request.Rol,
-                request.IdArea);
+                request.IdArea,
+                _contrasenaHasher.CrearHash(request.Contrasena));
 
             await _repository.GuardarAsync(usuario);
         }
@@ -53,6 +66,11 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
         {
             ValidarPlanner();
             var usuario = await ObtenerEntidadAsync(idUsuario);
+            var usuarioMismoNombre = await _autenticacionRepository
+                .ObtenerUsuarioPorNombreAsync(request.NombreUsuario);
+            if (usuarioMismoNombre is not null && usuarioMismoNombre.IdUsuario != idUsuario)
+                throw new ConflictoException($"El nombre de usuario {request.NombreUsuario} ya existe.");
+
             usuario.Actualizar(
                 request.NombreUsuario,
                 request.Nombres,
@@ -65,6 +83,9 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
             else
                 usuario.Desactivar();
 
+            await _autenticacionRepository.RevocarSesionesAsync(
+                idUsuario,
+                DateTimeOffset.UtcNow);
             await _repository.ActualizarAsync(usuario);
         }
 
@@ -76,6 +97,17 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
 
             var usuario = await ObtenerEntidadAsync(idUsuario);
             usuario.Desactivar();
+            await _autenticacionRepository.RevocarSesionesAsync(
+                idUsuario,
+                DateTimeOffset.UtcNow);
+            await _repository.ActualizarAsync(usuario);
+        }
+
+        public async Task DesbloquearAsync(long idUsuario)
+        {
+            ValidarPlanner();
+            var usuario = await ObtenerEntidadAsync(idUsuario);
+            usuario.Desbloquear();
             await _repository.ActualizarAsync(usuario);
         }
 
@@ -98,6 +130,10 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
             usuario.Apellidos,
             usuario.IdRol,
             usuario.IdArea,
-            usuario.Activo);
+            usuario.Activo,
+            usuario.Bloqueado,
+            usuario.IntentosFallidos,
+            usuario.FechaBloqueo,
+            usuario.ContrasenaExpiraEn);
     }
 }

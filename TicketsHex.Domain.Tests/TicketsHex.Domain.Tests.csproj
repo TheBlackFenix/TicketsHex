@@ -23,6 +23,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TicketsHex.Domain\TicketsHex.Domain.csproj" />
+    <ProjectReference Include="..\TicketsHex.infrastructure\TicketsHex.infrastructure.csproj" />
+    <ProjectReference Include="..\TicketsHex.API\TicketsHex.API.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,6 +1,4 @@
-using Microsoft.OpenApi.Models;
 using TicketsHex.API.Reponses;
-using TicketsHex.API.Servicios;
 using TicketsHex.Application.DTO_s.Parametro;
 using TicketsHex.Application.Puertos.Entrada.Parametro;
 
@@ -12,28 +10,8 @@ namespace TicketsHex.API.Endpoints
         {
             var group = app.MapGroup("/api/parametros")
                 .WithTags("Parámetros")
-                .WithOpenApi(operation =>
-                {
-                    operation.Parameters.Add(new OpenApiParameter
-                    {
-                        Name = "X-User-Id",
-                        In = ParameterLocation.Header,
-                        Required = true,
-                        Schema = new OpenApiSchema { Type = "string" },
-                        Description = "Identificador del usuario actual."
-                    });
-                    operation.Parameters.Add(new OpenApiParameter
-                    {
-                        Name = "X-User-Role",
-                        In = ParameterLocation.Header,
-                        Required = true,
-                        Schema = new OpenApiSchema { Type = "string" },
-                        Description = "Rol del usuario actual."
-                    });
-
-                    return operation;
-                })
-                .ConUsuarioActualTemporal();
+                .WithOpenApi()
+                .RequireAuthorization();
 
             group.MapGet("/roles", async (IParametroQuery query) =>
             {

@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository;
 using TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context;
+using TicketsHex.infrastructure.Seguridad;
 
 namespace TicketsHex.infrastructure
 {
@@ -26,6 +27,8 @@ namespace TicketsHex.infrastructure
             services.AddScoped<ITicketRepository, TicketRepository>();
             services.AddScoped<IUsuarioRepository, UsuarioRepository>();
             services.AddScoped<IParametroRepository, ParametroRepository>();
+            services.AddScoped<IAutenticacionRepository, AutenticacionRepository>();
+            services.AddSingleton<IContrasenaHasher, ContrasenaHasher>();
 
             return services;
         }

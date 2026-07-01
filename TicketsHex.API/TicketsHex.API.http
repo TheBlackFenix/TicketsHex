@@ -1,13 +1,36 @@
 @host = http://localhost:5053
-@plannerId = 1
-@developerId = 2
+@token = REEMPLAZAR_CON_TOKEN_DE_LOGIN
 @ticketId = 00000000-0000-0000-0000-000000000000
 
-### Crear usuario (contexto temporal de Planner)
+### Antes de iniciar la API, generar las claves locales:
+# dotnet run --project ScriptsDB/JwtKeyGenerator/JwtKeyGenerator.csproj
+
+### Inicialización de un solo uso: crea o configura el primer Planner
+POST {{host}}/api/auth/inicializar
+Content-Type: application/json
+
+{
+  "idUsuario": 1,
+  "nombreUsuario": "planner",
+  "nombres": "Usuario",
+  "apellidos": "Planner",
+  "idArea": 1,
+  "contrasena": "Planner#2026"
+}
+
+### Iniciar sesión
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "nombreUsuario": "planner",
+  "contrasena": "Planner#2026"
+}
+
+### Crear usuario
 POST {{host}}/api/usuarios
 Content-Type: application/json
-X-User-Id: {{plannerId}}
-X-User-Role: Planner
+Authorization: Bearer {{token}}
 
 {
   "idUsuario": 2,
@@ -15,24 +38,18 @@ X-User-Role: Planner
   "nombres": "Usuario",
   "apellidos": "Desarrollador",
   "rol": "Desarrollador",
-  "idArea": 2
+  "idArea": 1,
+  "contrasena": "Developer#2026"
 }
 
 ### Listado general del Planner
 GET {{host}}/api/tickets?pagina=1&tamanoPagina=20&incluirEliminados=false
-X-User-Id: {{plannerId}}
-X-User-Role: Planner
-
-### Tickets del desarrollador
-GET {{host}}/api/tickets/mis-tickets?pagina=1&tamanoPagina=20
-X-User-Id: {{developerId}}
-X-User-Role: Desarrollador
+Authorization: Bearer {{token}}
 
 ### Actualización parcial técnica
 PATCH {{host}}/api/tickets/{{ticketId}}
 Content-Type: application/json
-X-User-Id: {{developerId}}
-X-User-Role: Desarrollador
+Authorization: Bearer {{token}}
 
 {
   "causaRaiz": "Causa identificada",
@@ -40,22 +57,32 @@ X-User-Role: Desarrollador
   "comentario": "Diagnóstico inicial"
 }
 
-### Catálogo de roles
+### Catálogos
 GET {{host}}/api/parametros/roles
-X-User-Id: {{plannerId}}
-X-User-Role: Planner
+Authorization: Bearer {{token}}
 
-### Catálogo de estados activos
+###
 GET {{host}}/api/parametros/estados-ticket
-X-User-Id: {{plannerId}}
-X-User-Role: Planner
+Authorization: Bearer {{token}}
 
-### Catálogo de orígenes activos
+###
 GET {{host}}/api/parametros/origenes-ticket
-X-User-Id: {{plannerId}}
-X-User-Role: Planner
+Authorization: Bearer {{token}}
 
-### Catálogo de áreas activas
+###
 GET {{host}}/api/parametros/areas-ticket
-X-User-Id: {{plannerId}}
-X-User-Role: Planner
+Authorization: Bearer {{token}}
+
+### Cambiar contraseña (también funciona si expiró)
+POST {{host}}/api/auth/cambiar-contrasena
+Content-Type: application/json
+
+{
+  "nombreUsuario": "planner",
+  "contrasenaActual": "Planner#2026",
+  "nuevaContrasena": "Planner#2026Nueva"
+}
+
+### Cerrar sesión
+POST {{host}}/api/auth/logout
+Authorization: Bearer {{token}}

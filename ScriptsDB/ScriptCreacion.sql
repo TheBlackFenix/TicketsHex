@@ -36,11 +36,73 @@ CREATE TABLE IF NOT EXISTS Usuarios (
     Apellidos VARCHAR(100),
     IdRol INT REFERENCES Roles(IdRol),
     IdArea INT REFERENCES AreasTicket(IdArea),
-    Activo BOOLEAN DEFAULT TRUE
+    Activo BOOLEAN DEFAULT TRUE,
+    ContrasenaHash VARCHAR(500),
+    IntentosFallidos INT NOT NULL DEFAULT 0 CHECK (IntentosFallidos >= 0),
+    Bloqueado BOOLEAN NOT NULL DEFAULT FALSE,
+    FechaBloqueo TIMESTAMPTZ,
+    FechaCambioContrasena TIMESTAMPTZ
 );
 
 ALTER TABLE IF EXISTS Usuarios
 ADD Column IF NOT EXISTS IdArea INT REFERENCES AreasTicket(IdArea);
+
+ALTER TABLE IF EXISTS Usuarios
+ADD COLUMN IF NOT EXISTS ContrasenaHash VARCHAR(500);
+
+ALTER TABLE IF EXISTS Usuarios
+ADD COLUMN IF NOT EXISTS IntentosFallidos INT NOT NULL DEFAULT 0;
+
+ALTER TABLE IF EXISTS Usuarios
+ADD COLUMN IF NOT EXISTS Bloqueado BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE IF EXISTS Usuarios
+ADD COLUMN IF NOT EXISTS FechaBloqueo TIMESTAMPTZ;
+
+ALTER TABLE IF EXISTS Usuarios
+ADD COLUMN IF NOT EXISTS FechaCambioContrasena TIMESTAMPTZ;
+
+CREATE UNIQUE INDEX IF NOT EXISTS UX_Usuarios_NombreUsuario
+ON Usuarios(LOWER(NombreUsuario));
+
+CREATE TABLE IF NOT EXISTS SesionesUsuario (
+    IdSesion UUID PRIMARY KEY,
+    IdUsuario BIGINT NOT NULL REFERENCES Usuarios(IdUsuario) ON DELETE CASCADE,
+    Jti VARCHAR(64) NOT NULL UNIQUE,
+    FechaCreacion TIMESTAMPTZ NOT NULL,
+    FechaExpiracion TIMESTAMPTZ NOT NULL,
+    FechaRevocacion TIMESTAMPTZ
+);
+
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'sesionesusuario'
+          AND column_name = 'tokenhash'
+    ) AND NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'sesionesusuario'
+          AND column_name = 'jti'
+    ) THEN
+        -- Los tokens opacos anteriores no son compatibles con JWT.
+        DELETE FROM SesionesUsuario;
+        ALTER TABLE SesionesUsuario ADD COLUMN Jti VARCHAR(64);
+        ALTER TABLE SesionesUsuario ALTER COLUMN Jti SET NOT NULL;
+        ALTER TABLE SesionesUsuario DROP COLUMN TokenHash;
+    END IF;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS UX_SesionesUsuario_Activa
+ON SesionesUsuario(IdUsuario)
+WHERE FechaRevocacion IS NULL;
+
+CREATE INDEX IF NOT EXISTS IX_SesionesUsuario_Jti
+ON SesionesUsuario(Jti);
 
 CREATE TABLE IF NOT EXISTS Tickets (
     IdTicket UUID PRIMARY KEY,

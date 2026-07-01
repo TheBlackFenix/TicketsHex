@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.OpenApi.Models;
 using TicketsHex.API.Reponses;
-using TicketsHex.API.Servicios;
 using TicketsHex.Application.Comun.Paginacion;
 using TicketsHex.Application.DTO_s.Ticket;
 using TicketsHex.Application.Puertos.Entrada.Ticket;
@@ -14,31 +12,8 @@ namespace TicketsHex.API.Endpoints
         {
             var group = app.MapGroup("/api/tickets")
                 .WithTags("Tickets")
-                .WithOpenApi(operation =>
-                {
-                    // Añadir el primer header
-                    operation.Parameters.Add(new OpenApiParameter
-                    {
-                        Name = "X-User-Id",
-                        In = ParameterLocation.Header,
-                        Required = true,
-                        Schema = new OpenApiSchema { Type = "string" },
-                        Description = "Descripción del primer header"
-                    });
-
-                    // Añadir el segundo header
-                    operation.Parameters.Add(new OpenApiParameter
-                    {
-                        Name = "X-User-Role",
-                        In = ParameterLocation.Header,
-                        Required = true,
-                        Schema = new OpenApiSchema { Type = "string" },
-                        Description = "Descripción del segundo header"
-                    });
-
-                    return operation;
-                })
-                .ConUsuarioActualTemporal();
+                .WithOpenApi()
+                .RequireAuthorization();
 
             group.MapGet("/", async (
                 [AsParameters] TicketFiltroRequest filtro,
@@ -100,6 +75,7 @@ namespace TicketsHex.API.Endpoints
 
             app.MapUsuariosEndpoints();
             app.MapParametrosEndpoints();
+            app.MapAutenticacionEndpoints();
             return app;
         }
     }
