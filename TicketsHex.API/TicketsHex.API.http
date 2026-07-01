@@ -39,3 +39,23 @@ X-User-Role: Desarrollador
   "solucionPropuesta": "Solución propuesta",
   "comentario": "Diagnóstico inicial"
 }
+
+### Catálogo de roles
+GET {{host}}/api/parametros/roles
+X-User-Id: {{plannerId}}
+X-User-Role: Planner
+
+### Catálogo de estados activos
+GET {{host}}/api/parametros/estados-ticket
+X-User-Id: {{plannerId}}
+X-User-Role: Planner
+
+### Catálogo de orígenes activos
+GET {{host}}/api/parametros/origenes-ticket
+X-User-Id: {{plannerId}}
+X-User-Role: Planner
+
+### Catálogo de áreas activas
+GET {{host}}/api/parametros/areas-ticket
+X-User-Id: {{plannerId}}
+X-User-Role: Planner

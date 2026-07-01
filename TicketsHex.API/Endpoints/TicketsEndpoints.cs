@@ -16,24 +16,24 @@ namespace TicketsHex.API.Endpoints
                 .WithTags("Tickets")
                 .WithOpenApi(operation =>
                 {
-                    // Añadir el primer header
+                    // AÃ±adir el primer header
                     operation.Parameters.Add(new OpenApiParameter
                     {
                         Name = "X-User-Id",
                         In = ParameterLocation.Header,
                         Required = true,
                         Schema = new OpenApiSchema { Type = "string" },
-                        Description = "Descripción del primer header"
+                        Description = "DescripciÃ³n del primer header"
                     });
 
-                    // Añadir el segundo header
+                    // AÃ±adir el segundo header
                     operation.Parameters.Add(new OpenApiParameter
                     {
                         Name = "X-User-Role",
                         In = ParameterLocation.Header,
                         Required = true,
                         Schema = new OpenApiSchema { Type = "string" },
-                        Description = "Descripción del segundo header"
+                        Description = "DescripciÃ³n del segundo header"
                     });
 
                     return operation;
@@ -99,6 +99,7 @@ namespace TicketsHex.API.Endpoints
             });
 
             app.MapUsuariosEndpoints();
+            app.MapParametrosEndpoints();
             return app;
         }
     }

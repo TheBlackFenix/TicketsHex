@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TicketsHex.Domain.Entidades.Parametros;
 using TicketsHex.Domain.Entidades.Ticket;
 using TicketsHex.Domain.Entidades.Usuario;
 using TicketsHex.Domain.ValueObjects.Ticket;
@@ -7,11 +8,16 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
 {
     public class MantenimientoContext : DbContext
     {
-        public MantenimientoContext(DbContextOptions<MantenimientoContext> options) : base(options) { }
+        public MantenimientoContext(DbContextOptions<MantenimientoContext> options)
+            : base(options) { }
 
         public DbSet<Ticket> Tickets => Set<Ticket>();
         public DbSet<HistoricoEstadosTicket> HistoricoEstados => Set<HistoricoEstadosTicket>();
         public DbSet<Usuario> Usuarios => Set<Usuario>();
+        public DbSet<RolParametro> Roles => Set<RolParametro>();
+        public DbSet<EstadoTicketParametro> EstadosTicket => Set<EstadoTicketParametro>();
+        public DbSet<OrigenTicketParametro> OrigenesTicket => Set<OrigenTicketParametro>();
+        public DbSet<AreaTicketParametro> AreasTicket => Set<AreaTicketParametro>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -57,9 +63,7 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
             {
                 b.ToTable("historicoestadosticket");
                 b.HasKey(e => e.IdHistorico);
-                // Le avisa a EF que tú te encargas de asignar el Id y que no espere que lo genere la DB
-                b.Property(e => e.IdHistorico)
-                      .ValueGeneratedNever();
+                b.Property(e => e.IdHistorico).ValueGeneratedNever();
                 b.Property(h => h.IdEstadoOrigen).HasConversion<int?>();
                 b.Property(h => h.IdEstadoDestino).HasConversion<int>();
                 b.Property(h => h.Comentario).HasMaxLength(1000);
@@ -78,6 +82,38 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
                 b.Property(u => u.Nombres).HasMaxLength(100).IsRequired();
                 b.Property(u => u.Apellidos).HasMaxLength(100);
                 b.Property(u => u.IdRol).HasConversion<int>();
+                b.Property(u => u.IdArea).HasConversion<int?>();
+            });
+
+            modelBuilder.Entity<RolParametro>(b =>
+            {
+                b.ToTable("roles");
+                b.HasKey(item => item.IdRol);
+                b.Property(item => item.NombreRol).HasMaxLength(50).IsRequired();
+                b.Property(item => item.Descripcion).HasMaxLength(200);
+            });
+
+            modelBuilder.Entity<EstadoTicketParametro>(b =>
+            {
+                b.ToTable("estadosticket");
+                b.HasKey(item => item.IdEstado);
+                b.Property(item => item.Estado).HasMaxLength(50).IsRequired();
+                b.Property(item => item.Descripcion).HasMaxLength(500);
+            });
+
+            modelBuilder.Entity<OrigenTicketParametro>(b =>
+            {
+                b.ToTable("origenesticket");
+                b.HasKey(item => item.IdOrigen);
+                b.Property(item => item.Origen).IsRequired();
+            });
+
+            modelBuilder.Entity<AreaTicketParametro>(b =>
+            {
+                b.ToTable("areasticket");
+                b.HasKey(item => item.IdArea);
+                b.Property(item => item.Area).IsRequired();
+                b.Property(item => item.Descripcion).HasMaxLength(200);
             });
 
             foreach (var entity in modelBuilder.Model.GetEntityTypes())
