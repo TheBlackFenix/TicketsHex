@@ -29,7 +29,6 @@ namespace TicketsHex.infrastructure
             services.AddScoped<IParametroRepository, ParametroRepository>();
             services.AddScoped<IAutenticacionRepository, AutenticacionRepository>();
             services.AddSingleton<IContrasenaHasher, ContrasenaHasher>();
-            services.AddSingleton<IGeneradorTokenSesion, GeneradorTokenSesion>();
 
             return services;
         }

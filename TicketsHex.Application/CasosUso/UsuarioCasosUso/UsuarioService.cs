@@ -81,13 +81,11 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
             if (request.Activo)
                 usuario.Activar();
             else
-            {
                 usuario.Desactivar();
-                await _autenticacionRepository.RevocarSesionesAsync(
-                    idUsuario,
-                    DateTimeOffset.UtcNow);
-            }
 
+            await _autenticacionRepository.RevocarSesionesAsync(
+                idUsuario,
+                DateTimeOffset.UtcNow);
             await _repository.ActualizarAsync(usuario);
         }
 

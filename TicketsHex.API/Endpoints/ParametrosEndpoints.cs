@@ -1,5 +1,4 @@
 using TicketsHex.API.Reponses;
-using TicketsHex.API.Servicios;
 using TicketsHex.Application.DTO_s.Parametro;
 using TicketsHex.Application.Puertos.Entrada.Parametro;
 
@@ -12,7 +11,7 @@ namespace TicketsHex.API.Endpoints
             var group = app.MapGroup("/api/parametros")
                 .WithTags("Parámetros")
                 .WithOpenApi()
-                .ConUsuarioAutenticado();
+                .RequireAuthorization();
 
             group.MapGet("/roles", async (IParametroQuery query) =>
             {

@@ -1,5 +1,4 @@
 using TicketsHex.API.Reponses;
-using TicketsHex.API.Servicios;
 using TicketsHex.Application.DTO_s.Usuario;
 using TicketsHex.Application.Puertos.Entrada.Usuario;
 
@@ -12,7 +11,7 @@ namespace TicketsHex.API.Endpoints
             var group = app.MapGroup("/api/usuarios")
                 .WithTags("Usuarios")
                 .WithOpenApi()
-                .ConUsuarioAutenticado();
+                .RequireAuthorization();
 
             group.MapGet("/", async (bool incluirInactivos, IUsuarioService service) =>
             {

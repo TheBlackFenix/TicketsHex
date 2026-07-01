@@ -35,10 +35,10 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository
                     s.IdUsuario == idUsuario &&
                     s.FechaRevocacion == null);
 
-        public Task<SesionUsuario?> ObtenerSesionPorTokenHashAsync(string tokenHash) =>
+        public Task<SesionUsuario?> ObtenerSesionPorJtiAsync(string jti) =>
             _dbContext.SesionesUsuario
                 .FirstOrDefaultAsync(s =>
-                    s.TokenHash == tokenHash &&
+                    s.Jti == jti &&
                     s.FechaRevocacion == null);
 
         public async Task RegistrarIntentoFallidoAsync(long idUsuario, DateTimeOffset fecha)

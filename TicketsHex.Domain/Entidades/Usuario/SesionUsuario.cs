@@ -4,7 +4,7 @@ namespace TicketsHex.Domain.Entidades.Usuario
     {
         public Guid IdSesion { get; private set; }
         public long IdUsuario { get; private set; }
-        public string TokenHash { get; private set; } = string.Empty;
+        public string Jti { get; private set; } = string.Empty;
         public DateTimeOffset FechaCreacion { get; private set; }
         public DateTimeOffset FechaExpiracion { get; private set; }
         public DateTimeOffset? FechaRevocacion { get; private set; }
@@ -13,20 +13,20 @@ namespace TicketsHex.Domain.Entidades.Usuario
 
         public SesionUsuario(
             long idUsuario,
-            string tokenHash,
+            string jti,
             DateTimeOffset fechaCreacion,
             DateTimeOffset fechaExpiracion)
         {
             if (idUsuario <= 0)
                 throw new ArgumentException("El ID del usuario debe ser positivo.", nameof(idUsuario));
-            if (string.IsNullOrWhiteSpace(tokenHash))
-                throw new ArgumentException("El hash del token es obligatorio.", nameof(tokenHash));
+            if (string.IsNullOrWhiteSpace(jti))
+                throw new ArgumentException("El identificador JWT es obligatorio.", nameof(jti));
             if (fechaExpiracion <= fechaCreacion)
                 throw new ArgumentException("La sesión debe expirar después de su creación.");
 
             IdSesion = Guid.NewGuid();
             IdUsuario = idUsuario;
-            TokenHash = tokenHash;
+            Jti = jti;
             FechaCreacion = fechaCreacion;
             FechaExpiracion = fechaExpiracion;
         }

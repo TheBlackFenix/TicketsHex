@@ -68,18 +68,41 @@ ON Usuarios(LOWER(NombreUsuario));
 CREATE TABLE IF NOT EXISTS SesionesUsuario (
     IdSesion UUID PRIMARY KEY,
     IdUsuario BIGINT NOT NULL REFERENCES Usuarios(IdUsuario) ON DELETE CASCADE,
-    TokenHash VARCHAR(64) NOT NULL UNIQUE,
+    Jti VARCHAR(64) NOT NULL UNIQUE,
     FechaCreacion TIMESTAMPTZ NOT NULL,
     FechaExpiracion TIMESTAMPTZ NOT NULL,
     FechaRevocacion TIMESTAMPTZ
 );
 
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'sesionesusuario'
+          AND column_name = 'tokenhash'
+    ) AND NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'sesionesusuario'
+          AND column_name = 'jti'
+    ) THEN
+        -- Los tokens opacos anteriores no son compatibles con JWT.
+        DELETE FROM SesionesUsuario;
+        ALTER TABLE SesionesUsuario ADD COLUMN Jti VARCHAR(64);
+        ALTER TABLE SesionesUsuario ALTER COLUMN Jti SET NOT NULL;
+        ALTER TABLE SesionesUsuario DROP COLUMN TokenHash;
+    END IF;
+END $$;
+
 CREATE UNIQUE INDEX IF NOT EXISTS UX_SesionesUsuario_Activa
 ON SesionesUsuario(IdUsuario)
 WHERE FechaRevocacion IS NULL;
 
-CREATE INDEX IF NOT EXISTS IX_SesionesUsuario_TokenHash
-ON SesionesUsuario(TokenHash);
+CREATE INDEX IF NOT EXISTS IX_SesionesUsuario_Jti
+ON SesionesUsuario(Jti);
 
 CREATE TABLE IF NOT EXISTS Tickets (
     IdTicket UUID PRIMARY KEY,
