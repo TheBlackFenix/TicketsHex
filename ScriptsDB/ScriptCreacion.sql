@@ -174,6 +174,15 @@ CREATE TABLE IF NOT EXISTS RamasTicket (
     FechaAsignacion TIMESTAMPTZ NOT NULL DEFAULT NOW() -- ¡CORREGIDO! Sintaxis nativa Postgres
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS UX_Repositorios_Repositorio
+    ON Repositorios (LOWER(Repositorio));
+CREATE UNIQUE INDEX IF NOT EXISTS UX_Ramas_Repositorio_Nombre
+    ON Ramas (IdRepositorio, LOWER(NombreRama));
+CREATE UNIQUE INDEX IF NOT EXISTS UX_RamasTicket_Ticket_Rama
+    ON RamasTicket (IdTicket, IdRama);
+CREATE INDEX IF NOT EXISTS IX_RamasTicket_Ticket
+    ON RamasTicket (IdTicket);
+
 
 -- 5. DATA INICIAL (SEED MASTER DATA COINCIDENTE CON TUS ENUMS DE C#)
 INSERT INTO Roles (IdRol, NombreRol, Descripcion) VALUES
