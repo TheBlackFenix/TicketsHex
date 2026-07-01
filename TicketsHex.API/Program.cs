@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.OpenApi.Models;
 using Serilog;
 using System.IO.Compression;
 using TicketsHex.API.Endpoints;
@@ -46,7 +47,29 @@ try
         .AddInfrastructure(builder.Configuration);
 
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
+    builder.Services.AddSwaggerGen(options =>
+    {
+        options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "Opaque",
+            In = ParameterLocation.Header,
+            Description = "Token obtenido desde POST /api/auth/login."
+        });
+        options.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            [new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            }] = Array.Empty<string>()
+        });
+    });
 
     builder.Services.AddResponseCompression(options =>
     {

@@ -9,5 +9,9 @@ namespace TicketsHex.Application.DTO_s.Usuario
         string? Apellidos,
         Rol Rol,
         Area? IdArea,
-        bool Activo);
+        bool Activo,
+        bool Bloqueado,
+        int IntentosFallidos,
+        DateTimeOffset? FechaBloqueo,
+        DateTimeOffset? ContrasenaExpiraEn);
 }

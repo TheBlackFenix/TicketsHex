@@ -1,4 +1,3 @@
-using Microsoft.OpenApi.Models;
 using TicketsHex.API.Reponses;
 using TicketsHex.API.Servicios;
 using TicketsHex.Application.DTO_s.Usuario;
@@ -12,31 +11,8 @@ namespace TicketsHex.API.Endpoints
         {
             var group = app.MapGroup("/api/usuarios")
                 .WithTags("Usuarios")
-                .WithOpenApi(operation =>
-                {
-                    // Añadir el primer header
-                    operation.Parameters.Add(new OpenApiParameter
-                    {
-                        Name = "X-User-Id",
-                        In = ParameterLocation.Header,
-                        Required = true,
-                        Schema = new OpenApiSchema { Type = "string" },
-                        Description = "Descripción del primer header"
-                    });
-
-                    // Añadir el segundo header
-                    operation.Parameters.Add(new OpenApiParameter
-                    {
-                        Name = "X-User-Role",
-                        In = ParameterLocation.Header,
-                        Required = true,
-                        Schema = new OpenApiSchema { Type = "string" },
-                        Description = "Descripción del segundo header"
-                    });
-
-                    return operation;
-                })
-                .ConUsuarioActualTemporal();
+                .WithOpenApi()
+                .ConUsuarioAutenticado();
 
             group.MapGet("/", async (bool incluirInactivos, IUsuarioService service) =>
             {
@@ -71,6 +47,16 @@ namespace TicketsHex.API.Endpoints
             {
                 await service.DesactivarAsync(id);
                 return Results.Ok(ApiResponse<bool>.Ok(true, "Usuario desactivado correctamente."));
+            });
+
+            group.MapPatch("/{id:long}/desbloquear", async (
+                long id,
+                IUsuarioService service) =>
+            {
+                await service.DesbloquearAsync(id);
+                return Results.Ok(ApiResponse<bool>.Ok(
+                    true,
+                    "Usuario desbloqueado correctamente."));
             });
 
             return app;
