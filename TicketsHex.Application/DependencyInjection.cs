@@ -14,6 +14,8 @@ using TicketsHex.Application.CasosUso.ParametroCasosUso;
 using TicketsHex.Application.Puertos.Entrada.Parametro;
 using TicketsHex.Application.CasosUso.AutenticacionCasosUso;
 using TicketsHex.Application.Puertos.Entrada.Autenticacion;
+using TicketsHex.Application.CasosUso.RepositorioCasosUso;
+using TicketsHex.Application.Puertos.Entrada.Repositorio;
 
 namespace TicketsHex.Application
 {
@@ -26,6 +28,7 @@ namespace TicketsHex.Application
             services.AddScoped<IUsuarioService, UsuarioService>();
             services.AddScoped<IParametroQuery, ParametroQuery>();
             services.AddScoped<IAutenticacionService, AutenticacionService>();
+            services.AddScoped<IRepositorioRamaService, RepositorioRamaService>();
             services.AddScoped<UsuarioActualTemporal>();
             services.AddScoped<IUsuarioActual>(provider =>
                 provider.GetRequiredService<UsuarioActualTemporal>());

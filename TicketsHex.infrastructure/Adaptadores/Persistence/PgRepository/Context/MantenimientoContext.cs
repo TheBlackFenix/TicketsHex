@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TicketsHex.Domain.Entidades.ConfiguracionGit;
 using TicketsHex.Domain.Entidades.Parametros;
 using TicketsHex.Domain.Entidades.Ticket;
 using TicketsHex.Domain.Entidades.Usuario;
@@ -19,6 +20,9 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
         public DbSet<OrigenTicketParametro> OrigenesTicket => Set<OrigenTicketParametro>();
         public DbSet<AreaTicketParametro> AreasTicket => Set<AreaTicketParametro>();
         public DbSet<SesionUsuario> SesionesUsuario => Set<SesionUsuario>();
+        public DbSet<Repositorio> Repositorios => Set<Repositorio>();
+        public DbSet<Rama> Ramas => Set<Rama>();
+        public DbSet<RamaTicket> RamasTicket => Set<RamaTicket>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -134,11 +138,56 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
                 b.Property(item => item.Descripcion).HasMaxLength(200);
             });
 
+            modelBuilder.Entity<Repositorio>(b =>
+            {
+                b.ToTable("repositorios");
+                b.HasKey(item => item.IdRepositorio);
+                b.Property(item => item.Nombre)
+                    .HasColumnName("repositorio")
+                    .HasMaxLength(100)
+                    .IsRequired();
+                b.Property(item => item.Link).HasMaxLength(255);
+                b.Property(item => item.Descripcion).HasMaxLength(500);
+                b.HasMany(item => item.Ramas)
+                    .WithOne()
+                    .HasForeignKey(item => item.IdRepositorio)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.Navigation(item => item.Ramas)
+                    .UsePropertyAccessMode(PropertyAccessMode.Field);
+            });
+
+            modelBuilder.Entity<Rama>(b =>
+            {
+                b.ToTable("ramas");
+                b.HasKey(item => item.IdRama);
+                b.Property(item => item.NombreRama).HasMaxLength(150).IsRequired();
+                b.HasIndex(item => new { item.IdRepositorio, item.NombreRama }).IsUnique();
+            });
+
+            modelBuilder.Entity<RamaTicket>(b =>
+            {
+                b.ToTable("ramasticket");
+                b.HasKey(item => item.IdRamaTicket);
+                b.HasIndex(item => new { item.IdTicket, item.IdRama }).IsUnique();
+                b.HasOne<Ticket>()
+                    .WithMany()
+                    .HasForeignKey(item => item.IdTicket)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne<Rama>()
+                    .WithMany()
+                    .HasForeignKey(item => item.IdRama)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
             foreach (var entity in modelBuilder.Model.GetEntityTypes())
             {
                 foreach (var property in entity.GetProperties())
                     property.SetColumnName(property.Name.ToLowerInvariant());
             }
+
+            modelBuilder.Entity<Repositorio>()
+                .Property(item => item.Nombre)
+                .HasColumnName("repositorio");
         }
     }
 }
