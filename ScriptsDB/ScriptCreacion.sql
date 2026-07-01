@@ -145,7 +145,9 @@ INSERT INTO OrigenesTicket(IdOrigen, Origen) VALUES
 ON CONFLICT (IdOrigen) DO NOTHING ;
 
 INSERT INTO AreasTicket(IdArea, Area, Descripcion) VALUES
-(1, 'Soporte',''),
-(2, 'Mantenimiento',''),
+(1, 'Mantenimiento',''),
+(2, 'Soporte',''),
 (3, 'Vulnerabilidades','')
-ON CONFLICT (IdArea) DO NOTHING ;
+ON CONFLICT (IdArea) DO UPDATE SET
+Area = EXCLUDED.Area,
+Descripcion = EXCLUDED.Descripcion ;

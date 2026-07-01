@@ -1,0 +1,79 @@
+using Microsoft.OpenApi.Models;
+using TicketsHex.API.Reponses;
+using TicketsHex.API.Servicios;
+using TicketsHex.Application.DTO_s.Parametro;
+using TicketsHex.Application.Puertos.Entrada.Parametro;
+
+namespace TicketsHex.API.Endpoints
+{
+    public static class ParametrosEndpoints
+    {
+        public static IEndpointRouteBuilder MapParametrosEndpoints(this IEndpointRouteBuilder app)
+        {
+            var group = app.MapGroup("/api/parametros")
+                .WithTags("Parámetros")
+                .WithOpenApi(operation =>
+                {
+                    operation.Parameters.Add(new OpenApiParameter
+                    {
+                        Name = "X-User-Id",
+                        In = ParameterLocation.Header,
+                        Required = true,
+                        Schema = new OpenApiSchema { Type = "string" },
+                        Description = "Identificador del usuario actual."
+                    });
+                    operation.Parameters.Add(new OpenApiParameter
+                    {
+                        Name = "X-User-Role",
+                        In = ParameterLocation.Header,
+                        Required = true,
+                        Schema = new OpenApiSchema { Type = "string" },
+                        Description = "Rol del usuario actual."
+                    });
+
+                    return operation;
+                })
+                .ConUsuarioActualTemporal();
+
+            group.MapGet("/roles", async (IParametroQuery query) =>
+            {
+                var resultado = await query.ObtenerRolesAsync();
+                return Results.Ok(ApiResponse<IReadOnlyCollection<ParametroDTO>>.Ok(
+                    resultado,
+                    "Roles consultados correctamente."));
+            });
+
+            group.MapGet("/estados-ticket", async (
+                bool? incluirInactivos,
+                IParametroQuery query) =>
+            {
+                var resultado = await query.ObtenerEstadosTicketAsync(incluirInactivos ?? false);
+                return Results.Ok(ApiResponse<IReadOnlyCollection<ParametroDTO>>.Ok(
+                    resultado,
+                    "Estados de ticket consultados correctamente."));
+            });
+
+            group.MapGet("/origenes-ticket", async (
+                bool? incluirInactivos,
+                IParametroQuery query) =>
+            {
+                var resultado = await query.ObtenerOrigenesTicketAsync(incluirInactivos ?? false);
+                return Results.Ok(ApiResponse<IReadOnlyCollection<ParametroDTO>>.Ok(
+                    resultado,
+                    "Orígenes de ticket consultados correctamente."));
+            });
+
+            group.MapGet("/areas-ticket", async (
+                bool? incluirInactivos,
+                IParametroQuery query) =>
+            {
+                var resultado = await query.ObtenerAreasTicketAsync(incluirInactivos ?? false);
+                return Results.Ok(ApiResponse<IReadOnlyCollection<ParametroDTO>>.Ok(
+                    resultado,
+                    "Áreas de ticket consultadas correctamente."));
+            });
+
+            return app;
+        }
+    }
+}

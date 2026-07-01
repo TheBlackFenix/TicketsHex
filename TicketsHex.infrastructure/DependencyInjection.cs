@@ -25,6 +25,7 @@ namespace TicketsHex.infrastructure
             // 2. Registrar los Adaptadores de Salida (Repositorios)
             services.AddScoped<ITicketRepository, TicketRepository>();
             services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+            services.AddScoped<IParametroRepository, ParametroRepository>();
 
             return services;
         }

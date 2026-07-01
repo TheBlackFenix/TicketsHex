@@ -93,7 +93,7 @@ try
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "Ocurrió un error inesperado");
+    Log.Fatal(ex, "OcurriÃ³ un error inesperado");
 }
 finally
 {
