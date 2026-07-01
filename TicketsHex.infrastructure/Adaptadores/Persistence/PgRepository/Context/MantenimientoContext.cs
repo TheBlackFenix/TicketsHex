@@ -92,8 +92,8 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
             {
                 b.ToTable("sesionesusuario");
                 b.HasKey(s => s.IdSesion);
-                b.Property(s => s.TokenHash).HasMaxLength(64).IsRequired();
-                b.HasIndex(s => s.TokenHash).IsUnique();
+                b.Property(s => s.Jti).HasMaxLength(64).IsRequired();
+                b.HasIndex(s => s.Jti).IsUnique();
                 b.HasIndex(s => s.IdUsuario)
                     .IsUnique()
                     .HasFilter("\"fecharevocacion\" IS NULL");

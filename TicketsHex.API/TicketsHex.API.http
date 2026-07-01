@@ -2,6 +2,9 @@
 @token = REEMPLAZAR_CON_TOKEN_DE_LOGIN
 @ticketId = 00000000-0000-0000-0000-000000000000
 
+### Antes de iniciar la API, generar las claves locales:
+# dotnet run --project ScriptsDB/JwtKeyGenerator/JwtKeyGenerator.csproj
+
 ### Inicialización de un solo uso: crea o configura el primer Planner
 POST {{host}}/api/auth/inicializar
 Content-Type: application/json

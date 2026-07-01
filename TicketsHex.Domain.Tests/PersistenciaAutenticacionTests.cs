@@ -20,6 +20,6 @@ public class PersistenciaAutenticacionTests
         Assert.NotNull(usuario?.FindProperty("ContrasenaHash"));
         Assert.NotNull(usuario?.FindProperty("IntentosFallidos"));
         Assert.NotNull(usuario?.FindProperty("Bloqueado"));
-        Assert.NotNull(sesion?.FindProperty("TokenHash"));
+        Assert.NotNull(sesion?.FindProperty("Jti"));
     }
 }

@@ -67,7 +67,7 @@ public class AutenticacionServiceTests
         var service = new AutenticacionService(
             repository,
             hasher,
-            new GeneradorTokenSesion());
+            new GeneradorJwtFake());
 
         return new ContextoPrueba(service, hasher, usuario);
     }
@@ -104,9 +104,9 @@ public class AutenticacionServiceTests
             Task.FromResult(_sesiones.FirstOrDefault(s =>
                 s.IdUsuario == idUsuario && s.FechaRevocacion is null));
 
-        public Task<SesionUsuario?> ObtenerSesionPorTokenHashAsync(string tokenHash) =>
+        public Task<SesionUsuario?> ObtenerSesionPorJtiAsync(string jti) =>
             Task.FromResult(_sesiones.FirstOrDefault(s =>
-                s.TokenHash == tokenHash && s.FechaRevocacion is null));
+                s.Jti == jti && s.FechaRevocacion is null));
 
         public Task RegistrarIntentoFallidoAsync(long idUsuario, DateTimeOffset fecha)
         {
@@ -142,5 +142,16 @@ public class AutenticacionServiceTests
         }
 
         public Task GuardarCambiosAsync() => Task.CompletedTask;
+    }
+
+    private sealed class GeneradorJwtFake : IGeneradorJwtSesion
+    {
+        public TokenJwtGenerado Generar(
+            long idUsuario,
+            string nombreUsuario,
+            Rol rol,
+            string jti,
+            DateTimeOffset fechaCreacion) =>
+            new($"jwt.{jti}.firmado", fechaCreacion.AddMinutes(15));
     }
 }

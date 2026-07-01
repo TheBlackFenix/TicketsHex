@@ -6,8 +6,8 @@ namespace TicketsHex.Application.Puertos.Entrada.Autenticacion
     {
         Task InicializarAsync(InicializarAutenticacionRequest request);
         Task<LoginResponse> IniciarSesionAsync(LoginRequest request);
-        Task<UsuarioAutenticadoDTO> ValidarSesionAsync(string token);
-        Task CerrarSesionAsync(string token);
+        Task<UsuarioAutenticadoDTO> ValidarSesionAsync(string jti);
+        Task CerrarSesionAsync(string jti);
         Task CambiarContrasenaAsync(CambiarContrasenaRequest request);
     }
 }

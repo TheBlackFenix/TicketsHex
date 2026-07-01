@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using TicketsHex.API.Reponses;
-using TicketsHex.API.Servicios;
 using TicketsHex.Application.Comun.Paginacion;
 using TicketsHex.Application.DTO_s.Ticket;
 using TicketsHex.Application.Puertos.Entrada.Ticket;
@@ -14,7 +13,7 @@ namespace TicketsHex.API.Endpoints
             var group = app.MapGroup("/api/tickets")
                 .WithTags("Tickets")
                 .WithOpenApi()
-                .ConUsuarioAutenticado();
+                .RequireAuthorization();
 
             group.MapGet("/", async (
                 [AsParameters] TicketFiltroRequest filtro,

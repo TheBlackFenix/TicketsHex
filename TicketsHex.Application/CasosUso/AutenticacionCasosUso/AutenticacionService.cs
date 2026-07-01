@@ -10,20 +10,18 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
 {
     public sealed class AutenticacionService : IAutenticacionService
     {
-        private static readonly TimeSpan DuracionSesion = TimeSpan.FromHours(8);
-
         private readonly IAutenticacionRepository _repository;
         private readonly IContrasenaHasher _contrasenaHasher;
-        private readonly IGeneradorTokenSesion _tokenGenerator;
+        private readonly IGeneradorJwtSesion _jwtGenerator;
 
         public AutenticacionService(
             IAutenticacionRepository repository,
             IContrasenaHasher contrasenaHasher,
-            IGeneradorTokenSesion tokenGenerator)
+            IGeneradorJwtSesion jwtGenerator)
         {
             _repository = repository;
             _contrasenaHasher = contrasenaHasher;
-            _tokenGenerator = tokenGenerator;
+            _jwtGenerator = jwtGenerator;
         }
 
         public async Task InicializarAsync(InicializarAutenticacionRequest request)
@@ -111,29 +109,33 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
                 sesionExistente.Revocar(ahora);
             }
 
-            var token = _tokenGenerator.Generar();
-            var expiracion = ahora.Add(DuracionSesion);
+            var jti = Guid.NewGuid().ToString("N");
+            var jwt = _jwtGenerator.Generar(
+                usuario.IdUsuario,
+                usuario.NombreUsuario,
+                usuario.IdRol,
+                jti,
+                ahora);
             var sesion = new SesionUsuario(
                 usuario.IdUsuario,
-                _tokenGenerator.CrearHash(token),
+                jti,
                 ahora,
-                expiracion);
+                jwt.FechaExpiracion);
 
             await _repository.CrearSesionAsync(sesion);
 
             return new LoginResponse(
-                token,
-                expiracion,
+                jwt.Token,
+                jwt.FechaExpiracion,
                 MapearUsuario(usuario));
         }
 
-        public async Task<UsuarioAutenticadoDTO> ValidarSesionAsync(string token)
+        public async Task<UsuarioAutenticadoDTO> ValidarSesionAsync(string jti)
         {
-            if (string.IsNullOrWhiteSpace(token))
+            if (string.IsNullOrWhiteSpace(jti))
                 throw SesionInvalida();
 
-            var sesion = await _repository.ObtenerSesionPorTokenHashAsync(
-                _tokenGenerator.CrearHash(token));
+            var sesion = await _repository.ObtenerSesionPorJtiAsync(jti);
             if (sesion is null)
                 throw SesionInvalida();
 
@@ -168,13 +170,12 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
             return MapearUsuario(usuario);
         }
 
-        public async Task CerrarSesionAsync(string token)
+        public async Task CerrarSesionAsync(string jti)
         {
-            if (string.IsNullOrWhiteSpace(token))
+            if (string.IsNullOrWhiteSpace(jti))
                 throw SesionInvalida();
 
-            var sesion = await _repository.ObtenerSesionPorTokenHashAsync(
-                _tokenGenerator.CrearHash(token));
+            var sesion = await _repository.ObtenerSesionPorJtiAsync(jti);
             if (sesion is null)
                 throw SesionInvalida();
 
