@@ -29,12 +29,6 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository
             _dbContext.Usuarios.AnyAsync(
                 u => u.ContrasenaHash != null && u.ContrasenaHash != string.Empty);
 
-        public Task<SesionUsuario?> ObtenerSesionNoRevocadaAsync(long idUsuario) =>
-            _dbContext.SesionesUsuario
-                .FirstOrDefaultAsync(s =>
-                    s.IdUsuario == idUsuario &&
-                    s.FechaRevocacion == null);
-
         public Task<SesionUsuario?> ObtenerSesionPorJtiAsync(string jti) =>
             _dbContext.SesionesUsuario
                 .FirstOrDefaultAsync(s =>
@@ -65,16 +59,32 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository
             await _dbContext.SaveChangesAsync();
         }
 
-        public async Task CrearSesionAsync(SesionUsuario sesion)
+        public async Task ReemplazarSesionAsync(
+            SesionUsuario nuevaSesion,
+            DateTimeOffset fechaRevocacion)
         {
-            await _dbContext.SesionesUsuario.AddAsync(sesion);
+            await using var transaccion =
+                await _dbContext.Database.BeginTransactionAsync();
             try
             {
+                await _dbContext.SesionesUsuario
+                    .Where(s =>
+                        s.IdUsuario == nuevaSesion.IdUsuario &&
+                        s.FechaRevocacion == null)
+                    .ExecuteUpdateAsync(actualizacion =>
+                        actualizacion.SetProperty(
+                            s => s.FechaRevocacion,
+                            fechaRevocacion));
+
+                await _dbContext.SesionesUsuario.AddAsync(nuevaSesion);
                 await _dbContext.SaveChangesAsync();
+                await transaccion.CommitAsync();
             }
             catch (DbUpdateException)
             {
-                throw new ConflictoException("El usuario ya tiene una sesión activa.");
+                await transaccion.RollbackAsync();
+                throw new ConflictoException(
+                    "No fue posible establecer la nueva sesión.");
             }
         }
 
