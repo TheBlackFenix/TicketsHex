@@ -43,12 +43,12 @@ En PowerShell:
 ## GitHub Container Registry
 
 `.github/workflows/container-cd.yml` ejecuta las pruebas y, en cada push o
-merge a `master`, publica:
+merge a `Util_Prod`, publica:
 
 - `ghcr.io/<owner>/<repository>:latest`
 - `ghcr.io/<owner>/<repository>:sha-<commit>`
 
-Los pull requests a `master` ejecutan pruebas, pero no publican ni despliegan.
+Los pull requests a `Util_Prod` ejecutan pruebas, pero no publican ni despliegan.
 Para usar otra rama, cambie `on.push.branches` y `on.pull_request.branches`.
 
 ## Railway desde GitHub Actions

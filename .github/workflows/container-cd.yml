@@ -3,10 +3,10 @@ name: Container CI/CD
 on:
   push:
     branches:
-      - master
+      - Util_Prod
   pull_request:
     branches:
-      - master
+      - Util_Prod
   workflow_dispatch:
 
 permissions:
@@ -81,7 +81,7 @@ jobs:
           platforms: linux/amd64
 
   deploy-railway:
-    if: github.ref == 'refs/heads/master' && vars.RAILWAY_DEPLOY_ENABLED == 'true'
+    if: github.ref == 'refs/heads/Util_Prod' && vars.RAILWAY_DEPLOY_ENABLED == 'true'
     needs: publish
     runs-on: ubuntu-latest
     environment: production
