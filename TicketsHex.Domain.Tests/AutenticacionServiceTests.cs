@@ -27,16 +27,22 @@ public class AutenticacionServiceTests
     }
 
     [Fact]
-    public async Task Rechaza_una_segunda_sesion_activa()
+    public async Task Segundo_login_revoca_token_anterior_y_crea_una_nueva_sesion()
     {
         var contexto = CrearContexto();
 
-        await contexto.Service.IniciarSesionAsync(
+        var primerLogin = await contexto.Service.IniciarSesionAsync(
+            new LoginRequest("planner", "Valida#2026"));
+        var segundoLogin = await contexto.Service.IniciarSesionAsync(
             new LoginRequest("planner", "Valida#2026"));
 
-        await Assert.ThrowsAsync<ConflictoException>(() =>
-            contexto.Service.IniciarSesionAsync(
-                new LoginRequest("planner", "Valida#2026")));
+        Assert.NotEqual(primerLogin.Token, segundoLogin.Token);
+        await Assert.ThrowsAsync<UsuarioNoAutenticadoException>(() =>
+            contexto.Service.ValidarSesionAsync(ObtenerJti(primerLogin.Token)));
+
+        var usuario = await contexto.Service.ValidarSesionAsync(
+            ObtenerJti(segundoLogin.Token));
+        Assert.Equal(contexto.Usuario.IdUsuario, usuario.IdUsuario);
     }
 
     [Fact]
@@ -72,6 +78,8 @@ public class AutenticacionServiceTests
         return new ContextoPrueba(service, hasher, usuario);
     }
 
+    private static string ObtenerJti(string token) => token.Split('.')[1];
+
     private sealed record ContextoPrueba(
         AutenticacionService Service,
         ContrasenaHasher Hasher,
@@ -100,10 +108,6 @@ public class AutenticacionServiceTests
         public Task<bool> ExisteUsuarioConContrasenaAsync() =>
             Task.FromResult(_usuarios.Any(u => !string.IsNullOrWhiteSpace(u.ContrasenaHash)));
 
-        public Task<SesionUsuario?> ObtenerSesionNoRevocadaAsync(long idUsuario) =>
-            Task.FromResult(_sesiones.FirstOrDefault(s =>
-                s.IdUsuario == idUsuario && s.FechaRevocacion is null));
-
         public Task<SesionUsuario?> ObtenerSesionPorJtiAsync(string jti) =>
             Task.FromResult(_sesiones.FirstOrDefault(s =>
                 s.Jti == jti && s.FechaRevocacion is null));
@@ -120,14 +124,16 @@ public class AutenticacionServiceTests
             return Task.CompletedTask;
         }
 
-        public Task CrearSesionAsync(SesionUsuario sesion)
+        public Task ReemplazarSesionAsync(
+            SesionUsuario nuevaSesion,
+            DateTimeOffset fechaRevocacion)
         {
-            if (_sesiones.Any(s =>
-                    s.IdUsuario == sesion.IdUsuario &&
-                    s.FechaRevocacion is null))
-                throw new ConflictoException("El usuario ya tiene una sesión activa.");
+            foreach (var sesion in _sesiones.Where(s =>
+                         s.IdUsuario == nuevaSesion.IdUsuario &&
+                         s.FechaRevocacion is null))
+                sesion.Revocar(fechaRevocacion);
 
-            _sesiones.Add(sesion);
+            _sesiones.Add(nuevaSesion);
             return Task.CompletedTask;
         }
 
