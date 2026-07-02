@@ -147,6 +147,14 @@ try
         });
     builder.Services.AddAuthorization();
     builder.Services.AddHealthChecks();
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("AllowAll", policy =>
+            policy
+                .AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader());
+    });
     // Add services to the container.
     builder.Services.AddSerilog((services, configuration) =>
     {
@@ -222,6 +230,7 @@ try
         app.UseSwaggerUI();
     }
     app.UseResponseCompression();
+    app.UseCors("AllowAll");
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapHealthChecks("/health", new HealthCheckOptions())
