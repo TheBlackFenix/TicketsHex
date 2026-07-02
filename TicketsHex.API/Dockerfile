@@ -1,30 +1,32 @@
-# Consulte https://aka.ms/customizecontainer para aprender a personalizar su contenedor de depuración y cómo Visual Studio usa este Dockerfile para compilar sus imágenes para una depuración más rápida.
+# syntax=docker/dockerfile:1
 
-# Esta fase se usa cuando se ejecuta desde VS en modo rápido (valor predeterminado para la configuración de depuración)
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-USER $APP_UID
-WORKDIR /app
-EXPOSE 8080
-EXPOSE 8081
-
-
-# Esta fase se usa para compilar el proyecto de servicio
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0-bookworm-slim AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+
 COPY ["TicketsHex.API/TicketsHex.API.csproj", "TicketsHex.API/"]
+COPY ["TicketsHex.Application/TicketsHex.Application.csproj", "TicketsHex.Application/"]
+COPY ["TicketsHex.Domain/TicketsHex.Domain.csproj", "TicketsHex.Domain/"]
+COPY ["TicketsHex.infrastructure/TicketsHex.infrastructure.csproj", "TicketsHex.infrastructure/"]
 RUN dotnet restore "./TicketsHex.API/TicketsHex.API.csproj"
+
 COPY . .
 WORKDIR "/src/TicketsHex.API"
-RUN dotnet build "./TicketsHex.API.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet publish "./TicketsHex.API.csproj" \
+    --configuration "$BUILD_CONFIGURATION" \
+    --output /app/publish \
+    --no-restore \
+    /p:UseAppHost=false
 
-# Esta fase se usa para publicar el proyecto de servicio que se copiará en la fase final.
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./TicketsHex.API.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
-
-# Esta fase se usa en producción o cuando se ejecuta desde VS en modo normal (valor predeterminado cuando no se usa la configuración de depuración)
-FROM base AS final
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-bookworm-slim AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
+ENV ASPNETCORE_ENVIRONMENT=Production \
+    ASPNETCORE_HTTP_PORTS=8080 \
+    DOTNET_EnableDiagnostics=0
+EXPOSE 8080
+
+RUN mkdir -p /app/Logs && chown "$APP_UID:$APP_UID" /app/Logs
+COPY --from=build --chown=$APP_UID:$APP_UID /app/publish .
+
+USER $APP_UID
 ENTRYPOINT ["dotnet", "TicketsHex.API.dll"]

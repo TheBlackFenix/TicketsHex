@@ -15,6 +15,7 @@ using TicketsHex.API.Middelwares;
 using TicketsHex.API.Middelwares.ExceptionHandling;
 using TicketsHex.Application;
 using TicketsHex.infrastructure;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 
 
@@ -30,6 +31,16 @@ try
     Log.Information("Iniciando el servicio");
 
     var builder = WebApplication.CreateBuilder(args);
+    var railwayPort = Environment.GetEnvironmentVariable("PORT");
+    if (!string.IsNullOrWhiteSpace(railwayPort))
+    {
+        if (!int.TryParse(railwayPort, out var port) || port is < 1 or > 65535)
+            throw new InvalidOperationException(
+                "La variable PORT debe contener un puerto válido.");
+
+        builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+    }
+
     builder.Configuration
     .AddJsonFile("ErrorMessages.json", optional: false, reloadOnChange: true);
 
@@ -135,6 +146,7 @@ try
             };
         });
     builder.Services.AddAuthorization();
+    builder.Services.AddHealthChecks();
     // Add services to the container.
     builder.Services.AddSerilog((services, configuration) =>
     {
@@ -210,9 +222,10 @@ try
         app.UseSwaggerUI();
     }
     app.UseResponseCompression();
-    app.UseHttpsRedirection();
     app.UseAuthentication();
     app.UseAuthorization();
+    app.MapHealthChecks("/health", new HealthCheckOptions())
+        .AllowAnonymous();
     app.MapTicketEndpoints();
 
     await app.RunAsync();

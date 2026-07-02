@@ -14,6 +14,29 @@ namespace TicketsHex.Domain.Tests;
 public class JwtTests
 {
     [Fact]
+    public void JwtKeyLoader_carga_claves_desde_base64()
+    {
+        using var original = RSA.Create(2048);
+        var options = new JwtOptions
+        {
+            Issuer = "TicketsHex.Tests",
+            Audience = "TicketsHex.Tests.API",
+            ClientId = "TicketsHex.Tests.Client",
+            PrivateKeyBase64 = Convert.ToBase64String(
+                System.Text.Encoding.UTF8.GetBytes(original.ExportPkcs8PrivateKeyPem())),
+            PublicKeyBase64 = Convert.ToBase64String(
+                System.Text.Encoding.UTF8.GetBytes(original.ExportSubjectPublicKeyInfoPem()))
+        };
+        var environment = new HostEnvironmentFake(Path.GetTempPath());
+
+        using var privateKey = JwtKeyLoader.CargarClavePrivada(options, environment);
+        using var publicKey = JwtKeyLoader.CargarClavePublica(options, environment);
+
+        JwtKeyLoader.ValidarOpciones(options);
+        JwtKeyLoader.ValidarPar(privateKey, publicKey);
+    }
+
+    [Fact]
     public void Jwt_usa_rs256_y_valida_firma_emisor_audiencia_y_claims()
     {
         var directory = Directory.CreateTempSubdirectory("ticketshex-jwt-");
