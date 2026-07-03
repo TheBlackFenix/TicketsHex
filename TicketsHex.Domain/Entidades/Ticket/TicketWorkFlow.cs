@@ -28,6 +28,23 @@ namespace TicketsHex.Domain.Entidades.Ticket
 
         public static void ValidarTransicion(TicketEstado estadoActual, TicketEstado nuevoEstado, Rol rolActualiza, string? comentario)
         {
+            if (!Enum.IsDefined(nuevoEstado))
+                throw new ArgumentOutOfRangeException(nameof(nuevoEstado), nuevoEstado, "El estado objetivo no es válido.");
+
+            var esRolAdministradorDelFlujo = rolActualiza is Rol.Planner or Rol.LiderTecnico;
+
+            if (esRolAdministradorDelFlujo)
+            {
+                if (ReglasDeTransicion.TryGetValue(nuevoEstado, out var reglaAdministrativa) &&
+                    reglaAdministrativa.RequiereComentario &&
+                    string.IsNullOrWhiteSpace(comentario))
+                {
+                    throw new ArgumentException($"Se requiere obligatoriamente un comentario justificativo para cambiar al estado {nuevoEstado}.", nameof(comentario));
+                }
+
+                return;
+            }
+
             if (!ReglasDeTransicion.TryGetValue(nuevoEstado, out var regla))
                 throw new InvalidOperationException($"No hay reglas de transición definidas para el estado objetivo: {nuevoEstado}.");
 
