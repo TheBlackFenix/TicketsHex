@@ -33,7 +33,8 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
                 request.Descripcion,
                 request.IdUsuarioAsignado,
                 _usuarioActual.IdUsuario,
-                request.OrigenTicket);
+                request.OrigenTicket,
+                request.EsDesarrollo);
 
             await _ticketRepository.GuardarAsync(ticket);
             return ticket.IdTicket;
@@ -76,6 +77,19 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
                 ticket.ActualizarDiagnostico(
                     request.CausaRaiz,
                     request.SolucionPropuesta,
+                    _usuarioActual.IdUsuario,
+                    _usuarioActual.Rol);
+                huboCambios = true;
+            }
+
+            if (request.EsDesarrollo.HasValue ||
+                request.NombreHu is not null ||
+                request.UrlHu is not null)
+            {
+                ticket.ActualizarDatosDesarrollo(
+                    request.EsDesarrollo,
+                    request.NombreHu,
+                    request.UrlHu,
                     _usuarioActual.IdUsuario,
                     _usuarioActual.Rol);
                 huboCambios = true;

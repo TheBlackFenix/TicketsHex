@@ -95,6 +95,80 @@ public class TicketTests
         Assert.Equal(3, ticket.IdUsuarioAsignado);
     }
 
+    [Fact]
+    public void Ticket_inicia_sin_datos_de_HU_y_como_no_desarrollo_por_defecto()
+    {
+        var ticket = CrearTicket();
+
+        Assert.False(ticket.EsDesarrollo);
+        Assert.Null(ticket.NombreHu);
+        Assert.Null(ticket.UrlHu);
+    }
+
+    [Fact]
+    public void Planner_registra_la_HU_en_un_ticket_de_desarrollo()
+    {
+        var ticket = CrearTicket();
+
+        ticket.ActualizarDatosDesarrollo(
+            true,
+            "HU-1234",
+            "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234",
+            1,
+            Rol.Planner);
+
+        Assert.True(ticket.EsDesarrollo);
+        Assert.Equal("HU-1234", ticket.NombreHu);
+        Assert.Equal(
+            "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234",
+            ticket.UrlHu);
+    }
+
+    [Theory]
+    [InlineData(Rol.Desarrollador)]
+    [InlineData(Rol.QA)]
+    [InlineData(Rol.LiderTecnico)]
+    public void Solo_planner_puede_registrar_la_HU(Rol rol)
+    {
+        var ticket = CrearTicket();
+
+        Assert.Throws<UnauthorizedAccessException>(() =>
+            ticket.ActualizarDatosDesarrollo(
+                true,
+                "HU-1234",
+                "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234",
+                1,
+                rol));
+    }
+
+    [Fact]
+    public void No_permite_registrar_HU_si_no_es_desarrollo()
+    {
+        var ticket = CrearTicket();
+
+        Assert.Throws<InvalidOperationException>(() =>
+            ticket.ActualizarDatosDesarrollo(
+                false,
+                "HU-1234",
+                "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234",
+                1,
+                Rol.Planner));
+    }
+
+    [Fact]
+    public void Nombre_y_url_de_HU_deben_registrarse_juntos()
+    {
+        var ticket = CrearTicket();
+
+        Assert.Throws<ArgumentException>(() =>
+            ticket.ActualizarDatosDesarrollo(
+                true,
+                "HU-1234",
+                null,
+                1,
+                Rol.Planner));
+    }
+
     private static Ticket CrearTicket() => new(
         "CASO-001",
         "Título válido",

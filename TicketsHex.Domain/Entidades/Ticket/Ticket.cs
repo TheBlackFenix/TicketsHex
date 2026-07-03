@@ -18,6 +18,9 @@ namespace TicketsHex.Domain.Entidades.Ticket
         public string? CarpetaMedios { get; set; }
         public string? CausaRaiz { get; set; }
         public string? SolucionPropuesta { get; set; }
+        public bool EsDesarrollo { get; set; }
+        public string? NombreHu { get; set; }
+        public string? UrlHu { get; set; }
         public bool Activo { get; set; } = true;
         public DateTimeOffset? FechaEliminacion { get; set; }
         public long? IdUsuarioEliminacion { get; set; }
@@ -37,7 +40,8 @@ namespace TicketsHex.Domain.Entidades.Ticket
             string descripcion,
             long? usuarioAsignado,
             long idUsuarioCreador,
-            TicketOrigen origenTicket = TicketOrigen.SAIA)
+            TicketOrigen origenTicket = TicketOrigen.SAIA,
+            bool esDesarrollo = false)
         {
             if (usuarioAsignado is not null && usuarioAsignado <= 0)
                 throw new ArgumentException("El ID del usuario asignado debe ser un número positivo.", nameof(usuarioAsignado));
@@ -53,6 +57,7 @@ namespace TicketsHex.Domain.Entidades.Ticket
             IdUsuarioAsignado = usuarioAsignado;
             IdOrigen = origenTicket;
             IdEstado = TicketEstado.EnAnalisis;
+            EsDesarrollo = esDesarrollo;
             Activo = true;
 
             // Registrar la creación en la colección relacional de forma simple
@@ -207,6 +212,59 @@ namespace TicketsHex.Domain.Entidades.Ticket
             RegistrarAuditoria(idUsuarioActualizacion, "Diagnóstico técnico actualizado.");
         }
 
+        public void ActualizarDatosDesarrollo(
+            bool? esDesarrollo,
+            string? nombreHu,
+            string? urlHu,
+            long idUsuarioActualizacion,
+            Rol rolActualiza)
+        {
+            ValidarActivo();
+
+            if (rolActualiza != Rol.Planner)
+                throw new UnauthorizedAccessException("Solo el Planner puede actualizar los datos de desarrollo y la HU.");
+
+            var nuevoEsDesarrollo = esDesarrollo ?? EsDesarrollo;
+            var nombreHuSolicitado = nombreHu is null ? null : NormalizarTextoOpcional(nombreHu);
+            var urlHuSolicitada = urlHu is null ? null : NormalizarTextoOpcional(urlHu);
+            var nuevoNombreHu = nombreHu is null ? NombreHu : nombreHuSolicitado;
+            var nuevaUrlHu = urlHu is null ? UrlHu : urlHuSolicitada;
+
+            if (!nuevoEsDesarrollo)
+            {
+                if (nombreHuSolicitado is not null || urlHuSolicitada is not null)
+                    throw new InvalidOperationException("No se puede registrar una HU en un ticket que no es de desarrollo.");
+
+                nuevoNombreHu = null;
+                nuevaUrlHu = null;
+            }
+            else
+            {
+                if ((nuevoNombreHu is null) != (nuevaUrlHu is null))
+                    throw new ArgumentException("El nombre y la URL de la HU deben registrarse juntos.");
+
+                if (nuevoNombreHu?.Length > 100)
+                    throw new ArgumentException("El nombre de la HU no puede superar 100 caracteres.", nameof(nombreHu));
+
+                if (nuevaUrlHu?.Length > 2048)
+                    throw new ArgumentException("La URL de la HU no puede superar 2048 caracteres.", nameof(urlHu));
+
+                if (nuevaUrlHu is not null &&
+                    (!Uri.TryCreate(nuevaUrlHu, UriKind.Absolute, out var uriHu) ||
+                     (uriHu.Scheme != Uri.UriSchemeHttp && uriHu.Scheme != Uri.UriSchemeHttps)))
+                {
+                    throw new ArgumentException("La URL de la HU debe ser una URL absoluta HTTP o HTTPS.", nameof(urlHu));
+                }
+            }
+
+            EsDesarrollo = nuevoEsDesarrollo;
+            NombreHu = nuevoNombreHu;
+            UrlHu = nuevaUrlHu;
+            RegistrarAuditoria(
+                idUsuarioActualizacion,
+                EsDesarrollo ? "Datos de desarrollo y HU actualizados." : "Ticket marcado como no desarrollo.");
+        }
+
         public void EliminarLogicamente(long idUsuarioActualizacion, Rol rolActualiza, string? comentario)
         {
             ValidarActivo();
@@ -240,5 +298,8 @@ namespace TicketsHex.Domain.Entidades.Ticket
             if (!Activo)
                 throw new InvalidOperationException("No se puede modificar un ticket eliminado.");
         }
+
+        private static string? NormalizarTextoOpcional(string valor) =>
+            string.IsNullOrWhiteSpace(valor) ? null : valor.Trim();
     }
 }

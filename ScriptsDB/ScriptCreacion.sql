@@ -117,9 +117,21 @@ CREATE TABLE IF NOT EXISTS Tickets (
     CarpetaMedios VARCHAR(200),
     CausaRaiz VARCHAR(1000),
     SolucionPropuesta VARCHAR(1000),
+    EsDesarrollo BOOLEAN NOT NULL DEFAULT FALSE,
+    NombreHu VARCHAR(100),
+    UrlHu VARCHAR(2048),
     Activo BOOLEAN NOT NULL DEFAULT TRUE,
     FechaEliminacion TIMESTAMPTZ,
-    IdUsuarioEliminacion BIGINT REFERENCES Usuarios(IdUsuario)
+    IdUsuarioEliminacion BIGINT REFERENCES Usuarios(IdUsuario),
+    CONSTRAINT CK_Tickets_HuDesarrollo CHECK (
+        (NOT EsDesarrollo AND NombreHu IS NULL AND UrlHu IS NULL)
+        OR
+        (EsDesarrollo AND (
+            (NombreHu IS NULL AND UrlHu IS NULL)
+            OR
+            (NombreHu IS NOT NULL AND UrlHu IS NOT NULL)
+        ))
+    )
 );
 
 ALTER TABLE IF EXISTS Tickets
@@ -133,6 +145,36 @@ ADD COLUMN IF NOT EXISTS FechaEliminacion TIMESTAMPTZ;
 
 ALTER TABLE IF EXISTS Tickets
 ADD COLUMN IF NOT EXISTS IdUsuarioEliminacion BIGINT REFERENCES Usuarios(IdUsuario);
+
+ALTER TABLE IF EXISTS Tickets
+ADD COLUMN IF NOT EXISTS EsDesarrollo BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE IF EXISTS Tickets
+ADD COLUMN IF NOT EXISTS NombreHu VARCHAR(100);
+
+ALTER TABLE IF EXISTS Tickets
+ADD COLUMN IF NOT EXISTS UrlHu VARCHAR(2048);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'ck_tickets_hudesarrollo'
+          AND conrelid = 'tickets'::regclass
+    ) THEN
+        ALTER TABLE Tickets
+        ADD CONSTRAINT CK_Tickets_HuDesarrollo CHECK (
+            (NOT EsDesarrollo AND NombreHu IS NULL AND UrlHu IS NULL)
+            OR
+            (EsDesarrollo AND (
+                (NombreHu IS NULL AND UrlHu IS NULL)
+                OR
+                (NombreHu IS NOT NULL AND UrlHu IS NOT NULL)
+            ))
+        );
+    END IF;
+END $$;
 
 -- 3. TRAZABILIDAD (HISTÓRICO DE ESTADOS)
 CREATE TABLE IF NOT EXISTS HistoricoEstadosTicket (
