@@ -100,15 +100,6 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
             if (resultado == ResultadoVerificacionContrasena.ExitosaRequiereRehash)
                 usuario.ActualizarHashContrasena(_contrasenaHasher.CrearHash(request.Contrasena));
 
-            var sesionExistente = await _repository.ObtenerSesionNoRevocadaAsync(usuario.IdUsuario);
-            if (sesionExistente is not null)
-            {
-                if (sesionExistente.EstaVigente(ahora))
-                    throw new ConflictoException("El usuario ya tiene una sesión activa.");
-
-                sesionExistente.Revocar(ahora);
-            }
-
             var jti = Guid.NewGuid().ToString("N");
             var jwt = _jwtGenerator.Generar(
                 usuario.IdUsuario,
@@ -122,7 +113,7 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
                 ahora,
                 jwt.FechaExpiracion);
 
-            await _repository.CrearSesionAsync(sesion);
+            await _repository.ReemplazarSesionAsync(sesion, ahora);
 
             return new LoginResponse(
                 jwt.Token,
