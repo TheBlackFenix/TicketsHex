@@ -59,7 +59,8 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
                 huboCambios = true;
             }
 
-            if (request.IdUsuarioAsignado.HasValue)
+            if (request.IdUsuarioAsignado.HasValue &&
+                request.IdUsuarioAsignado.Value != ticket.IdUsuarioAsignado)
             {
                 await ValidarUsuarioExisteAsync(request.IdUsuarioAsignado.Value);
                 ticket.ReasignarTicket(

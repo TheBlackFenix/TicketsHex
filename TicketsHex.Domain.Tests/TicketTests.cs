@@ -59,6 +59,42 @@ public class TicketTests
         Assert.NotNull(ticket.FechaEliminacion);
     }
 
+    [Theory]
+    [InlineData(Rol.Planner)]
+    [InlineData(Rol.LiderTecnico)]
+    public void Planner_y_lider_tecnico_pueden_cambiar_a_cualquier_estado(Rol rol)
+    {
+        var ticket = CrearTicket();
+
+        ticket.ActualizarEstado(
+            TicketEstado.DespliegueProduccion,
+            1,
+            rol,
+            "Cambio administrativo");
+
+        Assert.Equal(TicketEstado.DespliegueProduccion, ticket.IdEstado);
+
+        ticket.ActualizarEstado(
+            TicketEstado.EnAnalisis,
+            1,
+            rol,
+            "Retorno administrativo");
+
+        Assert.Equal(TicketEstado.EnAnalisis, ticket.IdEstado);
+    }
+
+    [Theory]
+    [InlineData(Rol.Planner)]
+    [InlineData(Rol.LiderTecnico)]
+    public void Planner_y_lider_tecnico_pueden_reasignar_el_ticket(Rol rol)
+    {
+        var ticket = CrearTicket();
+
+        ticket.ReasignarTicket(3, 1, rol, "Cambio de responsable");
+
+        Assert.Equal(3, ticket.IdUsuarioAsignado);
+    }
+
     private static Ticket CrearTicket() => new(
         "CASO-001",
         "Título válido",
