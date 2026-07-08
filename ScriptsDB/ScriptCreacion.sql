@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS Usuarios (
     Apellidos VARCHAR(100),
     IdRol INT REFERENCES Roles(IdRol),
     IdArea INT REFERENCES AreasTicket(IdArea),
+    ImagenPerfilBase64 TEXT,
     Activo BOOLEAN DEFAULT TRUE,
     ContrasenaHash VARCHAR(500),
     IntentosFallidos INT NOT NULL DEFAULT 0 CHECK (IntentosFallidos >= 0),
@@ -46,6 +47,9 @@ CREATE TABLE IF NOT EXISTS Usuarios (
 
 ALTER TABLE IF EXISTS Usuarios
 ADD Column IF NOT EXISTS IdArea INT REFERENCES AreasTicket(IdArea);
+
+ALTER TABLE IF EXISTS Usuarios
+ADD COLUMN IF NOT EXISTS ImagenPerfilBase64 TEXT;
 
 ALTER TABLE IF EXISTS Usuarios
 ADD COLUMN IF NOT EXISTS ContrasenaHash VARCHAR(500);

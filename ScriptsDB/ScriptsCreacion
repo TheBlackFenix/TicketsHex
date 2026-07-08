@@ -19,6 +19,7 @@ CREATE TABLE Usuarios (
     Nombres VARCHAR(100) NOT NULL,
     Apellidos VARCHAR(100),
     IdRol INT REFERENCES Roles(IdRol),
+    ImagenPerfilBase64 TEXT,
     Activo BOOLEAN DEFAULT TRUE
 );
 

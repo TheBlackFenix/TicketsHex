@@ -9,6 +9,7 @@ namespace TicketsHex.Application.DTO_s.Usuario
         string? Apellidos,
         Rol Rol,
         Area? IdArea,
+        string? ImagenPerfilBase64,
         bool Activo,
         bool Bloqueado,
         int IntentosFallidos,

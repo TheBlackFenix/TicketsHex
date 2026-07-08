@@ -9,7 +9,7 @@ namespace TicketsHex.Application.DTO_s.Usuario
         string? Apellidos,
         Rol Rol,
         Area? IdArea,
-        string Contrasena);
+        string? ImagenPerfilBase64 = null);
 
     public sealed record ActualizarUsuarioRequest(
         string NombreUsuario,
@@ -17,5 +17,6 @@ namespace TicketsHex.Application.DTO_s.Usuario
         string? Apellidos,
         Rol Rol,
         Area? IdArea,
-        bool Activo);
+        bool Activo,
+        string? ImagenPerfilBase64 = null);
 }
