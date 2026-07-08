@@ -13,10 +13,12 @@ services:
       generation: automatic
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
-        value: Production
-        previewValue: preview_env
+        value: development
+        previewValue: development
+        fromGroup: preview_env
       - key: ConnectionStrings__DefaultConnection
         sync: false
+        fromGroup: preview_env 
       - key: Jwt__Issuer
         sync: false
       - key: Jwt__Audience
@@ -33,3 +35,4 @@ services:
         value: 30
       - key: Usuarios__ContrasenaPorDefecto
         sync: false
+        fromGroup: preview_env 
