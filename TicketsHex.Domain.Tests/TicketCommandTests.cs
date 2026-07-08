@@ -30,6 +30,7 @@ public sealed class TicketCommandTests
 
         Assert.NotEqual(Guid.Empty, idTicket);
         Assert.NotNull(tickets.TicketGuardado);
+        Assert.False(tickets.TicketGuardado.EsDesarrollo);
     }
 
     [Fact]
@@ -51,6 +52,34 @@ public sealed class TicketCommandTests
 
         Assert.Equal(TicketEstado.EnProceso, tickets.TicketGuardado.IdEstado);
         Assert.Equal(2, tickets.TicketGuardado.IdUsuarioAsignado);
+        Assert.True(tickets.FueActualizado);
+    }
+
+    [Fact]
+    public async Task Planner_actualiza_datos_de_desarrollo_y_HU()
+    {
+        var tickets = new TicketRepositoryFake(CrearTicket());
+        var command = CrearCommand(tickets, Rol.Planner);
+
+        await command.ActualizarTicketAsync(
+            tickets.TicketGuardado!.IdTicket,
+            new ActualizarTicketRequest(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                true,
+                "HU-1234",
+                "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234"));
+
+        Assert.True(tickets.TicketGuardado.EsDesarrollo);
+        Assert.Equal("HU-1234", tickets.TicketGuardado.NombreHu);
+        Assert.Equal(
+            "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234",
+            tickets.TicketGuardado.UrlHu);
         Assert.True(tickets.FueActualizado);
     }
 

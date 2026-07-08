@@ -52,6 +52,11 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
                 b.Property(t => t.IdEstado).HasConversion<int>();
                 b.Property(t => t.CausaRaiz).HasMaxLength(1000);
                 b.Property(t => t.SolucionPropuesta).HasMaxLength(1000);
+                b.Property(t => t.EsDesarrollo)
+                    .HasDefaultValue(false)
+                    .IsRequired();
+                b.Property(t => t.NombreHu).HasMaxLength(100);
+                b.Property(t => t.UrlHu).HasMaxLength(2048);
 
                 b.HasMany(t => t.HistoricoEstados)
                     .WithOne()
