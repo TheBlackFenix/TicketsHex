@@ -12,15 +12,18 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
         private readonly ITicketRepository _ticketRepository;
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IUsuarioActual _usuarioActual;
+        private readonly INotificacionPublisher _notificacionPublisher;
 
         public TicketCommand(
             ITicketRepository ticketRepository,
             IUsuarioRepository usuarioRepository,
-            IUsuarioActual usuarioActual)
+            IUsuarioActual usuarioActual,
+            INotificacionPublisher notificacionPublisher)
         {
             _ticketRepository = ticketRepository;
             _usuarioRepository = usuarioRepository;
             _usuarioActual = usuarioActual;
+            _notificacionPublisher = notificacionPublisher;
         }
 
         public async Task<Guid> CrearTicketAsync(CrearTicketRequest request)
@@ -37,6 +40,8 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
                 request.EsDesarrollo);
 
             await _ticketRepository.GuardarAsync(ticket);
+            if (ticket.EsDesarrollo)
+                await _notificacionPublisher.PublicarResumenAsync();
             return ticket.IdTicket;
         }
 
@@ -120,6 +125,7 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
                 throw new ArgumentException("Debe indicar al menos un campo para actualizar.");
 
             await _ticketRepository.ActualizarAsync(ticket);
+            await _notificacionPublisher.PublicarResumenAsync();
         }
 
         public async Task EliminarTicketAsync(Guid ticketId, string? comentario)
@@ -127,6 +133,7 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
             var ticket = await ObtenerTicketActivoAsync(ticketId);
             ticket.EliminarLogicamente(_usuarioActual.IdUsuario, _usuarioActual.Rol, comentario);
             await _ticketRepository.ActualizarAsync(ticket);
+            await _notificacionPublisher.PublicarResumenAsync();
         }
 
         private async Task<Ticket> ObtenerTicketActivoAsync(Guid ticketId)
