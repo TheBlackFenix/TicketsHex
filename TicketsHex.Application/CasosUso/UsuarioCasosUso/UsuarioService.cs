@@ -65,7 +65,8 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
                 request.Rol,
                 request.IdArea,
                 _contrasenaHasher.CrearHash(contrasenaPorDefecto),
-                request.ImagenPerfilBase64);
+                request.ImagenPerfilBase64,
+                debeCambiarContrasena: true);
 
             await _repository.GuardarAsync(usuario);
         }

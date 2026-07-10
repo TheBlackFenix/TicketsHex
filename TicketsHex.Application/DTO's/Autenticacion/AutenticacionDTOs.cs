@@ -16,7 +16,8 @@ namespace TicketsHex.Application.DTO_s.Autenticacion
         string NombreUsuario,
         string Nombres,
         Rol Rol,
-        Area? Area);
+        Area? Area,
+        bool DebeCambiarContrasena);
 
     public sealed record CambiarContrasenaRequest(
         string NombreUsuario,

@@ -23,6 +23,7 @@ namespace TicketsHex.Application.Mappers
                 EsDesarrollo: ticket.EsDesarrollo,
                 NombreHu: ticket.NombreHu,
                 UrlHu: ticket.UrlHu,
+                CarpetaMedios: ticket.CarpetaMedios,
                 FechaUltimaActualizacion: ticket.FechaUltimaActualizacion,
                 FechaCreacion: ticket.FechaAsignacion,
                 Activo: ticket.Activo,

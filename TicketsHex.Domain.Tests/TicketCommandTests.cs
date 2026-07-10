@@ -73,7 +73,8 @@ public sealed class TicketCommandTests
                 null,
                 true,
                 "HU-1234",
-                "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234"));
+                "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234",
+                "medios/caso-001"));
 
         Assert.True(tickets.TicketGuardado.EsDesarrollo);
         Assert.Equal("HU-1234", tickets.TicketGuardado.NombreHu);

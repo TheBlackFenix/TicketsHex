@@ -216,27 +216,32 @@ namespace TicketsHex.Domain.Entidades.Ticket
             bool? esDesarrollo,
             string? nombreHu,
             string? urlHu,
+            string? carpetaMedios,
             long idUsuarioActualizacion,
             Rol rolActualiza)
         {
             ValidarActivo();
 
-            if (rolActualiza != Rol.Planner)
-                throw new UnauthorizedAccessException("Solo el Planner puede actualizar los datos de desarrollo y la HU.");
-
             var nuevoEsDesarrollo = esDesarrollo ?? EsDesarrollo;
             var nombreHuSolicitado = nombreHu is null ? null : NormalizarTextoOpcional(nombreHu);
             var urlHuSolicitada = urlHu is null ? null : NormalizarTextoOpcional(urlHu);
+            var carpetaMediosSolicitada = carpetaMedios is null ? null : NormalizarTextoOpcional(carpetaMedios);
             var nuevoNombreHu = nombreHu is null ? NombreHu : nombreHuSolicitado;
             var nuevaUrlHu = urlHu is null ? UrlHu : urlHuSolicitada;
+            var nuevaCarpetaMedios = carpetaMedios is null ? CarpetaMedios : carpetaMediosSolicitada;
 
             if (!nuevoEsDesarrollo)
             {
-                if (nombreHuSolicitado is not null || urlHuSolicitada is not null)
-                    throw new InvalidOperationException("No se puede registrar una HU en un ticket que no es de desarrollo.");
+                if (nombreHuSolicitado is not null ||
+                    urlHuSolicitada is not null ||
+                    carpetaMediosSolicitada is not null)
+                {
+                    throw new InvalidOperationException("No se pueden registrar datos de desarrollo en un ticket que no es de desarrollo.");
+                }
 
                 nuevoNombreHu = null;
                 nuevaUrlHu = null;
+                nuevaCarpetaMedios = null;
             }
             else
             {
@@ -255,11 +260,15 @@ namespace TicketsHex.Domain.Entidades.Ticket
                 {
                     throw new ArgumentException("La URL de la HU debe ser una URL absoluta HTTP o HTTPS.", nameof(urlHu));
                 }
+
+                if (nuevaCarpetaMedios?.Length > 200)
+                    throw new ArgumentException("La carpeta de medios no puede superar 200 caracteres.", nameof(carpetaMedios));
             }
 
             EsDesarrollo = nuevoEsDesarrollo;
             NombreHu = nuevoNombreHu;
             UrlHu = nuevaUrlHu;
+            CarpetaMedios = nuevaCarpetaMedios;
             RegistrarAuditoria(
                 idUsuarioActualizacion,
                 EsDesarrollo ? "Datos de desarrollo y HU actualizados." : "Ticket marcado como no desarrollo.");

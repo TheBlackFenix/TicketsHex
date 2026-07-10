@@ -18,6 +18,7 @@ namespace TicketsHex.Domain.Entidades.Usuario
         public string? ContrasenaHash { get; private set; }
         public int IntentosFallidos { get; private set; }
         public bool Bloqueado { get; private set; }
+        public bool DebeCambiarContrasena { get; private set; }
         public DateTimeOffset? FechaBloqueo { get; private set; }
         public DateTimeOffset? FechaCambioContrasena { get; private set; }
 
@@ -31,7 +32,8 @@ namespace TicketsHex.Domain.Entidades.Usuario
             Rol rol,
             Area? idArea,
             string contrasenaHash,
-            string? imagenPerfilBase64 = null)
+            string? imagenPerfilBase64 = null,
+            bool debeCambiarContrasena = false)
         {
             if (idUsuario <= 0)
                 throw new ArgumentException("El ID del usuario debe ser positivo.", nameof(idUsuario));
@@ -39,7 +41,7 @@ namespace TicketsHex.Domain.Entidades.Usuario
             IdUsuario = idUsuario;
             Actualizar(nombreUsuario, nombres, apellidos, rol, idArea);
             ActualizarImagenPerfilBase64(imagenPerfilBase64);
-            CambiarContrasena(contrasenaHash, DateTimeOffset.UtcNow);
+            CambiarContrasena(contrasenaHash, DateTimeOffset.UtcNow, debeCambiarContrasena);
         }
 
         public void Actualizar(
@@ -96,15 +98,21 @@ namespace TicketsHex.Domain.Entidades.Usuario
             return valor;
         }
 
-        public void CambiarContrasena(string contrasenaHash, DateTimeOffset fechaCambio)
+        public void CambiarContrasena(
+            string contrasenaHash,
+            DateTimeOffset fechaCambio,
+            bool debeCambiarContrasena = false)
         {
             if (string.IsNullOrWhiteSpace(contrasenaHash))
                 throw new ArgumentException("El hash de la contraseña es obligatorio.", nameof(contrasenaHash));
 
             ContrasenaHash = contrasenaHash;
             FechaCambioContrasena = fechaCambio;
+            DebeCambiarContrasena = debeCambiarContrasena;
             ReiniciarIntentosFallidos();
         }
+
+        public void ForzarCambioContrasena() => DebeCambiarContrasena = true;
 
         public void ActualizarHashContrasena(string contrasenaHash)
         {

@@ -213,7 +213,8 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
             usuario.NombreUsuario,
             usuario.Nombres,
             usuario.IdRol,
-            usuario.IdArea);
+            usuario.IdArea,
+            usuario.DebeCambiarContrasena);
 
         private static UsuarioNoAutenticadoException CredencialesInvalidas() =>
             new("Usuario o contraseña inválidos.");
