@@ -84,12 +84,14 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
 
             if (request.EsDesarrollo.HasValue ||
                 request.NombreHu is not null ||
-                request.UrlHu is not null)
+                request.UrlHu is not null ||
+                request.CarpetaMedios is not null)
             {
                 ticket.ActualizarDatosDesarrollo(
                     request.EsDesarrollo,
                     request.NombreHu,
                     request.UrlHu,
+                    request.CarpetaMedios,
                     _usuarioActual.IdUsuario,
                     _usuarioActual.Rol);
                 huboCambios = true;

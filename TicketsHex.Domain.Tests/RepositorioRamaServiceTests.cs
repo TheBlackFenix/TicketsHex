@@ -99,7 +99,8 @@ public sealed class RepositorioRamaServiceTests
                 "Descripción del ticket de prueba",
                 3,
                 1,
-                TicketOrigen.SAIA);
+                TicketOrigen.SAIA,
+                esDesarrollo: true);
         }
 
         public Ticket Ticket { get; }

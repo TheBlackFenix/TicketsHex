@@ -105,8 +105,10 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
             AsignarRamaTicketRequest request)
         {
             ValidarLiderTecnico();
-            _ = await _ticketRepository.ObtenerPorIdAsync(idTicket)
+            var ticket = await _ticketRepository.ObtenerPorIdAsync(idTicket)
                 ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
+            if (!ticket.EsDesarrollo)
+                throw new InvalidOperationException("Solo se pueden asociar ramas a tickets de desarrollo.");
             _ = await ObtenerRepositorioAsync(request.IdRepositorio);
             var rama = await _repository.ObtenerRamaAsync(request.IdRama)
                 ?? throw new RecursoNoEncontradoException("Rama no encontrada.");

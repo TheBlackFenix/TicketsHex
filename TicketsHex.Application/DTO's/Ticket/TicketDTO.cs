@@ -20,6 +20,7 @@ namespace TicketsHex.Application.DTO_s.Ticket
         bool EsDesarrollo,
         string? NombreHu,
         string? UrlHu,
+        string? CarpetaMedios,
         DateTimeOffset FechaCreacion,
         DateTimeOffset? FechaUltimaActualizacion,
         bool Activo,

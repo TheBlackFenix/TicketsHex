@@ -127,6 +127,7 @@ public class TicketTests
             true,
             "HU-1234",
             "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234",
+            "medios/caso-001",
             1,
             Rol.Desarrollador);
 
@@ -144,11 +145,12 @@ public class TicketTests
 
         Assert.Throws<InvalidOperationException>(() =>
             ticket.ActualizarDatosDesarrollo(
-                false,
-                "HU-1234",
-                "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234",
-                1,
-                Rol.Planner));
+            false,
+            "HU-1234",
+            "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234",
+            null,
+            1,
+            Rol.Planner));
     }
 
     [Fact]
@@ -158,11 +160,12 @@ public class TicketTests
 
         Assert.Throws<ArgumentException>(() =>
             ticket.ActualizarDatosDesarrollo(
-                true,
-                "HU-1234",
-                null,
-                1,
-                Rol.Planner));
+            true,
+            "HU-1234",
+            null,
+            null,
+            1,
+            Rol.Planner));
     }
 
     private static Ticket CrearTicket() => new(
