@@ -99,6 +99,9 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
                 b.Property(u => u.IdArea).HasConversion<int?>();
                 b.Property(u => u.ImagenPerfilBase64).HasColumnType("text");
                 b.Property(u => u.ContrasenaHash).HasMaxLength(500);
+                b.Property(u => u.DebeCambiarContrasena)
+                    .HasDefaultValue(false)
+                    .IsRequired();
                 b.HasIndex(u => u.NombreUsuario).IsUnique();
             });
 

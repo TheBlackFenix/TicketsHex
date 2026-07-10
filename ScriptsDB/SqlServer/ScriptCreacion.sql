@@ -79,10 +79,14 @@ BEGIN
         contrasenahash VARCHAR(500) NULL,
         intentosfallidos INT DEFAULT (0),
         bloqueado BIT DEFAULT (0),
+        debecambiarcontrasena BIT NOT NULL CONSTRAINT df_usuarios_debecambiarcontrasena DEFAULT (0),
         fechabloqueo DATETIMEOFFSET NULL,
         fechacambiocontrasena DATETIMEOFFSET NULL
     );
 END;
+
+IF COL_LENGTH(N'dbo.usuarios', N'debecambiarcontrasena') IS NULL
+    ALTER TABLE dbo.usuarios ADD debecambiarcontrasena BIT NOT NULL CONSTRAINT df_usuarios_debecambiarcontrasena DEFAULT (0);
 
 IF NOT EXISTS (
     SELECT 1

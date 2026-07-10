@@ -31,6 +31,7 @@ public class UsuarioServiceTests
         Assert.NotNull(usuarios.UsuarioGuardado);
         Assert.Equal("hash-Cambiar#2026", usuarios.UsuarioGuardado.ContrasenaHash);
         Assert.Equal("aW1hZ2Vu", usuarios.UsuarioGuardado.ImagenPerfilBase64);
+        Assert.True(usuarios.UsuarioGuardado.DebeCambiarContrasena);
     }
 
     [Fact]
