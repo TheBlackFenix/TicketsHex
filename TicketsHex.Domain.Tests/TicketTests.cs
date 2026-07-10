@@ -7,27 +7,64 @@ namespace TicketsHex.Domain.Tests;
 public class TicketTests
 {
     [Fact]
-    public void Permite_regresar_de_bloqueado_a_en_proceso()
+    public void Bloqueado_permite_pasar_a_cualquier_estado()
     {
         var ticket = CrearTicket();
         ticket.ActualizarEstado(TicketEstado.EnProceso, 2, Rol.Desarrollador, null);
         ticket.ActualizarEstado(TicketEstado.Bloqueado, 2, Rol.Desarrollador, "Dependencia externa");
 
-        ticket.ActualizarEstado(TicketEstado.EnProceso, 2, Rol.Desarrollador, "Dependencia resuelta");
+        ticket.ActualizarEstado(TicketEstado.Certificado, 2, Rol.QA, "Dependencia resuelta");
 
-        Assert.Equal(TicketEstado.EnProceso, ticket.IdEstado);
+        Assert.Equal(TicketEstado.Certificado, ticket.IdEstado);
     }
 
     [Fact]
-    public void Permite_regresar_de_bug_a_en_proceso()
+    public void Bug_permite_pasar_a_cualquier_estado()
     {
         var ticket = CrearTicket();
         ticket.ActualizarEstado(TicketEstado.EnProceso, 2, Rol.Desarrollador, null);
         ticket.ActualizarEstado(TicketEstado.BUG, 3, Rol.QA, "Prueba fallida");
 
-        ticket.ActualizarEstado(TicketEstado.EnProceso, 2, Rol.Desarrollador, "Corrección iniciada");
+        ticket.ActualizarEstado(TicketEstado.DespliegueProduccion, 2, Rol.Desarrollador, "Corrección iniciada");
 
-        Assert.Equal(TicketEstado.EnProceso, ticket.IdEstado);
+        Assert.Equal(TicketEstado.DespliegueProduccion, ticket.IdEstado);
+    }
+
+    [Fact]
+    public void Rollback_permite_pasar_a_cualquier_estado()
+    {
+        var ticket = CrearTicket();
+        ticket.ActualizarEstado(TicketEstado.Rollback, 1, Rol.QA, "Devolución");
+
+        ticket.ActualizarEstado(
+            TicketEstado.EnRevisionQA,
+            1,
+            Rol.Desarrollador,
+            "Retorno desde rollback");
+
+        Assert.Equal(TicketEstado.EnRevisionQA, ticket.IdEstado);
+    }
+
+    [Fact]
+    public void Flujo_normal_de_estados_es_secuencial_sin_restriccion_de_rol()
+    {
+        var ticket = CrearTicket();
+
+        ticket.ActualizarEstado(TicketEstado.EnProceso, 2, Rol.QA, null);
+        ticket.ActualizarEstado(TicketEstado.Bloqueado, 2, Rol.Planner, "Bloqueo");
+        ticket.ActualizarEstado(TicketEstado.Entregado, 2, Rol.Desarrollador, null);
+        ticket.ActualizarEstado(TicketEstado.DespliegueApitesting, 2, Rol.QA, null);
+
+        Assert.Equal(TicketEstado.DespliegueApitesting, ticket.IdEstado);
+    }
+
+    [Fact]
+    public void No_permite_saltar_estados_en_flujo_normal()
+    {
+        var ticket = CrearTicket();
+
+        Assert.Throws<InvalidOperationException>(() =>
+            ticket.ActualizarEstado(TicketEstado.Entregado, 2, Rol.Planner, "Salto no permitido"));
     }
 
     [Fact]
@@ -62,30 +99,6 @@ public class TicketTests
     [Theory]
     [InlineData(Rol.Planner)]
     [InlineData(Rol.LiderTecnico)]
-    public void Planner_y_lider_tecnico_pueden_cambiar_a_cualquier_estado(Rol rol)
-    {
-        var ticket = CrearTicket();
-
-        ticket.ActualizarEstado(
-            TicketEstado.DespliegueProduccion,
-            1,
-            rol,
-            "Cambio administrativo");
-
-        Assert.Equal(TicketEstado.DespliegueProduccion, ticket.IdEstado);
-
-        ticket.ActualizarEstado(
-            TicketEstado.EnAnalisis,
-            1,
-            rol,
-            "Retorno administrativo");
-
-        Assert.Equal(TicketEstado.EnAnalisis, ticket.IdEstado);
-    }
-
-    [Theory]
-    [InlineData(Rol.Planner)]
-    [InlineData(Rol.LiderTecnico)]
     public void Planner_y_lider_tecnico_pueden_reasignar_el_ticket(Rol rol)
     {
         var ticket = CrearTicket();
@@ -106,7 +119,7 @@ public class TicketTests
     }
 
     [Fact]
-    public void Planner_registra_la_HU_en_un_ticket_de_desarrollo()
+    public void Puede_registrar_la_HU_en_un_ticket_de_desarrollo()
     {
         var ticket = CrearTicket();
 
@@ -115,30 +128,13 @@ public class TicketTests
             "HU-1234",
             "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234",
             1,
-            Rol.Planner);
+            Rol.Desarrollador);
 
         Assert.True(ticket.EsDesarrollo);
         Assert.Equal("HU-1234", ticket.NombreHu);
         Assert.Equal(
             "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234",
             ticket.UrlHu);
-    }
-
-    [Theory]
-    [InlineData(Rol.Desarrollador)]
-    [InlineData(Rol.QA)]
-    [InlineData(Rol.LiderTecnico)]
-    public void Solo_planner_puede_registrar_la_HU(Rol rol)
-    {
-        var ticket = CrearTicket();
-
-        Assert.Throws<UnauthorizedAccessException>(() =>
-            ticket.ActualizarDatosDesarrollo(
-                true,
-                "HU-1234",
-                "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234",
-                1,
-                rol));
     }
 
     [Fact]

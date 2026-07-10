@@ -221,9 +221,6 @@ namespace TicketsHex.Domain.Entidades.Ticket
         {
             ValidarActivo();
 
-            if (rolActualiza != Rol.Planner)
-                throw new UnauthorizedAccessException("Solo el Planner puede actualizar los datos de desarrollo y la HU.");
-
             var nuevoEsDesarrollo = esDesarrollo ?? EsDesarrollo;
             var nombreHuSolicitado = nombreHu is null ? null : NormalizarTextoOpcional(nombreHu);
             var urlHuSolicitada = urlHu is null ? null : NormalizarTextoOpcional(urlHu);
