@@ -7,8 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using TicketsHex.Application.Puertos.Salida;
-using TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository;
-using TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context;
+using TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository;
+using TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.Context;
 using TicketsHex.infrastructure.Seguridad;
 
 namespace TicketsHex.infrastructure
@@ -17,11 +17,11 @@ namespace TicketsHex.infrastructure
     {
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
-            // 1. Configurar la conexión a PostgreSQL
+            // 1. Configurar la conexión a SQL Server
             var connectionString = configuration.GetConnectionString("DefaultConnection");
 
             services.AddDbContext<MantenimientoContext>(options =>
-                options.UseNpgsql(connectionString));
+                options.UseSqlServer(connectionString));
 
             // 2. Registrar los Adaptadores de Salida (Repositorios)
             services.AddScoped<ITicketRepository, TicketRepository>();

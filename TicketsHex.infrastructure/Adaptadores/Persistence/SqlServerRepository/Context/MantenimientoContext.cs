@@ -6,7 +6,7 @@ using TicketsHex.Domain.Entidades.Ticket;
 using TicketsHex.Domain.Entidades.Usuario;
 using TicketsHex.Domain.ValueObjects.Ticket;
 
-namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
+namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.Context
 {
     public class MantenimientoContext : DbContext
     {
@@ -30,7 +30,7 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.HasDefaultSchema("public");
+            modelBuilder.HasDefaultSchema("dbo");
 
             modelBuilder.Entity<Ticket>(b =>
             {
@@ -97,7 +97,7 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
                 b.Property(u => u.Apellidos).HasMaxLength(100);
                 b.Property(u => u.IdRol).HasConversion<int>();
                 b.Property(u => u.IdArea).HasConversion<int?>();
-                b.Property(u => u.ImagenPerfilBase64).HasColumnType("text");
+                b.Property(u => u.ImagenPerfilBase64).HasColumnType("varchar(max)");
                 b.Property(u => u.ContrasenaHash).HasMaxLength(500);
                 b.Property(u => u.DebeCambiarContrasena)
                     .HasDefaultValue(false)
@@ -113,7 +113,7 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
                 b.HasIndex(s => s.Jti).IsUnique();
                 b.HasIndex(s => s.IdUsuario)
                     .IsUnique()
-                    .HasFilter("\"fecharevocacion\" IS NULL");
+                    .HasFilter("[fecharevocacion] IS NULL");
                 b.HasOne<Usuario>()
                     .WithMany()
                     .HasForeignKey(s => s.IdUsuario)
