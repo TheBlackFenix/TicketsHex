@@ -3,6 +3,7 @@ using TicketsHex.Application.DTO_s.Aplicativo;
 using TicketsHex.Application.Puertos.Entrada.Aplicativo;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Aplicativos;
+using TicketsHex.Domain.Enums;
 
 namespace TicketsHex.Application.CasosUso.AplicativoCasosUso
 {
@@ -10,13 +11,16 @@ namespace TicketsHex.Application.CasosUso.AplicativoCasosUso
     {
         private readonly IAplicativoRepository _repository;
         private readonly ITicketRepository _ticketRepository;
+        private readonly IUsuarioActual _usuarioActual;
 
         public AplicativoService(
             IAplicativoRepository repository,
-            ITicketRepository ticketRepository)
+            ITicketRepository ticketRepository,
+            IUsuarioActual usuarioActual)
         {
             _repository = repository;
             _ticketRepository = ticketRepository;
+            _usuarioActual = usuarioActual;
         }
 
         public async Task<IReadOnlyCollection<AplicativoDTO>> ObtenerAplicativosAsync(bool incluirInactivos)
@@ -48,6 +52,7 @@ namespace TicketsHex.Application.CasosUso.AplicativoCasosUso
 
         public async Task<Guid> CrearAplicativoAsync(CrearAplicativoRequest request)
         {
+            ValidarPlannerOLiderTecnico();
             if (await _repository.ObtenerAplicativoPorNombreAsync(request.Nombre) is not null)
                 throw new ConflictoException($"Ya existe el aplicativo '{request.Nombre}'.");
 
@@ -58,6 +63,7 @@ namespace TicketsHex.Application.CasosUso.AplicativoCasosUso
 
         public async Task<Guid> AsignarAplicativoAsync(Guid idTicket, AsignarAplicativoTicketRequest request)
         {
+            ValidarPlannerOLiderTecnico();
             _ = await ObtenerTicketAsync(idTicket);
             _ = await _repository.ObtenerAplicativoAsync(request.IdAplicativo)
                 ?? throw new RecursoNoEncontradoException("Aplicativo no encontrado.");
@@ -72,6 +78,7 @@ namespace TicketsHex.Application.CasosUso.AplicativoCasosUso
 
         public async Task DesasignarAplicativoAsync(Guid idTicket, Guid idAplicativo)
         {
+            ValidarPlannerOLiderTecnico();
             if (!await _repository.ExisteAsignacionAsync(idTicket, idAplicativo))
                 throw new RecursoNoEncontradoException("El aplicativo no está asociado al ticket.");
 
@@ -81,6 +88,12 @@ namespace TicketsHex.Application.CasosUso.AplicativoCasosUso
         private async Task<Domain.Entidades.Ticket.Ticket> ObtenerTicketAsync(Guid idTicket) =>
             await _ticketRepository.ObtenerPorIdAsync(idTicket)
             ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
+
+        private void ValidarPlannerOLiderTecnico()
+        {
+            if (_usuarioActual.Rol is not Rol.Planner and not Rol.LiderTecnico)
+                throw new UnauthorizedAccessException("Solo Planner o Lider Tecnico pueden administrar aplicativos.");
+        }
 
         private static AplicativoDTO Mapear(Aplicativo aplicativo) => new(
             aplicativo.IdAplicativo,

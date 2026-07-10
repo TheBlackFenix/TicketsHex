@@ -16,6 +16,7 @@ using TicketsHex.API.Middelwares.ExceptionHandling;
 using TicketsHex.Application;
 using TicketsHex.infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.OutputCaching;
 
 
 
@@ -145,7 +146,18 @@ try
                 }
             };
         });
-    builder.Services.AddAuthorization();
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy("PlannerOrLiderTecnico", policy =>
+            policy.RequireRole("Planner", "LiderTecnico"));
+    });
+    builder.Services.AddOutputCache(options =>
+    {
+        options.AddPolicy(ParametricosEndpoints.CachePolicyName, policy =>
+            policy
+                .Expire(TimeSpan.FromHours(12))
+                .Tag(ParametricosEndpoints.CacheTag));
+    });
     builder.Services.AddHealthChecks();
     builder.Services.AddCors(options =>
     {
@@ -233,9 +245,11 @@ try
     app.UseCors("AllowAll");
     app.UseAuthentication();
     app.UseAuthorization();
+    app.UseOutputCache();
     app.MapHealthChecks("/health", new HealthCheckOptions())
         .AllowAnonymous();
     app.MapTicketEndpoints();
+    app.MapParametricosEndpoints();
 
     await app.RunAsync();
 

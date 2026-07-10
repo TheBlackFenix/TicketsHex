@@ -20,7 +20,6 @@ namespace TicketsHex.Application.DTO_s.Autenticacion
         bool DebeCambiarContrasena);
 
     public sealed record CambiarContrasenaRequest(
-        string NombreUsuario,
         string ContrasenaActual,
         string NuevaContrasena);
 

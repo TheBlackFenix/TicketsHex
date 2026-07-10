@@ -174,9 +174,9 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
             await _repository.GuardarCambiosAsync();
         }
 
-        public async Task CambiarContrasenaAsync(CambiarContrasenaRequest request)
+        public async Task CambiarContrasenaAsync(long idUsuario, CambiarContrasenaRequest request)
         {
-            var usuario = await _repository.ObtenerUsuarioPorNombreAsync(request.NombreUsuario);
+            var usuario = await _repository.ObtenerUsuarioPorIdAsync(idUsuario);
             if (usuario is null || !usuario.Activo || string.IsNullOrWhiteSpace(usuario.ContrasenaHash))
                 throw CredencialesInvalidas();
             if (usuario.Bloqueado)
