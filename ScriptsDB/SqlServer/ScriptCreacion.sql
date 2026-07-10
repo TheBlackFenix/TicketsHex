@@ -255,6 +255,16 @@ BEGIN
     );
 END;
 
+IF OBJECT_ID(N'dbo.aplicativosticket', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.aplicativosticket (
+        idaplicativoticket UNIQUEIDENTIFIER DEFAULT (NEWID()) PRIMARY KEY,
+        idticket UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.tickets(idticket),
+        idaplicativo UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.aplicativos(idaplicativo),
+        fechaasignacion DATETIMEOFFSET NOT NULL CONSTRAINT df_aplicativosticket_fechaasignacion DEFAULT (SYSDATETIMEOFFSET())
+    );
+END;
+
 IF OBJECT_ID(N'dbo.repositoriosaplicativo', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.repositoriosaplicativo (
@@ -262,6 +272,17 @@ BEGIN
         idrepositorio UNIQUEIDENTIFIER FOREIGN KEY REFERENCES dbo.repositorios(idrepositorio),
         idaplicativo UNIQUEIDENTIFIER FOREIGN KEY REFERENCES dbo.aplicativos(idaplicativo)
     );
+END;
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'ux_aplicativos_aplicativo'
+      AND object_id = OBJECT_ID(N'dbo.aplicativos')
+)
+BEGIN
+    CREATE UNIQUE INDEX ux_aplicativos_aplicativo
+    ON dbo.aplicativos(aplicativo);
 END;
 
 IF NOT EXISTS (
@@ -306,6 +327,39 @@ IF NOT EXISTS (
 BEGIN
     CREATE INDEX ix_ramasticket_ticket
     ON dbo.ramasticket(idticket);
+END;
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'ux_aplicativosticket_ticket_aplicativo'
+      AND object_id = OBJECT_ID(N'dbo.aplicativosticket')
+)
+BEGIN
+    CREATE UNIQUE INDEX ux_aplicativosticket_ticket_aplicativo
+    ON dbo.aplicativosticket(idticket, idaplicativo);
+END;
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'ix_aplicativosticket_ticket'
+      AND object_id = OBJECT_ID(N'dbo.aplicativosticket')
+)
+BEGIN
+    CREATE INDEX ix_aplicativosticket_ticket
+    ON dbo.aplicativosticket(idticket);
+END;
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'ux_repositoriosaplicativo_repositorio_aplicativo'
+      AND object_id = OBJECT_ID(N'dbo.repositoriosaplicativo')
+)
+BEGIN
+    CREATE UNIQUE INDEX ux_repositoriosaplicativo_repositorio_aplicativo
+    ON dbo.repositoriosaplicativo(idrepositorio, idaplicativo);
 END;
 
 -- 5. DATA INICIAL
