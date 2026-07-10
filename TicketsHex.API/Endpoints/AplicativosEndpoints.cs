@@ -1,6 +1,7 @@
 using TicketsHex.API.Reponses;
 using TicketsHex.Application.DTO_s.Aplicativo;
 using TicketsHex.Application.Puertos.Entrada.Aplicativo;
+using Microsoft.AspNetCore.OutputCaching;
 
 namespace TicketsHex.API.Endpoints
 {
@@ -23,13 +24,16 @@ namespace TicketsHex.API.Endpoints
 
             aplicativos.MapPost("/", async (
                 CrearAplicativoRequest request,
-                IAplicativoService service) =>
+                IAplicativoService service,
+                IOutputCacheStore cache,
+                CancellationToken cancellationToken) =>
             {
                 var id = await service.CrearAplicativoAsync(request);
+                await cache.EvictByTagAsync(ParametricosEndpoints.CacheTag, cancellationToken);
                 return Results.Created(
                     $"/api/aplicativos/{id}",
                     ApiResponse<Guid>.Ok(id, "Aplicativo creado correctamente."));
-            });
+            }).RequireAuthorization("PlannerOrLiderTecnico");
 
             var aplicativosTicket = app.MapGroup("/api/tickets/{idTicket:guid}/aplicativos")
                 .WithTags("Aplicativos")
@@ -53,7 +57,7 @@ namespace TicketsHex.API.Endpoints
                 return Results.Created(
                     $"/api/tickets/{idTicket}/aplicativos/{request.IdAplicativo}",
                     ApiResponse<Guid>.Ok(id, "Aplicativo asociado correctamente."));
-            });
+            }).RequireAuthorization("PlannerOrLiderTecnico");
 
             aplicativosTicket.MapDelete("/{idAplicativo:guid}", async (
                 Guid idTicket,
@@ -62,7 +66,7 @@ namespace TicketsHex.API.Endpoints
             {
                 await service.DesasignarAplicativoAsync(idTicket, idAplicativo);
                 return Results.Ok(ApiResponse<bool>.Ok(true, "Aplicativo desasociado correctamente."));
-            });
+            }).RequireAuthorization("PlannerOrLiderTecnico");
 
             return app;
         }

@@ -41,12 +41,12 @@ public sealed class RepositorioRamaServiceTests
     }
 
     [Fact]
-    public async Task Usuario_que_no_es_lider_no_puede_crear_repositorio()
+    public async Task Usuario_que_no_es_planner_ni_lider_no_puede_crear_repositorio()
     {
         var service = new RepositorioRamaService(
             new RepositorioRamaRepositoryFake(),
             new TicketRepositoryFake(),
-            new UsuarioActualFake(1, Rol.Planner));
+            new UsuarioActualFake(1, Rol.QA));
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             service.CrearRepositorioAsync(

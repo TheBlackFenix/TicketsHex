@@ -83,7 +83,8 @@ public class AutenticacionServiceTests
             debeCambiarContrasena: true);
 
         await contexto.Service.CambiarContrasenaAsync(
-            new CambiarContrasenaRequest("planner", "Valida#2026", "Nueva#2026"));
+            contexto.Usuario.IdUsuario,
+            new CambiarContrasenaRequest("Valida#2026", "Nueva#2026"));
 
         Assert.False(contexto.Usuario.DebeCambiarContrasena);
     }

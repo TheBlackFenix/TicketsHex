@@ -35,21 +35,19 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
 
         public async Task<IReadOnlyCollection<UsuarioDTO>> ObtenerTodosAsync(bool incluirInactivos)
         {
-            ValidarPlanner();
             var usuarios = await _repository.ObtenerTodosAsync(incluirInactivos);
             return usuarios.Select(Mapear).ToArray();
         }
 
         public async Task<UsuarioDTO> ObtenerPorIdAsync(long idUsuario)
         {
-            ValidarPlanner();
             var usuario = await ObtenerEntidadAsync(idUsuario);
             return Mapear(usuario);
         }
 
         public async Task CrearAsync(CrearUsuarioRequest request)
         {
-            ValidarPlanner();
+            ValidarPlannerOLiderTecnico();
             if (await _repository.ObtenerPorIdAsync(request.IdUsuario) is not null)
                 throw new ConflictoException($"El usuario {request.IdUsuario} ya existe.");
             if (await _autenticacionRepository.ObtenerUsuarioPorNombreAsync(request.NombreUsuario) is not null)
@@ -73,7 +71,7 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
 
         public async Task ActualizarAsync(long idUsuario, ActualizarUsuarioRequest request)
         {
-            ValidarPlanner();
+            ValidarPlannerOLiderTecnico();
             var usuario = await ObtenerEntidadAsync(idUsuario);
             var usuarioMismoNombre = await _autenticacionRepository
                 .ObtenerUsuarioPorNombreAsync(request.NombreUsuario);
@@ -102,7 +100,7 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
 
         public async Task DesactivarAsync(long idUsuario)
         {
-            ValidarPlanner();
+            ValidarPlannerOLiderTecnico();
             if (idUsuario == _usuarioActual.IdUsuario)
                 throw new InvalidOperationException("El Planner no puede desactivar su propio usuario.");
 
@@ -116,16 +114,16 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
 
         public async Task DesbloquearAsync(long idUsuario)
         {
-            ValidarPlanner();
+            ValidarPlannerOLiderTecnico();
             var usuario = await ObtenerEntidadAsync(idUsuario);
             usuario.Desbloquear();
             await _repository.ActualizarAsync(usuario);
         }
 
-        private void ValidarPlanner()
+        private void ValidarPlannerOLiderTecnico()
         {
-            if (_usuarioActual.Rol != Rol.Planner)
-                throw new UnauthorizedAccessException("Solo el Planner puede administrar usuarios.");
+            if (_usuarioActual.Rol is not Rol.Planner and not Rol.LiderTecnico)
+                throw new UnauthorizedAccessException("Solo Planner o Lider Tecnico pueden administrar usuarios.");
         }
 
         private async Task<Usuario> ObtenerEntidadAsync(long idUsuario)
