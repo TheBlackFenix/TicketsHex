@@ -44,7 +44,7 @@ BEGIN
     );
 END;
 
-IF OBJECT_ID(N'dbo.areasticket', N'U') IS NULL
+IF OBJECT_ID(N'dbo.areas', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.areas (
         idarea INT PRIMARY KEY,
@@ -80,7 +80,7 @@ BEGIN
         intentosfallidos INT DEFAULT (0),
         bloqueado BIT DEFAULT (0),
         fechabloqueo DATETIMEOFFSET NULL,
-        fechacambiocontrasena DATETIMEOFFSET NULL,
+        fechacambiocontrasena DATETIMEOFFSET NULL
     );
 END;
 
@@ -103,7 +103,7 @@ BEGIN
         jti VARCHAR(64) NOT NULL,
         fechacreacion DATETIMEOFFSET NOT NULL,
         fechaexpiracion DATETIMEOFFSET NOT NULL,
-        fecharevocacion DATETIMEOFFSET NULL,
+        fecharevocacion DATETIMEOFFSET NULL
     );
 END;
 
@@ -142,7 +142,7 @@ BEGIN
         fechaultimaactualizacion DATETIMEOFFSET NULL,
         idusuarioasignado BIGINT FOREIGN KEY REFERENCES dbo.usuarios(idusuario),
         idorigen INT FOREIGN KEY REFERENCES dbo.origenesticket(idorigen),
-        idestado INT FOREIGN KEY REFERENCES dbo.estadosticket(idestado),
+        idestado INT NOT NULL FOREIGN KEY REFERENCES dbo.estadosticket(idestado),
         carpetamedios VARCHAR(200) NULL,
         causaraiz VARCHAR(1000) NULL,
         solucionpropuesta VARCHAR(1000) NULL,
@@ -204,12 +204,12 @@ IF OBJECT_ID(N'dbo.historicoestadosticket', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.historicoestadosticket (
         idhistorico UNIQUEIDENTIFIER DEFAULT (NEWID()) PRIMARY KEY ,
-        idticket UNIQUEIDENTIFIER FOREIGN KEY  REFERENCES dbo.tickets(idticket) ,
+        idticket UNIQUEIDENTIFIER NOT NULL FOREIGN KEY  REFERENCES dbo.tickets(idticket) ,
         idestadoorigen INT FOREIGN KEY REFERENCES dbo.estadosticket(idestado),
-        idestadodestino INT FOREIGN KEY REFERENCES dbo.estadosticket(idestado),
-        idusuarioaccion BIGINT FOREIGN KEY REFERENCES dbo.usuarios(idusuario),
+        idestadodestino INT NOT NULL FOREIGN KEY REFERENCES dbo.estadosticket(idestado),
+        idusuarioaccion BIGINT NOT NULL FOREIGN KEY REFERENCES dbo.usuarios(idusuario),
         comentario VARCHAR(1000) NULL,
-        fechacambio DATETIMEOFFSET DEFAULT (SYSDATETIMEOFFSET()),
+        fechacambio DATETIMEOFFSET NOT NULL DEFAULT (SYSDATETIMEOFFSET())
     );
 END;
 
@@ -239,9 +239,9 @@ IF OBJECT_ID(N'dbo.ramas', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.ramas (
         idrama UNIQUEIDENTIFIER DEFAULT (NEWID()) PRIMARY KEY ,
-        idrepositorio UNIQUEIDENTIFIER FOREIGN KEY REFERENCES dbo.repositorios(idrepositorio),
+        idrepositorio UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.repositorios(idrepositorio),
         nombrerama VARCHAR(150) NOT NULL,
-        fechacreacion DATETIMEOFFSET NOT NULL CONSTRAINT df_ramas_fechacreacion DEFAULT (SYSDATETIMEOFFSET()),
+        fechacreacion DATETIMEOFFSET NOT NULL CONSTRAINT df_ramas_fechacreacion DEFAULT (SYSDATETIMEOFFSET())
     );
 END;
 
@@ -249,9 +249,9 @@ IF OBJECT_ID(N'dbo.ramasticket', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.ramasticket (
         idramaticket UNIQUEIDENTIFIER DEFAULT (NEWID()) PRIMARY KEY ,
-        idticket UNIQUEIDENTIFIER FOREIGN KEY REFERENCES dbo.tickets(idticket),
-        idrama UNIQUEIDENTIFIER FOREIGN KEY REFERENCES dbo.ramas(idrama),
-        fechaasignacion DATETIMEOFFSET NOT NULL CONSTRAINT df_ramasticket_fechaasignacion DEFAULT (SYSDATETIMEOFFSET()),
+        idticket UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.tickets(idticket),
+        idrama UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES dbo.ramas(idrama),
+        fechaasignacion DATETIMEOFFSET NOT NULL CONSTRAINT df_ramasticket_fechaasignacion DEFAULT (SYSDATETIMEOFFSET())
     );
 END;
 
