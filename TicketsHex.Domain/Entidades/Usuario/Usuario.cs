@@ -13,6 +13,7 @@ namespace TicketsHex.Domain.Entidades.Usuario
         public string? Apellidos { get; private set; }
         public Rol IdRol { get; private set; }
         public Area? IdArea { get; private set; }
+        public string? ImagenPerfilBase64 { get; private set; }
         public bool Activo { get; private set; } = true;
         public string? ContrasenaHash { get; private set; }
         public int IntentosFallidos { get; private set; }
@@ -29,13 +30,15 @@ namespace TicketsHex.Domain.Entidades.Usuario
             string? apellidos,
             Rol rol,
             Area? idArea,
-            string contrasenaHash)
+            string contrasenaHash,
+            string? imagenPerfilBase64 = null)
         {
             if (idUsuario <= 0)
                 throw new ArgumentException("El ID del usuario debe ser positivo.", nameof(idUsuario));
 
             IdUsuario = idUsuario;
             Actualizar(nombreUsuario, nombres, apellidos, rol, idArea);
+            ActualizarImagenPerfilBase64(imagenPerfilBase64);
             CambiarContrasena(contrasenaHash, DateTimeOffset.UtcNow);
         }
 
@@ -64,6 +67,33 @@ namespace TicketsHex.Domain.Entidades.Usuario
             Apellidos = apellidos?.Trim();
             IdRol = rol;
             IdArea = idArea;
+        }
+
+        public void ActualizarImagenPerfilBase64(string? imagenPerfilBase64)
+        {
+            if (string.IsNullOrWhiteSpace(imagenPerfilBase64))
+            {
+                ImagenPerfilBase64 = null;
+                return;
+            }
+
+            var imagenNormalizada = imagenPerfilBase64.Trim();
+            var base64 = ObtenerContenidoBase64(imagenNormalizada);
+            Span<byte> buffer = new byte[base64.Length];
+            if (!Convert.TryFromBase64String(base64, buffer, out _))
+                throw new ArgumentException("La imagen de perfil debe estar en formato Base64.", nameof(imagenPerfilBase64));
+
+            ImagenPerfilBase64 = imagenNormalizada;
+        }
+
+        private static string ObtenerContenidoBase64(string valor)
+        {
+            var separadorDataUri = valor.IndexOf(',');
+            if (valor.StartsWith("data:", StringComparison.OrdinalIgnoreCase) &&
+                separadorDataUri >= 0)
+                return valor[(separadorDataUri + 1)..];
+
+            return valor;
         }
 
         public void CambiarContrasena(string contrasenaHash, DateTimeOffset fechaCambio)

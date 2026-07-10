@@ -5,26 +5,32 @@ using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Usuario;
 using TicketsHex.Domain.Enums;
 using TicketsHex.Domain.Servicios;
+using Microsoft.Extensions.Configuration;
 
 namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
 {
     public sealed class UsuarioService : IUsuarioService
     {
+        private const string ContrasenaPorDefectoKey = "Usuarios:ContrasenaPorDefecto";
+
         private readonly IUsuarioRepository _repository;
         private readonly IUsuarioActual _usuarioActual;
         private readonly IAutenticacionRepository _autenticacionRepository;
         private readonly IContrasenaHasher _contrasenaHasher;
+        private readonly IConfiguration _configuration;
 
         public UsuarioService(
             IUsuarioRepository repository,
             IUsuarioActual usuarioActual,
             IAutenticacionRepository autenticacionRepository,
-            IContrasenaHasher contrasenaHasher)
+            IContrasenaHasher contrasenaHasher,
+            IConfiguration configuration)
         {
             _repository = repository;
             _usuarioActual = usuarioActual;
             _autenticacionRepository = autenticacionRepository;
             _contrasenaHasher = contrasenaHasher;
+            _configuration = configuration;
         }
 
         public async Task<IReadOnlyCollection<UsuarioDTO>> ObtenerTodosAsync(bool incluirInactivos)
@@ -49,7 +55,8 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
             if (await _autenticacionRepository.ObtenerUsuarioPorNombreAsync(request.NombreUsuario) is not null)
                 throw new ConflictoException($"El nombre de usuario {request.NombreUsuario} ya existe.");
 
-            ValidadorContrasena.Validar(request.Contrasena);
+            var contrasenaPorDefecto = ObtenerContrasenaPorDefecto();
+            ValidadorContrasena.Validar(contrasenaPorDefecto);
             var usuario = new Usuario(
                 request.IdUsuario,
                 request.NombreUsuario,
@@ -57,7 +64,8 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
                 request.Apellidos,
                 request.Rol,
                 request.IdArea,
-                _contrasenaHasher.CrearHash(request.Contrasena));
+                _contrasenaHasher.CrearHash(contrasenaPorDefecto),
+                request.ImagenPerfilBase64);
 
             await _repository.GuardarAsync(usuario);
         }
@@ -77,6 +85,8 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
                 request.Apellidos,
                 request.Rol,
                 request.IdArea);
+            if (request.ImagenPerfilBase64 is not null)
+                usuario.ActualizarImagenPerfilBase64(request.ImagenPerfilBase64);
 
             if (request.Activo)
                 usuario.Activar();
@@ -130,10 +140,21 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
             usuario.Apellidos,
             usuario.IdRol,
             usuario.IdArea,
+            usuario.ImagenPerfilBase64,
             usuario.Activo,
             usuario.Bloqueado,
             usuario.IntentosFallidos,
             usuario.FechaBloqueo,
             usuario.ContrasenaExpiraEn);
+
+        private string ObtenerContrasenaPorDefecto()
+        {
+            var contrasenaPorDefecto = _configuration[ContrasenaPorDefectoKey];
+            if (string.IsNullOrWhiteSpace(contrasenaPorDefecto))
+                throw new InvalidOperationException(
+                    $"No existe la configuraciÃ³n obligatoria {ContrasenaPorDefectoKey}.");
+
+            return contrasenaPorDefecto;
+        }
     }
 }
