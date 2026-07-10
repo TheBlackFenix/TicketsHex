@@ -18,7 +18,7 @@ public sealed class RepositorioRamaServiceTests
         var configuracion = new RepositorioRamaRepositoryFake();
         var tickets = new TicketRepositoryFake();
         var usuario = new UsuarioActualFake(3, Rol.LiderTecnico);
-        var service = new RepositorioRamaService(configuracion, tickets, usuario);
+        var service = new RepositorioRamaService(configuracion, tickets, usuario, new NotificacionPublisherFake());
         var ticket = tickets.Ticket;
 
         var idRepositorio = await service.CrearRepositorioAsync(
@@ -46,7 +46,8 @@ public sealed class RepositorioRamaServiceTests
         var service = new RepositorioRamaService(
             new RepositorioRamaRepositoryFake(),
             new TicketRepositoryFake(),
-            new UsuarioActualFake(1, Rol.QA));
+            new UsuarioActualFake(1, Rol.QA),
+            new NotificacionPublisherFake());
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             service.CrearRepositorioAsync(
@@ -61,7 +62,8 @@ public sealed class RepositorioRamaServiceTests
         var service = new RepositorioRamaService(
             configuracion,
             tickets,
-            new UsuarioActualFake(3, Rol.LiderTecnico));
+            new UsuarioActualFake(3, Rol.LiderTecnico),
+            new NotificacionPublisherFake());
 
         var repositorioUno = await service.CrearRepositorioAsync(
             new CrearRepositorioRequest("repo-uno", null, null));
@@ -175,5 +177,10 @@ public sealed class RepositorioRamaServiceTests
                 item.IdTicket == idTicket && item.IdRama == idRama);
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class NotificacionPublisherFake : INotificacionPublisher
+    {
+        public Task PublicarResumenAsync() => Task.CompletedTask;
     }
 }

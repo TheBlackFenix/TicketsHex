@@ -15,6 +15,7 @@ using SqlServerParametroRepository = TicketsHex.infrastructure.Adaptadores.Persi
 using SqlServerRepositorioRamaRepository = TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.RepositorioRamaRepository;
 using SqlServerTicketRepository = TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.TicketRepository;
 using SqlServerUsuarioRepository = TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.UsuarioRepository;
+using SqlServerNotificacionRepository = TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.NotificacionRepository;
 using PostgreSqlContext = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.Context.MantenimientoContext;
 using PostgreSqlAplicativoRepository = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.AplicativoRepository;
 using PostgreSqlAutenticacionRepository = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.AutenticacionRepository;
@@ -22,6 +23,7 @@ using PostgreSqlParametroRepository = TicketsHex.infrastructure.Adaptadores.Pers
 using PostgreSqlRepositorioRamaRepository = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.RepositorioRamaRepository;
 using PostgreSqlTicketRepository = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.TicketRepository;
 using PostgreSqlUsuarioRepository = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.UsuarioRepository;
+using PostgreSqlNotificacionRepository = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.NotificacionRepository;
 
 namespace TicketsHex.infrastructure
 {
@@ -53,6 +55,7 @@ namespace TicketsHex.infrastructure
             services.AddScoped<IAutenticacionRepository, SqlServerAutenticacionRepository>();
             services.AddScoped<IRepositorioRamaRepository, SqlServerRepositorioRamaRepository>();
             services.AddScoped<IAplicativoRepository, SqlServerAplicativoRepository>();
+            services.AddScoped<INotificacionRepository, SqlServerNotificacionRepository>();
         }
 
         private static void RegistrarPostgreSql(IServiceCollection services, string? connectionString)
@@ -66,6 +69,7 @@ namespace TicketsHex.infrastructure
             services.AddScoped<IAutenticacionRepository, PostgreSqlAutenticacionRepository>();
             services.AddScoped<IRepositorioRamaRepository, PostgreSqlRepositorioRamaRepository>();
             services.AddScoped<IAplicativoRepository, PostgreSqlAplicativoRepository>();
+            services.AddScoped<INotificacionRepository, PostgreSqlNotificacionRepository>();
         }
     }
 }

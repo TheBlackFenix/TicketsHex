@@ -11,6 +11,7 @@ using TicketsHex.Application.Puertos.Salida;
 using Serilog;
 using System.IO.Compression;
 using TicketsHex.API.Endpoints;
+using TicketsHex.API.Hubs;
 using TicketsHex.API.Middelwares;
 using TicketsHex.API.Middelwares.ExceptionHandling;
 using TicketsHex.Application;
@@ -159,6 +160,7 @@ try
                 .Tag(ParametricosEndpoints.CacheTag));
     });
     builder.Services.AddHealthChecks();
+    builder.Services.AddSignalR();
     builder.Services.AddCors(options =>
     {
         options.AddPolicy("AllowAll", policy =>
@@ -179,6 +181,7 @@ try
     builder.Services
         .AddApplication()
         .AddInfrastructure(builder.Configuration);
+    builder.Services.AddScoped<INotificacionPublisher, SignalRNotificacionPublisher>();
 
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(options =>
@@ -250,6 +253,8 @@ try
         .AllowAnonymous();
     app.MapTicketEndpoints();
     app.MapParametricosEndpoints();
+    app.MapNotificacionesEndpoints();
+    app.MapHub<NotificacionesHub>(NotificacionesHub.Ruta);
 
     await app.RunAsync();
 

@@ -85,7 +85,7 @@ public sealed class TicketCommandTests
     }
 
     private static TicketCommand CrearCommand(TicketRepositoryFake tickets, Rol rol) =>
-        new(tickets, new UsuarioRepositoryFake(), new UsuarioActualFake(1, rol));
+        new(tickets, new UsuarioRepositoryFake(), new UsuarioActualFake(1, rol), new NotificacionPublisherFake());
 
     private static Ticket CrearTicket() => new(
         "CASO-001",
@@ -134,5 +134,10 @@ public sealed class TicketCommandTests
             FueActualizado = true;
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class NotificacionPublisherFake : INotificacionPublisher
+    {
+        public Task PublicarResumenAsync() => Task.CompletedTask;
     }
 }
