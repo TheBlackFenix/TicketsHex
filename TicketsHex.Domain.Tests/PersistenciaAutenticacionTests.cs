@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context;
+using TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.Context;
 using Xunit;
 
 namespace TicketsHex.Domain.Tests;
@@ -10,7 +10,7 @@ public class PersistenciaAutenticacionTests
     public void Modelo_ef_incluye_campos_de_seguridad_y_sesiones()
     {
         var options = new DbContextOptionsBuilder<MantenimientoContext>()
-            .UseNpgsql("Host=localhost;Database=tickets;Username=test;Password=test")
+            .UseSqlServer("Server=localhost,1433;Database=tickets;User Id=test;Password=test;TrustServerCertificate=True")
             .Options;
         using var context = new MantenimientoContext(options);
 

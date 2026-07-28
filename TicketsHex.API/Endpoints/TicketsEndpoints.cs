@@ -74,9 +74,9 @@ namespace TicketsHex.API.Endpoints
             });
 
             app.MapUsuariosEndpoints();
-            app.MapParametrosEndpoints();
             app.MapAutenticacionEndpoints();
             app.MapRepositoriosEndpoints();
+            app.MapAplicativosEndpoints();
             return app;
         }
     }

@@ -4,9 +4,9 @@ using TicketsHex.Application.DTO_s.Ticket;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Ticket;
 using TicketsHex.Domain.ValueObjects.Ticket;
-using TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context;
+using TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.Context;
 
-namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository
+namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
 {
     public class TicketRepository : ITicketRepository
     {

@@ -6,6 +6,7 @@ using TicketsHex.Application.Puertos.Entrada.Autenticacion;
 using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
 using TicketsHex.API.Servicios;
+using TicketsHex.Application.Puertos.Salida;
 
 namespace TicketsHex.API.Endpoints
 {
@@ -63,13 +64,14 @@ namespace TicketsHex.API.Endpoints
 
             group.MapPost("/cambiar-contrasena", async (
                 CambiarContrasenaRequest request,
-                IAutenticacionService service) =>
+                IAutenticacionService service,
+                IUsuarioActual usuarioActual) =>
             {
-                await service.CambiarContrasenaAsync(request);
+                await service.CambiarContrasenaAsync(usuarioActual.IdUsuario, request);
                 return Results.Ok(ApiResponse<bool>.Ok(
                     true,
                     "Contraseña actualizada correctamente."));
-            });
+            }).RequireAuthorization();
 
             group.MapPost("/logout", async (
                 HttpContext context,

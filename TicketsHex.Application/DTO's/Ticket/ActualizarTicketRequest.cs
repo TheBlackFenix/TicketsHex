@@ -9,5 +9,9 @@ namespace TicketsHex.Application.DTO_s.Ticket
         long? IdUsuarioAsignado,
         string? CausaRaiz,
         string? SolucionPropuesta,
-        string? Comentario);
+        string? Comentario,
+        bool? EsDesarrollo = null,
+        string? NombreHu = null,
+        string? UrlHu = null,
+        string? CarpetaMedios = null);
 }

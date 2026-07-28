@@ -31,7 +31,7 @@ namespace TicketsHex.API.Endpoints
                 return Results.Created(
                     $"/api/usuarios/{request.IdUsuario}",
                     ApiResponse<long>.Ok(request.IdUsuario, "Usuario creado correctamente."));
-            });
+            }).RequireAuthorization("PlannerOrLiderTecnico");
 
             group.MapPut("/{id:long}", async (
                 long id,
@@ -40,13 +40,13 @@ namespace TicketsHex.API.Endpoints
             {
                 await service.ActualizarAsync(id, request);
                 return Results.Ok(ApiResponse<bool>.Ok(true, "Usuario actualizado correctamente."));
-            });
+            }).RequireAuthorization("PlannerOrLiderTecnico");
 
             group.MapDelete("/{id:long}", async (long id, IUsuarioService service) =>
             {
                 await service.DesactivarAsync(id);
                 return Results.Ok(ApiResponse<bool>.Ok(true, "Usuario desactivado correctamente."));
-            });
+            }).RequireAuthorization("PlannerOrLiderTecnico");
 
             group.MapPatch("/{id:long}/desbloquear", async (
                 long id,
@@ -56,7 +56,7 @@ namespace TicketsHex.API.Endpoints
                 return Results.Ok(ApiResponse<bool>.Ok(
                     true,
                     "Usuario desbloqueado correctamente."));
-            });
+            }).RequireAuthorization("PlannerOrLiderTecnico");
 
             return app;
         }
