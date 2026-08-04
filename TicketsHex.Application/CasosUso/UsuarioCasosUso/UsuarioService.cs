@@ -100,56 +100,11 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
 
         public async Task<UsuarioDTO> ActualizarPerfilPropioAsync(ActualizarPerfilPropioRequest request)
         {
-            var actualizaImagen = request.ImagenPerfilBase64 is not null;
-            var actualizaContrasena = request.ContrasenaActual is not null ||
-                request.NuevaContrasena is not null;
-
-            if (!actualizaImagen && !actualizaContrasena)
-                throw new ArgumentException("Debe indicar la imagen de perfil o los datos para cambiar la contraseÃ±a.");
-
-            if (actualizaContrasena &&
-                (string.IsNullOrWhiteSpace(request.ContrasenaActual) ||
-                 string.IsNullOrWhiteSpace(request.NuevaContrasena)))
-            {
-                throw new ArgumentException(
-                    "La contraseÃ±a actual y la nueva contraseÃ±a son obligatorias para realizar el cambio.");
-            }
+            if (request.ImagenPerfilBase64 is null)
+                throw new ArgumentException("Debe indicar la imagen de perfil.");
 
             var usuario = await ObtenerEntidadAsync(_usuarioActual.IdUsuario);
-
-            if (actualizaImagen)
-                usuario.ActualizarImagenPerfilBase64(request.ImagenPerfilBase64);
-
-            if (actualizaContrasena)
-            {
-                if (usuario.Bloqueado || string.IsNullOrWhiteSpace(usuario.ContrasenaHash))
-                    throw new UsuarioNoAutenticadoException("No fue posible validar la contraseÃ±a actual.");
-
-                var resultado = _contrasenaHasher.Verificar(
-                    usuario.ContrasenaHash,
-                    request.ContrasenaActual!);
-                if (resultado == ResultadoVerificacionContrasena.Fallida)
-                {
-                    await _autenticacionRepository.RegistrarIntentoFallidoAsync(
-                        usuario.IdUsuario,
-                        DateTimeOffset.UtcNow);
-                    throw new UsuarioNoAutenticadoException("La contraseÃ±a actual no es correcta.");
-                }
-
-                ValidadorContrasena.Validar(request.NuevaContrasena!);
-                if (_contrasenaHasher.Verificar(
-                        usuario.ContrasenaHash,
-                        request.NuevaContrasena!) != ResultadoVerificacionContrasena.Fallida)
-                {
-                    throw new ArgumentException("La nueva contraseÃ±a debe ser diferente a la actual.");
-                }
-
-                var ahora = DateTimeOffset.UtcNow;
-                usuario.CambiarContrasena(
-                    _contrasenaHasher.CrearHash(request.NuevaContrasena!),
-                    ahora);
-                await _autenticacionRepository.RevocarSesionesAsync(usuario.IdUsuario, ahora);
-            }
+            usuario.ActualizarImagenPerfilBase64(request.ImagenPerfilBase64);
 
             await _repository.ActualizarAsync(usuario);
             return Mapear(usuario);

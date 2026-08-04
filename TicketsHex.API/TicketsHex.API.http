@@ -72,15 +72,13 @@ Authorization: Bearer {{token}}
 GET {{host}}/api/parametros/areas-ticket
 Authorization: Bearer {{token}}
 
-### Actualizar imagen y contrasena del usuario autenticado
+### Actualizar imagen del usuario autenticado
 PATCH {{host}}/api/usuarios/me
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "imagenPerfilBase64": "aW1hZ2Vu",
-  "contrasenaActual": "Planner#2026",
-  "nuevaContrasena": "Planner#2026Nueva"
+  "imagenPerfilBase64": "aW1hZ2Vu"
 }
 
 ### Cambiar solamente la contrasena del usuario autenticado

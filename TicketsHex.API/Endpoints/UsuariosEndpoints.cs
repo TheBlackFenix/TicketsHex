@@ -32,7 +32,7 @@ namespace TicketsHex.API.Endpoints
                 var usuario = await service.ActualizarPerfilPropioAsync(request);
                 return Results.Ok(ApiResponse<UsuarioDTO>.Ok(
                     usuario,
-                    "Perfil actualizado correctamente. Si cambiÃ³ la contraseÃ±a, debe iniciar sesiÃ³n nuevamente."));
+                    "Imagen de perfil actualizada correctamente."));
             });
 
             group.MapPost("/", async (CrearUsuarioRequest request, IUsuarioService service) =>
