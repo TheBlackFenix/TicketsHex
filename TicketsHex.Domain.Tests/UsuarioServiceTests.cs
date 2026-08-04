@@ -145,6 +145,36 @@ public class UsuarioServiceTests
         Assert.False(usuarios.Actualizado);
     }
 
+    [Fact]
+    public async Task Desbloquear_usuario_restablece_contrasena_temporal_y_fuerza_su_cambio()
+    {
+        var usuario = new Usuario(
+            10,
+            "usuario.bloqueado",
+            "Usuario",
+            "Bloqueado",
+            Rol.Desarrollador,
+            Area.Mantenimiento,
+            "hash-anterior");
+        for (var intento = 0; intento < Usuario.MaximoIntentosFallidos; intento++)
+            usuario.RegistrarIntentoFallido(DateTimeOffset.UtcNow);
+
+        var usuarios = new UsuarioRepositoryFake(usuario);
+        var autenticacion = new AutenticacionRepositoryFake(usuario);
+        var hasher = new ContrasenaHasherFake();
+        var service = CrearServicio(usuarios, autenticacion, hasher);
+
+        await service.DesbloquearAsync(usuario.IdUsuario);
+
+        Assert.False(usuario.Bloqueado);
+        Assert.Equal(0, usuario.IntentosFallidos);
+        Assert.Equal("Cambiar#2026", hasher.UltimaContrasena);
+        Assert.Equal("hash-Cambiar#2026", usuario.ContrasenaHash);
+        Assert.True(usuario.DebeCambiarContrasena);
+        Assert.Equal(usuario.IdUsuario, autenticacion.IdUsuarioSesionesRevocadas);
+        Assert.True(usuarios.Actualizado);
+    }
+
     private static Usuario CrearUsuarioActual() => new(
         1,
         "usuario.actual",
@@ -230,6 +260,8 @@ public class UsuarioServiceTests
 
     private sealed class AutenticacionRepositoryFake(Usuario? usuario = null) : IAutenticacionRepository
     {
+        public long? IdUsuarioSesionesRevocadas { get; private set; }
+
         public Task<Usuario?> ObtenerUsuarioPorIdAsync(long idUsuario) =>
             Task.FromResult(usuario?.IdUsuario == idUsuario ? usuario : null);
         public Task<Usuario?> ObtenerUsuarioPorNombreAsync(string nombreUsuario) => Task.FromResult<Usuario?>(null);
@@ -238,7 +270,11 @@ public class UsuarioServiceTests
         public Task RegistrarIntentoFallidoAsync(long idUsuario, DateTimeOffset fecha) => Task.CompletedTask;
         public Task CrearUsuarioAsync(Usuario usuario) => Task.CompletedTask;
         public Task ReemplazarSesionAsync(SesionUsuario nuevaSesion, DateTimeOffset fechaRevocacion) => Task.CompletedTask;
-        public Task RevocarSesionesAsync(long idUsuario, DateTimeOffset fecha) => Task.CompletedTask;
+        public Task RevocarSesionesAsync(long idUsuario, DateTimeOffset fecha)
+        {
+            IdUsuarioSesionesRevocadas = idUsuario;
+            return Task.CompletedTask;
+        }
         public Task GuardarCambiosAsync() => Task.CompletedTask;
     }
 }

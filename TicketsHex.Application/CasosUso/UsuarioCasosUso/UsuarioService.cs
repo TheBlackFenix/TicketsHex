@@ -128,7 +128,15 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
         {
             ValidarPlannerOLiderTecnico();
             var usuario = await ObtenerEntidadAsync(idUsuario);
-            usuario.Desbloquear();
+
+            var contrasenaPorDefecto = ObtenerContrasenaPorDefecto();
+            ValidadorContrasena.Validar(contrasenaPorDefecto);
+            var ahora = DateTimeOffset.UtcNow;
+            usuario.RestablecerContrasena(
+                _contrasenaHasher.CrearHash(contrasenaPorDefecto),
+                ahora);
+
+            await _autenticacionRepository.RevocarSesionesAsync(idUsuario, ahora);
             await _repository.ActualizarAsync(usuario);
         }
 
