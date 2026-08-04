@@ -21,10 +21,14 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
 
         public async Task<PaginaResultado<TicketDTO>> ObtenerListaTicketsAsync(TicketFiltroRequest filtro)
         {
-            if (_usuarioActual.Rol != Rol.Planner)
-                throw new UnauthorizedAccessException("Solo el Planner puede consultar el listado general.");
+            if (!PuedeConsultarTodosLosTickets())
+                throw new UnauthorizedAccessException("Solo Planner o Lider Tecnico pueden consultar el listado general.");
 
-            return await ObtenerPaginaAsync(filtro.Normalizar());
+            var filtroNormalizado = filtro.Normalizar();
+            if (_usuarioActual.Rol == Rol.LiderTecnico)
+                filtroNormalizado = filtroNormalizado with { IncluirEliminados = false };
+
+            return await ObtenerPaginaAsync(filtroNormalizado);
         }
 
         public async Task<PaginaResultado<TicketDTO>> ObtenerMisTicketsAsync(TicketFiltroRequest filtro)
@@ -40,11 +44,12 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
 
         public async Task<TicketDTO> ObtenerTicketPorIdAsync(Guid id)
         {
-            var esPlanner = _usuarioActual.Rol == Rol.Planner;
-            var ticket = await _ticketRepository.ObtenerPorIdAsync(id, esPlanner)
+            var puedeConsultarTodos = PuedeConsultarTodosLosTickets();
+            var puedeConsultarEliminados = _usuarioActual.Rol == Rol.Planner;
+            var ticket = await _ticketRepository.ObtenerPorIdAsync(id, puedeConsultarEliminados)
                 ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
 
-            if (!esPlanner && ticket.IdUsuarioAsignado != _usuarioActual.IdUsuario)
+            if (!puedeConsultarTodos && ticket.IdUsuarioAsignado != _usuarioActual.IdUsuario)
                 throw new UnauthorizedAccessException("No tiene acceso a este ticket.");
 
             return ticket.ToDto();
@@ -59,5 +64,8 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
                 pagina.TamanoPagina,
                 pagina.TotalElementos);
         }
+
+        private bool PuedeConsultarTodosLosTickets() =>
+            _usuarioActual.Rol is Rol.Planner or Rol.LiderTecnico;
     }
 }

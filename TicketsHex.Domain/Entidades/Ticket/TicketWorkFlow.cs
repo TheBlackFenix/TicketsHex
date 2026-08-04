@@ -10,7 +10,7 @@ namespace TicketsHex.Domain.Entidades.Ticket
         {
             [TicketEstado.EnProceso] = new([TicketEstado.EnAnalisis], []),
             [TicketEstado.Bloqueado] = new([TicketEstado.EnProceso], [], true),
-            [TicketEstado.Entregado] = new([TicketEstado.Bloqueado], []),
+            [TicketEstado.Entregado] = new([TicketEstado.EnProceso], []),
             [TicketEstado.DespliegueApitesting] = new([TicketEstado.Entregado], []),
             [TicketEstado.EnRevisionApitesting] = new([TicketEstado.DespliegueApitesting], []),
             [TicketEstado.AprobadoApitesting] = new([TicketEstado.EnRevisionApitesting], []),

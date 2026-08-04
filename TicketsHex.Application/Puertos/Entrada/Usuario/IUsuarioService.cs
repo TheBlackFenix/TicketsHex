@@ -8,6 +8,7 @@ namespace TicketsHex.Application.Puertos.Entrada.Usuario
         Task<UsuarioDTO> ObtenerPorIdAsync(long idUsuario);
         Task CrearAsync(CrearUsuarioRequest request);
         Task ActualizarAsync(long idUsuario, ActualizarUsuarioRequest request);
+        Task<UsuarioDTO> ActualizarPerfilPropioAsync(ActualizarPerfilPropioRequest request);
         Task DesactivarAsync(long idUsuario);
         Task DesbloquearAsync(long idUsuario);
     }

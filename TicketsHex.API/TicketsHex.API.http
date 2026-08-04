@@ -38,11 +38,10 @@ Authorization: Bearer {{token}}
   "nombres": "Usuario",
   "apellidos": "Desarrollador",
   "rol": "Desarrollador",
-  "idArea": 1,
-  "contrasena": "Developer#2026"
+  "idArea": 1
 }
 
-### Listado general del Planner
+### Listado general del Planner o Lider Tecnico
 GET {{host}}/api/tickets?pagina=1&tamanoPagina=20&incluirEliminados=false
 Authorization: Bearer {{token}}
 
@@ -73,12 +72,23 @@ Authorization: Bearer {{token}}
 GET {{host}}/api/parametros/areas-ticket
 Authorization: Bearer {{token}}
 
-### Cambiar contraseña (también funciona si expiró)
-POST {{host}}/api/auth/cambiar-contrasena
+### Actualizar imagen y contrasena del usuario autenticado
+PATCH {{host}}/api/usuarios/me
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
-  "nombreUsuario": "planner",
+  "imagenPerfilBase64": "aW1hZ2Vu",
+  "contrasenaActual": "Planner#2026",
+  "nuevaContrasena": "Planner#2026Nueva"
+}
+
+### Cambiar solamente la contrasena del usuario autenticado
+POST {{host}}/api/auth/cambiar-contrasena
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
   "contrasenaActual": "Planner#2026",
   "nuevaContrasena": "Planner#2026Nueva"
 }
