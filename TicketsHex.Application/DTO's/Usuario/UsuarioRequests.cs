@@ -21,7 +21,5 @@ namespace TicketsHex.Application.DTO_s.Usuario
         string? ImagenPerfilBase64 = null);
 
     public sealed record ActualizarPerfilPropioRequest(
-        string? ImagenPerfilBase64 = null,
-        string? ContrasenaActual = null,
-        string? NuevaContrasena = null);
+        string? ImagenPerfilBase64 = null);
 }
