@@ -25,6 +25,16 @@ namespace TicketsHex.API.Endpoints
                 return Results.Ok(ApiResponse<UsuarioDTO>.Ok(usuario));
             });
 
+            group.MapPatch("/me", async (
+                ActualizarPerfilPropioRequest request,
+                IUsuarioService service) =>
+            {
+                var usuario = await service.ActualizarPerfilPropioAsync(request);
+                return Results.Ok(ApiResponse<UsuarioDTO>.Ok(
+                    usuario,
+                    "Perfil actualizado correctamente. Si cambiÃ³ la contraseÃ±a, debe iniciar sesiÃ³n nuevamente."));
+            });
+
             group.MapPost("/", async (CrearUsuarioRequest request, IUsuarioService service) =>
             {
                 await service.CrearAsync(request);

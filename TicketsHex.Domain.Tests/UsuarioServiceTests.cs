@@ -111,6 +111,74 @@ public class UsuarioServiceTests
         Assert.Equal("aW1hZ2Vu", usuario.ImagenPerfilBase64);
     }
 
+    [Fact]
+    public async Task Usuario_actualiza_su_imagen_de_perfil_sin_indicar_un_id()
+    {
+        var usuario = CrearUsuarioActual();
+        var usuarios = new UsuarioRepositoryFake(usuario);
+        var service = CrearServicio(
+            usuarios,
+            new AutenticacionRepositoryFake(usuario),
+            new ContrasenaHasherFake());
+
+        var resultado = await service.ActualizarPerfilPropioAsync(
+            new ActualizarPerfilPropioRequest(ImagenPerfilBase64: "aW1hZ2Vu"));
+
+        Assert.Equal("aW1hZ2Vu", usuario.ImagenPerfilBase64);
+        Assert.Equal(usuario.IdUsuario, resultado.IdUsuario);
+        Assert.True(usuarios.Actualizado);
+    }
+
+    [Fact]
+    public async Task Usuario_cambia_su_contrasena_si_la_actual_es_correcta()
+    {
+        var usuario = CrearUsuarioActual();
+        var usuarios = new UsuarioRepositoryFake(usuario);
+        var autenticacion = new AutenticacionRepositoryFake(usuario);
+        var hasher = new ContrasenaHasherFake("Actual#2026");
+        var service = CrearServicio(usuarios, autenticacion, hasher);
+
+        await service.ActualizarPerfilPropioAsync(new ActualizarPerfilPropioRequest(
+            ContrasenaActual: "Actual#2026",
+            NuevaContrasena: "Nueva#2026"));
+
+        Assert.Equal("hash-Nueva#2026", usuario.ContrasenaHash);
+        Assert.False(usuario.DebeCambiarContrasena);
+        Assert.Equal(usuario.IdUsuario, autenticacion.IdUsuarioSesionesRevocadas);
+        Assert.True(usuarios.Actualizado);
+    }
+
+    [Fact]
+    public async Task Usuario_no_cambia_su_contrasena_si_la_actual_es_incorrecta()
+    {
+        var usuario = CrearUsuarioActual();
+        var usuarios = new UsuarioRepositoryFake(usuario);
+        var autenticacion = new AutenticacionRepositoryFake(usuario);
+        var service = CrearServicio(
+            usuarios,
+            autenticacion,
+            new ContrasenaHasherFake("Actual#2026"));
+
+        await Assert.ThrowsAsync<Application.Comun.Excepciones.UsuarioNoAutenticadoException>(() =>
+            service.ActualizarPerfilPropioAsync(new ActualizarPerfilPropioRequest(
+                ContrasenaActual: "Incorrecta#2026",
+                NuevaContrasena: "Nueva#2026")));
+
+        Assert.Equal("hash-actual", usuario.ContrasenaHash);
+        Assert.Equal(usuario.IdUsuario, autenticacion.IdUsuarioIntentoFallido);
+        Assert.False(usuarios.Actualizado);
+    }
+
+    private static Usuario CrearUsuarioActual() => new(
+        1,
+        "usuario.actual",
+        "Usuario",
+        "Actual",
+        Rol.Desarrollador,
+        Area.Mantenimiento,
+        "hash-actual",
+        debeCambiarContrasena: true);
+
     private static UsuarioService CrearServicio(
         UsuarioRepositoryFake usuarios,
         AutenticacionRepositoryFake autenticacion,
@@ -137,7 +205,7 @@ public class UsuarioServiceTests
         public Rol Rol => Rol.Planner;
     }
 
-    private sealed class ContrasenaHasherFake : IContrasenaHasher
+    private sealed class ContrasenaHasherFake(string? contrasenaActual = null) : IContrasenaHasher
     {
         public string? UltimaContrasena { get; private set; }
 
@@ -148,7 +216,9 @@ public class UsuarioServiceTests
         }
 
         public ResultadoVerificacionContrasena Verificar(string hash, string contrasena) =>
-            ResultadoVerificacionContrasena.Fallida;
+            contrasena == contrasenaActual
+                ? ResultadoVerificacionContrasena.Exitosa
+                : ResultadoVerificacionContrasena.Fallida;
     }
 
     private sealed class UsuarioRepositoryFake : IUsuarioRepository
@@ -184,16 +254,28 @@ public class UsuarioServiceTests
         }
     }
 
-    private sealed class AutenticacionRepositoryFake : IAutenticacionRepository
+    private sealed class AutenticacionRepositoryFake(Usuario? usuario = null) : IAutenticacionRepository
     {
-        public Task<Usuario?> ObtenerUsuarioPorIdAsync(long idUsuario) => Task.FromResult<Usuario?>(null);
+        public long? IdUsuarioSesionesRevocadas { get; private set; }
+        public long? IdUsuarioIntentoFallido { get; private set; }
+
+        public Task<Usuario?> ObtenerUsuarioPorIdAsync(long idUsuario) =>
+            Task.FromResult(usuario?.IdUsuario == idUsuario ? usuario : null);
         public Task<Usuario?> ObtenerUsuarioPorNombreAsync(string nombreUsuario) => Task.FromResult<Usuario?>(null);
         public Task<bool> ExisteUsuarioConContrasenaAsync() => Task.FromResult(false);
         public Task<SesionUsuario?> ObtenerSesionPorJtiAsync(string jti) => Task.FromResult<SesionUsuario?>(null);
-        public Task RegistrarIntentoFallidoAsync(long idUsuario, DateTimeOffset fecha) => Task.CompletedTask;
+        public Task RegistrarIntentoFallidoAsync(long idUsuario, DateTimeOffset fecha)
+        {
+            IdUsuarioIntentoFallido = idUsuario;
+            return Task.CompletedTask;
+        }
         public Task CrearUsuarioAsync(Usuario usuario) => Task.CompletedTask;
         public Task ReemplazarSesionAsync(SesionUsuario nuevaSesion, DateTimeOffset fechaRevocacion) => Task.CompletedTask;
-        public Task RevocarSesionesAsync(long idUsuario, DateTimeOffset fecha) => Task.CompletedTask;
+        public Task RevocarSesionesAsync(long idUsuario, DateTimeOffset fecha)
+        {
+            IdUsuarioSesionesRevocadas = idUsuario;
+            return Task.CompletedTask;
+        }
         public Task GuardarCambiosAsync() => Task.CompletedTask;
     }
 }

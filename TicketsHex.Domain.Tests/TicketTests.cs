@@ -51,11 +51,21 @@ public class TicketTests
         var ticket = CrearTicket();
 
         ticket.ActualizarEstado(TicketEstado.EnProceso, 2, Rol.QA, null);
-        ticket.ActualizarEstado(TicketEstado.Bloqueado, 2, Rol.Planner, "Bloqueo");
         ticket.ActualizarEstado(TicketEstado.Entregado, 2, Rol.Desarrollador, null);
         ticket.ActualizarEstado(TicketEstado.DespliegueApitesting, 2, Rol.QA, null);
 
         Assert.Equal(TicketEstado.DespliegueApitesting, ticket.IdEstado);
+    }
+
+    [Fact]
+    public void Bloqueado_no_es_un_paso_obligatorio_del_flujo_normal()
+    {
+        var ticket = CrearTicket();
+
+        ticket.ActualizarEstado(TicketEstado.EnProceso, 2, Rol.Desarrollador, null);
+        ticket.ActualizarEstado(TicketEstado.Entregado, 2, Rol.Desarrollador, null);
+
+        Assert.Equal(TicketEstado.Entregado, ticket.IdEstado);
     }
 
     [Fact]
