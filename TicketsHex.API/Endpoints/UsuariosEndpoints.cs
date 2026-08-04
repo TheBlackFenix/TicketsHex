@@ -65,7 +65,7 @@ namespace TicketsHex.API.Endpoints
                 await service.DesbloquearAsync(id);
                 return Results.Ok(ApiResponse<bool>.Ok(
                     true,
-                    "Usuario desbloqueado correctamente."));
+                    "Usuario desbloqueado y contraseÃ±a temporal restablecida. Debe cambiarla en el siguiente inicio de sesiÃ³n."));
             }).RequireAuthorization("PlannerOrLiderTecnico");
 
             return app;
