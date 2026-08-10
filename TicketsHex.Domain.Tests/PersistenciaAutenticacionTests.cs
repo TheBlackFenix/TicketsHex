@@ -22,4 +22,20 @@ public class PersistenciaAutenticacionTests
         Assert.NotNull(usuario?.FindProperty("Bloqueado"));
         Assert.NotNull(sesion?.FindProperty("Jti"));
     }
+
+    [Fact]
+    public void Modelo_ef_incluye_historico_de_asignaciones_de_tickets()
+    {
+        var options = new DbContextOptionsBuilder<MantenimientoContext>()
+            .UseSqlServer("Server=localhost,1433;Database=tickets;User Id=test;Password=test;TrustServerCertificate=True")
+            .Options;
+        using var context = new MantenimientoContext(options);
+
+        var historico = context.Model.FindEntityType(
+            "TicketsHex.Domain.Entidades.Ticket.HistoricoAsignacionTicket");
+
+        Assert.NotNull(historico?.FindProperty("IdUsuarioAsignado"));
+        Assert.NotNull(historico?.FindProperty("IdUsuarioAccion"));
+        Assert.NotNull(historico?.FindProperty("FechaAsignacion"));
+    }
 }

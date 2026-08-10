@@ -45,6 +45,10 @@ Authorization: Bearer {{token}}
 GET {{host}}/api/tickets?pagina=1&tamanoPagina=20&incluirEliminados=false
 Authorization: Bearer {{token}}
 
+### Historico de tickets que han estado asignados al usuario autenticado
+GET {{host}}/api/tickets/mis-tickets/historico?pagina=1&tamanoPagina=20
+Authorization: Bearer {{token}}
+
 ### Actualización parcial técnica
 PATCH {{host}}/api/tickets/{{ticketId}}
 Content-Type: application/json

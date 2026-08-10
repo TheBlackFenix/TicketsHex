@@ -47,6 +47,25 @@ public sealed class TicketQueryTests
             query.ObtenerListaTicketsAsync(new TicketFiltroRequest()));
     }
 
+    [Fact]
+    public async Task Historico_mis_tickets_consulta_asignaciones_del_usuario_actual()
+    {
+        var ticket = CrearTicket();
+        var repository = new TicketRepositoryFake(ticket);
+        var query = new TicketQuery(
+            repository,
+            new UsuarioActualFake(7, Rol.Desarrollador));
+
+        var resultado = await query.ObtenerHistoricoMisTicketsAsync(
+            new TicketFiltroRequest(IdUsuarioAsignado: 99, IncluirEliminados: true));
+
+        Assert.Equal(7, repository.IdUsuarioHistoricoConsultado);
+        Assert.False(repository.FiltroHistorico!.IncluirEliminados);
+        Assert.Null(repository.FiltroHistorico.IdUsuarioAsignado);
+        Assert.Single(resultado.Elementos);
+        Assert.Equal(ticket.IdTicket, resultado.Elementos.Single().IdTicket);
+    }
+
     private static Ticket CrearTicket() => new(
         "CASO-001",
         "Ticket de prueba",
@@ -63,11 +82,23 @@ public sealed class TicketQueryTests
 
     private sealed class TicketRepositoryFake(Ticket ticket) : ITicketRepository
     {
+        public long? IdUsuarioHistoricoConsultado { get; private set; }
+        public TicketFiltroRequest? FiltroHistorico { get; private set; }
+
         public Task<Ticket?> ObtenerPorIdAsync(Guid id, bool incluirEliminados = false) =>
             Task.FromResult(ticket.IdTicket == id ? ticket : null);
 
         public Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(TicketFiltroRequest filtro) =>
             Task.FromResult(new PaginaResultado<Ticket>([ticket], 1, 20, 1));
+
+        public Task<PaginaResultado<Ticket>> ObtenerPaginaPorAsignacionHistoricaAsync(
+            long idUsuario,
+            TicketFiltroRequest filtro)
+        {
+            IdUsuarioHistoricoConsultado = idUsuario;
+            FiltroHistorico = filtro;
+            return Task.FromResult(new PaginaResultado<Ticket>([ticket], 1, 20, 1));
+        }
 
         public Task GuardarAsync(Ticket ticketGuardado) => Task.CompletedTask;
         public Task ActualizarAsync(Ticket ticketActualizado) => Task.CompletedTask;

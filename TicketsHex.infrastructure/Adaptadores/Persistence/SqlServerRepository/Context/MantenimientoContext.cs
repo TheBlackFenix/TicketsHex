@@ -15,6 +15,7 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.
 
         public DbSet<Ticket> Tickets => Set<Ticket>();
         public DbSet<HistoricoEstadosTicket> HistoricoEstados => Set<HistoricoEstadosTicket>();
+        public DbSet<HistoricoAsignacionTicket> HistoricoAsignaciones => Set<HistoricoAsignacionTicket>();
         public DbSet<Usuario> Usuarios => Set<Usuario>();
         public DbSet<RolParametro> Roles => Set<RolParametro>();
         public DbSet<EstadoTicketParametro> EstadosTicket => Set<EstadoTicketParametro>();
@@ -67,6 +68,11 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.
                     .HasForeignKey(h => h.IdTicket)
                     .OnDelete(DeleteBehavior.Cascade);
 
+                b.HasMany(t => t.HistoricoAsignaciones)
+                    .WithOne()
+                    .HasForeignKey(h => h.IdTicket)
+                    .OnDelete(DeleteBehavior.Cascade);
+
                 b.HasOne<Usuario>()
                     .WithMany()
                     .HasForeignKey(t => t.IdUsuarioAsignado)
@@ -85,6 +91,28 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.
                 b.HasOne<Usuario>()
                     .WithMany()
                     .HasForeignKey(h => h.IdUsuarioAccion)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<HistoricoAsignacionTicket>(b =>
+            {
+                b.ToTable("historicoasignacionesticket");
+                b.HasKey(e => e.IdHistoricoAsignacion);
+                b.Property(e => e.IdHistoricoAsignacion).ValueGeneratedNever();
+                b.Property(e => e.Comentario).HasMaxLength(1000);
+                b.HasIndex(e => new { e.IdUsuarioAsignado, e.IdTicket });
+
+                b.HasOne<Ticket>()
+                    .WithMany(t => t.HistoricoAsignaciones)
+                    .HasForeignKey(e => e.IdTicket)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne<Usuario>()
+                    .WithMany()
+                    .HasForeignKey(e => e.IdUsuarioAsignado)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne<Usuario>()
+                    .WithMany()
+                    .HasForeignKey(e => e.IdUsuarioAccion)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 

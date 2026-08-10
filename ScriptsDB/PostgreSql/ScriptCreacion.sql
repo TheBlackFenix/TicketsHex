@@ -106,6 +106,18 @@ CREATE TABLE historicoestadosticket (
 
 CREATE INDEX ix_historicoestadosticket_idticket ON historicoestadosticket(idticket);
 
+CREATE TABLE historicoasignacionesticket (
+    idhistoricoasignacion UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    idticket UUID NOT NULL REFERENCES tickets(idticket) ON DELETE CASCADE,
+    idusuarioasignado BIGINT NOT NULL REFERENCES usuarios(idusuario),
+    idusuarioaccion BIGINT NOT NULL REFERENCES usuarios(idusuario),
+    comentario VARCHAR(1000),
+    fechaasignacion TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX ix_historicoasignacionesticket_usuario_ticket
+    ON historicoasignacionesticket(idusuarioasignado, idticket);
+
 CREATE TABLE repositorios (
     idrepositorio UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     repositorio VARCHAR(100) NOT NULL,

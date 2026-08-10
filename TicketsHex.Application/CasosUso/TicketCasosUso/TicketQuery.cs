@@ -42,6 +42,21 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
             return await ObtenerPaginaAsync(filtroUsuario);
         }
 
+        public async Task<PaginaResultado<TicketDTO>> ObtenerHistoricoMisTicketsAsync(
+            TicketFiltroRequest filtro)
+        {
+            var filtroNormalizado = filtro.Normalizar() with
+            {
+                IdUsuarioAsignado = null,
+                IncluirEliminados = false
+            };
+            var pagina = await _ticketRepository.ObtenerPaginaPorAsignacionHistoricaAsync(
+                _usuarioActual.IdUsuario,
+                filtroNormalizado);
+
+            return MapearPagina(pagina);
+        }
+
         public async Task<TicketDTO> ObtenerTicketPorIdAsync(Guid id)
         {
             var puedeConsultarTodos = PuedeConsultarTodosLosTickets();
@@ -58,6 +73,12 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
         private async Task<PaginaResultado<TicketDTO>> ObtenerPaginaAsync(TicketFiltroRequest filtro)
         {
             var pagina = await _ticketRepository.ObtenerPaginaAsync(filtro);
+            return MapearPagina(pagina);
+        }
+
+        private static PaginaResultado<TicketDTO> MapearPagina(
+            PaginaResultado<TicketsHex.Domain.Entidades.Ticket.Ticket> pagina)
+        {
             return new PaginaResultado<TicketDTO>(
                 pagina.Elementos.Select(ticket => ticket.ToDto()).ToArray(),
                 pagina.Pagina,
