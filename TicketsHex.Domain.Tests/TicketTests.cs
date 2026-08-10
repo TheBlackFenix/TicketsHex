@@ -119,6 +119,28 @@ public class TicketTests
     }
 
     [Fact]
+    public void Ticket_registra_asignacion_inicial_y_reasignaciones()
+    {
+        var ticket = CrearTicket();
+
+        ticket.ReasignarTicket(3, 1, Rol.Planner, "Cambio de responsable");
+
+        Assert.Collection(
+            ticket.HistoricoAsignaciones.OrderBy(item => item.FechaAsignacion),
+            asignacionInicial =>
+            {
+                Assert.Equal(2, asignacionInicial.IdUsuarioAsignado);
+                Assert.Equal(1, asignacionInicial.IdUsuarioAccion);
+            },
+            reasignacion =>
+            {
+                Assert.Equal(3, reasignacion.IdUsuarioAsignado);
+                Assert.Equal(1, reasignacion.IdUsuarioAccion);
+                Assert.Equal("Cambio de responsable", reasignacion.Comentario);
+            });
+    }
+
+    [Fact]
     public void Ticket_inicia_sin_datos_de_HU_y_como_no_desarrollo_por_defecto()
     {
         var ticket = CrearTicket();

@@ -122,6 +122,11 @@ public sealed class TicketCommandTests
         public Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(TicketFiltroRequest filtro) =>
             Task.FromResult(new PaginaResultado<Ticket>([], 1, 20, 0));
 
+        public Task<PaginaResultado<Ticket>> ObtenerPaginaPorAsignacionHistoricaAsync(
+            long idUsuario,
+            TicketFiltroRequest filtro) =>
+            Task.FromResult(new PaginaResultado<Ticket>([], 1, 20, 0));
+
         public Task GuardarAsync(Ticket ticketGuardado)
         {
             TicketGuardado = ticketGuardado;

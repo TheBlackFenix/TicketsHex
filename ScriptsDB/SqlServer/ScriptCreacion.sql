@@ -120,6 +120,21 @@ CREATE TABLE dbo.historicoestadosticket (
 
 CREATE INDEX ix_historicoestadosticket_idticket ON dbo.historicoestadosticket(idticket);
 
+CREATE TABLE dbo.historicoasignacionesticket (
+    idhistoricoasignacion UNIQUEIDENTIFIER PRIMARY KEY CONSTRAINT df_historicoasignacionesticket_id DEFAULT NEWID(),
+    idticket UNIQUEIDENTIFIER NOT NULL,
+    idusuarioasignado BIGINT NOT NULL,
+    idusuarioaccion BIGINT NOT NULL,
+    comentario VARCHAR(1000) NULL,
+    fechaasignacion DATETIMEOFFSET NOT NULL CONSTRAINT df_historicoasignacionesticket_fecha DEFAULT SYSDATETIMEOFFSET(),
+    CONSTRAINT fk_historicoasignacionesticket_tickets FOREIGN KEY (idticket) REFERENCES dbo.tickets(idticket) ON DELETE CASCADE,
+    CONSTRAINT fk_historicoasignacionesticket_usuarioasignado FOREIGN KEY (idusuarioasignado) REFERENCES dbo.usuarios(idusuario),
+    CONSTRAINT fk_historicoasignacionesticket_usuarioaccion FOREIGN KEY (idusuarioaccion) REFERENCES dbo.usuarios(idusuario)
+);
+
+CREATE INDEX ix_historicoasignacionesticket_usuario_ticket
+    ON dbo.historicoasignacionesticket(idusuarioasignado, idticket);
+
 CREATE TABLE dbo.repositorios (
     idrepositorio UNIQUEIDENTIFIER PRIMARY KEY CONSTRAINT df_repositorios_idrepositorio DEFAULT NEWID(),
     repositorio VARCHAR(100) NOT NULL,

@@ -27,6 +27,7 @@ namespace TicketsHex.Domain.Entidades.Ticket
 
         // Propiedades de Navegación directas de EF Core (Baja complejidad)
         public virtual ICollection<HistoricoEstadosTicket> HistoricoEstados { get; set; } = new List<HistoricoEstadosTicket>();
+        public virtual ICollection<HistoricoAsignacionTicket> HistoricoAsignaciones { get; set; } = new List<HistoricoAsignacionTicket>();
 
         // Constructor vacío requerido por EF Core
         public Ticket() { }
@@ -71,6 +72,14 @@ namespace TicketsHex.Domain.Entidades.Ticket
                 Comentario = "Creación inicial del ticket.",
                 FechaCambio = DateTimeOffset.UtcNow
             });
+
+            if (usuarioAsignado.HasValue)
+            {
+                RegistrarAsignacion(
+                    usuarioAsignado.Value,
+                    idUsuarioCreador,
+                    "AsignaciÃ³n inicial del ticket.");
+            }
         }
 
         public void ActualizarEstado(TicketEstado nuevoEstado, long idUsuarioActualizacion, Rol rolActualiza, string? comentario)
@@ -113,6 +122,11 @@ namespace TicketsHex.Domain.Entidades.Ticket
 
             IdUsuarioAsignado = nuevoIdUsuarioAsignado;
             FechaUltimaActualizacion = DateTimeOffset.UtcNow;
+
+            RegistrarAsignacion(
+                nuevoIdUsuarioAsignado,
+                idUsuarioActualizacion,
+                comentario);
 
             HistoricoEstados.Add(new HistoricoEstadosTicket
             {
@@ -306,6 +320,24 @@ namespace TicketsHex.Domain.Entidades.Ticket
         {
             if (!Activo)
                 throw new InvalidOperationException("No se puede modificar un ticket eliminado.");
+        }
+
+        private void RegistrarAsignacion(
+            long idUsuarioAsignado,
+            long idUsuarioAccion,
+            string? comentario)
+        {
+            HistoricoAsignaciones.Add(new HistoricoAsignacionTicket
+            {
+                IdHistoricoAsignacion = Guid.NewGuid(),
+                IdTicket = IdTicket,
+                IdUsuarioAsignado = idUsuarioAsignado,
+                IdUsuarioAccion = idUsuarioAccion,
+                Comentario = string.IsNullOrWhiteSpace(comentario)
+                    ? null
+                    : comentario.Trim(),
+                FechaAsignacion = DateTimeOffset.UtcNow
+            });
         }
 
         private static string? NormalizarTextoOpcional(string valor) =>
