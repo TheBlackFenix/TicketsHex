@@ -146,12 +146,12 @@ namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
         {
             var ticket = await ObtenerTicketAsync(idTicket);
             var entrada = await ObtenerEntradaAsync(idTicket, idEntrada);
-            ValidarPuedeEscribir(ticket, entrada.Tipo, entrada.IdUsuarioAutor);
-            await ValidarParametrosAsync(entrada.Tipo, request.IdResultado, request.IdAmbiente);
+            ValidarPuedeEscribir(ticket, entrada.IdTipoEntrada, entrada.IdUsuarioAutor);
+            await ValidarParametrosAsync(entrada.IdTipoEntrada, request.IdResultado, request.IdAmbiente);
 
             IReadOnlyCollection<string>? tags = null;
             IReadOnlyCollection<Guid>? aplicativos = null;
-            if (entrada.Tipo == TipoEntradaConocimiento.Diagnostico)
+            if (entrada.IdTipoEntrada == TipoEntradaConocimiento.Diagnostico)
             {
                 tags = request.Tags;
                 aplicativos = request.IdsAplicativos;
@@ -161,12 +161,12 @@ namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
             entrada.Actualizar(
                 request.IdResultado,
                 request.Resumen,
-                entrada.Tipo == TipoEntradaConocimiento.Solucion ? null : request.Sintomas,
-                entrada.Tipo == TipoEntradaConocimiento.Solucion ? null : request.Comprobaciones,
-                entrada.Tipo == TipoEntradaConocimiento.Diagnostico ? request.PasosReproduccion : null,
-                entrada.Tipo == TipoEntradaConocimiento.Solucion ? null : request.IdAmbiente,
-                entrada.Tipo == TipoEntradaConocimiento.Solucion ? request.RequiereDespliegue : null,
-                entrada.Tipo == TipoEntradaConocimiento.Diagnostico ? null : request.Observaciones,
+                entrada.IdTipoEntrada == TipoEntradaConocimiento.Solucion ? null : request.Sintomas,
+                entrada.IdTipoEntrada == TipoEntradaConocimiento.Solucion ? null : request.Comprobaciones,
+                entrada.IdTipoEntrada == TipoEntradaConocimiento.Diagnostico ? request.PasosReproduccion : null,
+                entrada.IdTipoEntrada == TipoEntradaConocimiento.Solucion ? null : request.IdAmbiente,
+                entrada.IdTipoEntrada == TipoEntradaConocimiento.Solucion ? request.RequiereDespliegue : null,
+                entrada.IdTipoEntrada == TipoEntradaConocimiento.Diagnostico ? null : request.Observaciones,
                 MapearReferencias(request.Referencias),
                 _usuarioActual.IdUsuario,
                 _usuarioActual.Rol,
@@ -292,7 +292,7 @@ namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
         private static EntradaConocimientoDTO Mapear(EntradaConocimientoTicket entrada) => new(
             entrada.IdEntrada,
             entrada.IdTicket,
-            entrada.Tipo,
+            entrada.IdTipoEntrada,
             entrada.IdResultado,
             entrada.Resumen,
             entrada.Sintomas,
@@ -302,7 +302,7 @@ namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
             entrada.RequiereDespliegue,
             entrada.Observaciones,
             entrada.IdUsuarioAutor,
-            entrada.RolAutor,
+            entrada.IdRolAutor,
             entrada.FechaCreacion,
             entrada.FechaUltimaActualizacion,
             entrada.Referencias.Select(item => new ReferenciaConocimientoDTO(

@@ -50,7 +50,7 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence
                 .Where(item => item.Activo);
 
             if (filtro.Tipo.HasValue)
-                query = query.Where(item => item.Tipo == filtro.Tipo.Value);
+                query = query.Where(item => item.IdTipoEntrada == filtro.Tipo.Value);
             if (filtro.IdResultado.HasValue)
                 query = query.Where(item => item.IdResultado == filtro.IdResultado.Value);
             if (filtro.IdAmbiente.HasValue)

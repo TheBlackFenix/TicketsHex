@@ -45,7 +45,7 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence
                 b.ToTable("entradasconocimientoticket");
                 b.HasKey(item => item.IdEntrada);
                 b.Property(item => item.IdEntrada).ValueGeneratedNever();
-                b.Property(item => item.Tipo)
+                b.Property(item => item.IdTipoEntrada)
                     .HasColumnName("idtipoentrada")
                     .HasConversion<int>();
                 b.Property(item => item.Resumen).HasMaxLength(2000).IsRequired();
@@ -53,12 +53,11 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence
                 b.Property(item => item.Comprobaciones).HasMaxLength(4000);
                 b.Property(item => item.PasosReproduccion).HasMaxLength(4000);
                 b.Property(item => item.Observaciones).HasMaxLength(2000);
-                b.Property(item => item.RolAutor)
+                b.Property(item => item.IdRolAutor)
                     .HasColumnName("idrolautor")
                     .HasConversion<int>();
                 b.HasIndex(item => new { item.IdTicket, item.FechaCreacion });
-                b.HasIndex(item => new { item.Tipo, item.IdResultado });
-
+                b.HasIndex(item => new { item.IdTipoEntrada, item.IdResultado });
                 b.HasOne<Ticket>()
                     .WithMany()
                     .HasForeignKey(item => item.IdTicket)

@@ -7,7 +7,7 @@ namespace TicketsHex.Domain.Entidades.Conocimiento
     {
         public Guid IdEntrada { get; private set; }
         public Guid IdTicket { get; private set; }
-        public TipoEntradaConocimiento Tipo { get; private set; }
+        public TipoEntradaConocimiento IdTipoEntrada { get; private set; }
         public int IdResultado { get; private set; }
         public string Resumen { get; private set; } = string.Empty;
         public string? Sintomas { get; private set; }
@@ -17,7 +17,7 @@ namespace TicketsHex.Domain.Entidades.Conocimiento
         public bool? RequiereDespliegue { get; private set; }
         public string? Observaciones { get; private set; }
         public long IdUsuarioAutor { get; private set; }
-        public Rol RolAutor { get; private set; }
+        public Rol IdRolAutor { get; private set; }
         public DateTimeOffset FechaCreacion { get; private set; }
         public DateTimeOffset? FechaUltimaActualizacion { get; private set; }
         public bool Activo { get; private set; }
@@ -51,9 +51,9 @@ namespace TicketsHex.Domain.Entidades.Conocimiento
 
             IdEntrada = Guid.NewGuid();
             IdTicket = idTicket;
-            Tipo = tipo;
+            IdTipoEntrada = tipo;
             IdUsuarioAutor = idUsuarioAutor;
-            RolAutor = rolAutor;
+            IdRolAutor = rolAutor;
             FechaCreacion = DateTimeOffset.UtcNow;
             Activo = true;
             AplicarContenido(idResultado, resumen, sintomas, comprobaciones,
@@ -78,7 +78,7 @@ namespace TicketsHex.Domain.Entidades.Conocimiento
             if (!Activo)
                 throw new InvalidOperationException("No se puede editar una entrada inactiva.");
 
-            ValidarContenido(Tipo, idResultado, resumen, sintomas, comprobaciones,
+            ValidarContenido(IdTipoEntrada, idResultado, resumen, sintomas, comprobaciones,
                 pasosReproduccion, idAmbiente, requiereDespliegue, observaciones);
 
             Revisiones.Add(new RevisionEntradaConocimiento(
@@ -96,7 +96,7 @@ namespace TicketsHex.Domain.Entidades.Conocimiento
 
         private object CapturarSnapshot() => new
         {
-            Tipo,
+            IdTipoEntrada,
             IdResultado,
             Resumen,
             Sintomas,
