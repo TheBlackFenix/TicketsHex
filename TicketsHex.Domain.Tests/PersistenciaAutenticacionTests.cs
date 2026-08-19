@@ -38,4 +38,25 @@ public class PersistenciaAutenticacionTests
         Assert.NotNull(historico?.FindProperty("IdUsuarioAccion"));
         Assert.NotNull(historico?.FindProperty("FechaAsignacion"));
     }
+
+    [Fact]
+    public void Modelo_ef_incluye_base_de_conocimiento_y_revisiones()
+    {
+        var options = new DbContextOptionsBuilder<MantenimientoContext>()
+            .UseSqlServer("Server=localhost,1433;Database=tickets;User Id=test;Password=test;TrustServerCertificate=True")
+            .Options;
+        using var context = new MantenimientoContext(options);
+
+        var entrada = context.Model.FindEntityType(
+            "TicketsHex.Domain.Entidades.Conocimiento.EntradaConocimientoTicket");
+        var revision = context.Model.FindEntityType(
+            "TicketsHex.Domain.Entidades.Conocimiento.RevisionEntradaConocimiento");
+        var tag = context.Model.FindEntityType(
+            "TicketsHex.Domain.Entidades.Conocimiento.TagConocimiento");
+
+        Assert.NotNull(entrada?.FindProperty("IdResultado"));
+        Assert.NotNull(entrada?.FindProperty("Resumen"));
+        Assert.NotNull(revision?.FindProperty("ContenidoAnterior"));
+        Assert.True(tag?.FindIndex(tag.FindProperty("NombreNormalizado")!)?.IsUnique);
+    }
 }
