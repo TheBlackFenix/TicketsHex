@@ -85,8 +85,8 @@ namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
                     item.IdEntrada,
                     item.ContenidoAnterior,
                     item.IdUsuarioAccion,
-                    item.RolUsuarioAccion,
-                    item.EstadoTicket,
+                    item.IdRolUsuarioAccion,
+                    item.IdEstadoTicket,
                     item.FechaRevision))
                 .ToArray();
         }
@@ -307,7 +307,7 @@ namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
             entrada.FechaUltimaActualizacion,
             entrada.Referencias.Select(item => new ReferenciaConocimientoDTO(
                 item.IdReferencia,
-                item.Tipo,
+                item.TipoReferencia,
                 item.Url,
                 item.Descripcion)).ToArray());
     }

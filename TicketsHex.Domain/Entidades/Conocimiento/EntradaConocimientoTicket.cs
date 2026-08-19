@@ -107,7 +107,7 @@ namespace TicketsHex.Domain.Entidades.Conocimiento
             Observaciones,
             Referencias = Referencias.Select(item => new
             {
-                item.Tipo,
+                item.TipoReferencia,
                 item.Url,
                 item.Descripcion
             })

@@ -89,7 +89,7 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence
                 b.ToTable("referenciasentradaconocimiento");
                 b.HasKey(item => item.IdReferencia);
                 b.Property(item => item.IdReferencia).ValueGeneratedNever();
-                b.Property(item => item.Tipo)
+                b.Property(item => item.TipoReferencia)
                     .HasColumnName("tiporeferencia")
                     .HasConversion<int>();
                 b.Property(item => item.Url).HasMaxLength(2048).IsRequired();
@@ -104,10 +104,10 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence
                 b.Property(item => item.ContenidoAnterior)
                     .HasColumnType(esSqlServer ? "varchar(max)" : "text")
                     .IsRequired();
-                b.Property(item => item.RolUsuarioAccion)
+                b.Property(item => item.IdRolUsuarioAccion)
                     .HasColumnName("idrolusuarioaccion")
                     .HasConversion<int>();
-                b.Property(item => item.EstadoTicket)
+                b.Property(item => item.IdEstadoTicket)
                     .HasColumnName("idestadoticket")
                     .HasConversion<int>();
                 b.HasIndex(item => new { item.IdEntrada, item.FechaRevision });

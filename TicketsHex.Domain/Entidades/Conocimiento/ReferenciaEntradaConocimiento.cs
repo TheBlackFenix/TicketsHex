@@ -6,7 +6,7 @@ namespace TicketsHex.Domain.Entidades.Conocimiento
     {
         public Guid IdReferencia { get; private set; }
         public Guid IdEntrada { get; private set; }
-        public TipoReferenciaConocimiento Tipo { get; private set; }
+        public TipoReferenciaConocimiento TipoReferencia { get; private set; }
         public string Url { get; private set; } = string.Empty;
         public string? Descripcion { get; private set; }
 
@@ -35,7 +35,7 @@ namespace TicketsHex.Domain.Entidades.Conocimiento
 
             IdReferencia = Guid.NewGuid();
             IdEntrada = idEntrada;
-            Tipo = tipo;
+            TipoReferencia = tipo;
             Url = url.Trim();
             Descripcion = Normalizar(descripcion);
         }

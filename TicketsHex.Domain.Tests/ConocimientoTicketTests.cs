@@ -56,7 +56,7 @@ public sealed class ConocimientoTicketTests
         Assert.Equal(
             "Hipótesis inicial",
             contenido.RootElement.GetProperty("Resumen").GetString());
-        Assert.Equal(TicketEstado.EnProceso, revision.EstadoTicket);
+        Assert.Equal(TicketEstado.EnProceso, revision.IdEstadoTicket);
         Assert.Equal("Hipótesis descartada", entrada.Resumen);
     }
 
@@ -134,7 +134,7 @@ public sealed class ConocimientoTicketTests
             IdAmbiente: 4));
 
         var validacion = Assert.Single(repository.Entradas);
-        Assert.Equal(TipoEntradaConocimiento.ValidacionQa, validacion.Tipo);
+        Assert.Equal(TipoEntradaConocimiento.ValidacionQa, validacion.IdTipoEntrada);
         Assert.Equal(50, validacion.IdUsuarioAutor);
     }
 

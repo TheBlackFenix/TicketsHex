@@ -8,8 +8,8 @@ namespace TicketsHex.Domain.Entidades.Conocimiento
         public Guid IdEntrada { get; private set; }
         public string ContenidoAnterior { get; private set; } = string.Empty;
         public long IdUsuarioAccion { get; private set; }
-        public Rol RolUsuarioAccion { get; private set; }
-        public TicketEstado EstadoTicket { get; private set; }
+        public Rol IdRolUsuarioAccion { get; private set; }
+        public TicketEstado IdEstadoTicket { get; private set; }
         public DateTimeOffset FechaRevision { get; private set; }
 
         private RevisionEntradaConocimiento() { }
@@ -32,8 +32,8 @@ namespace TicketsHex.Domain.Entidades.Conocimiento
             IdEntrada = idEntrada;
             ContenidoAnterior = contenidoAnterior;
             IdUsuarioAccion = idUsuarioAccion;
-            RolUsuarioAccion = rolUsuarioAccion;
-            EstadoTicket = estadoTicket;
+            IdRolUsuarioAccion = rolUsuarioAccion;
+            IdEstadoTicket = estadoTicket;
             FechaRevision = DateTimeOffset.UtcNow;
         }
     }
