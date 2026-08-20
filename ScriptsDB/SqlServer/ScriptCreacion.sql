@@ -120,6 +120,21 @@ CREATE TABLE dbo.historicoestadosticket (
 
 CREATE INDEX ix_historicoestadosticket_idticket ON dbo.historicoestadosticket(idticket);
 
+CREATE TABLE dbo.historicoasignacionesticket (
+    idhistoricoasignacion UNIQUEIDENTIFIER PRIMARY KEY CONSTRAINT df_historicoasignacionesticket_id DEFAULT NEWID(),
+    idticket UNIQUEIDENTIFIER NOT NULL,
+    idusuarioasignado BIGINT NOT NULL,
+    idusuarioaccion BIGINT NOT NULL,
+    comentario VARCHAR(1000) NULL,
+    fechaasignacion DATETIMEOFFSET NOT NULL CONSTRAINT df_historicoasignacionesticket_fecha DEFAULT SYSDATETIMEOFFSET(),
+    CONSTRAINT fk_historicoasignacionesticket_tickets FOREIGN KEY (idticket) REFERENCES dbo.tickets(idticket) ON DELETE CASCADE,
+    CONSTRAINT fk_historicoasignacionesticket_usuarioasignado FOREIGN KEY (idusuarioasignado) REFERENCES dbo.usuarios(idusuario),
+    CONSTRAINT fk_historicoasignacionesticket_usuarioaccion FOREIGN KEY (idusuarioaccion) REFERENCES dbo.usuarios(idusuario)
+);
+
+CREATE INDEX ix_historicoasignacionesticket_usuario_ticket
+    ON dbo.historicoasignacionesticket(idusuarioasignado, idticket);
+
 CREATE TABLE dbo.repositorios (
     idrepositorio UNIQUEIDENTIFIER PRIMARY KEY CONSTRAINT df_repositorios_idrepositorio DEFAULT NEWID(),
     repositorio VARCHAR(100) NOT NULL,
@@ -175,6 +190,114 @@ CREATE TABLE dbo.repositoriosaplicativo (
 CREATE UNIQUE INDEX ux_repositoriosaplicativo_repositorio_aplicativo
     ON dbo.repositoriosaplicativo(idrepositorio, idaplicativo);
 
+CREATE TABLE dbo.tiposentradaconocimiento (
+    idtipoentrada INT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL,
+    descripcion VARCHAR(200) NULL,
+    activo BIT NOT NULL CONSTRAINT df_tiposentradaconocimiento_activo DEFAULT (1)
+);
+
+CREATE TABLE dbo.resultadosentradaconocimiento (
+    idresultado INT PRIMARY KEY,
+    idtipoentrada INT NOT NULL,
+    nombre VARCHAR(50) NOT NULL,
+    descripcion VARCHAR(200) NULL,
+    activo BIT NOT NULL CONSTRAINT df_resultadosentradaconocimiento_activo DEFAULT (1),
+    CONSTRAINT fk_resultadosentrada_tiposentrada FOREIGN KEY (idtipoentrada)
+        REFERENCES dbo.tiposentradaconocimiento(idtipoentrada),
+    CONSTRAINT ux_resultadosentrada_tipo_nombre UNIQUE (idtipoentrada, nombre),
+    CONSTRAINT ux_resultadosentrada_resultado_tipo UNIQUE (idresultado, idtipoentrada)
+);
+
+CREATE TABLE dbo.ambientesticket (
+    idambiente INT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL,
+    descripcion VARCHAR(200) NULL,
+    activo BIT NOT NULL CONSTRAINT df_ambientesticket_activo DEFAULT (1)
+);
+
+CREATE TABLE dbo.entradasconocimientoticket (
+    identrada UNIQUEIDENTIFIER PRIMARY KEY,
+    idticket UNIQUEIDENTIFIER NOT NULL,
+    idtipoentrada INT NOT NULL,
+    idresultado INT NOT NULL,
+    resumen VARCHAR(2000) NOT NULL,
+    sintomas VARCHAR(2000) NULL,
+    comprobaciones VARCHAR(4000) NULL,
+    pasosreproduccion VARCHAR(4000) NULL,
+    idambiente INT NULL,
+    requieredespliegue BIT NULL,
+    observaciones VARCHAR(2000) NULL,
+    idusuarioautor BIGINT NOT NULL,
+    idrolautor INT NOT NULL,
+    fechacreacion DATETIMEOFFSET NOT NULL CONSTRAINT df_entradasconocimiento_fecha DEFAULT SYSDATETIMEOFFSET(),
+    fechaultimaactualizacion DATETIMEOFFSET NULL,
+    activo BIT NOT NULL CONSTRAINT df_entradasconocimiento_activo DEFAULT (1),
+    CONSTRAINT fk_entradasconocimiento_tickets FOREIGN KEY (idticket) REFERENCES dbo.tickets(idticket) ON DELETE CASCADE,
+    CONSTRAINT fk_entradasconocimiento_tipos FOREIGN KEY (idtipoentrada) REFERENCES dbo.tiposentradaconocimiento(idtipoentrada),
+    CONSTRAINT fk_entradasconocimiento_resultados FOREIGN KEY (idresultado, idtipoentrada)
+        REFERENCES dbo.resultadosentradaconocimiento(idresultado, idtipoentrada),
+    CONSTRAINT fk_entradasconocimiento_ambientes FOREIGN KEY (idambiente) REFERENCES dbo.ambientesticket(idambiente),
+    CONSTRAINT fk_entradasconocimiento_usuarios FOREIGN KEY (idusuarioautor) REFERENCES dbo.usuarios(idusuario),
+    CONSTRAINT fk_entradasconocimiento_roles FOREIGN KEY (idrolautor) REFERENCES dbo.roles(idrol)
+);
+
+CREATE INDEX ix_entradasconocimiento_ticket_fecha
+    ON dbo.entradasconocimientoticket(idticket, fechacreacion DESC);
+CREATE INDEX ix_entradasconocimiento_tipo_resultado
+    ON dbo.entradasconocimientoticket(idtipoentrada, idresultado);
+
+CREATE TABLE dbo.referenciasentradaconocimiento (
+    idreferencia UNIQUEIDENTIFIER PRIMARY KEY,
+    identrada UNIQUEIDENTIFIER NOT NULL,
+    tiporeferencia INT NOT NULL,
+    url VARCHAR(2048) NOT NULL,
+    descripcion VARCHAR(300) NULL,
+    CONSTRAINT fk_referenciasconocimiento_entradas FOREIGN KEY (identrada)
+        REFERENCES dbo.entradasconocimientoticket(identrada) ON DELETE CASCADE
+);
+
+CREATE INDEX ix_referenciasconocimiento_entrada
+    ON dbo.referenciasentradaconocimiento(identrada);
+
+CREATE TABLE dbo.revisionesentradaconocimiento (
+    idrevision UNIQUEIDENTIFIER PRIMARY KEY,
+    identrada UNIQUEIDENTIFIER NOT NULL,
+    contenidoanterior VARCHAR(MAX) NOT NULL,
+    idusuarioaccion BIGINT NOT NULL,
+    idrolusuarioaccion INT NOT NULL,
+    idestadoticket INT NOT NULL,
+    fecharevision DATETIMEOFFSET NOT NULL CONSTRAINT df_revisionesconocimiento_fecha DEFAULT SYSDATETIMEOFFSET(),
+    CONSTRAINT fk_revisionesconocimiento_entradas FOREIGN KEY (identrada)
+        REFERENCES dbo.entradasconocimientoticket(identrada) ON DELETE CASCADE,
+    CONSTRAINT fk_revisionesconocimiento_usuarios FOREIGN KEY (idusuarioaccion) REFERENCES dbo.usuarios(idusuario),
+    CONSTRAINT fk_revisionesconocimiento_roles FOREIGN KEY (idrolusuarioaccion) REFERENCES dbo.roles(idrol),
+    CONSTRAINT fk_revisionesconocimiento_estados FOREIGN KEY (idestadoticket) REFERENCES dbo.estadosticket(idestado)
+);
+
+CREATE INDEX ix_revisionesconocimiento_entrada_fecha
+    ON dbo.revisionesentradaconocimiento(identrada, fecharevision DESC);
+
+CREATE TABLE dbo.tags (
+    idtag UNIQUEIDENTIFIER PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL,
+    nombrenormalizado VARCHAR(50) NOT NULL,
+    activo BIT NOT NULL CONSTRAINT df_tags_activo DEFAULT (1)
+);
+
+CREATE UNIQUE INDEX ux_tags_nombrenormalizado ON dbo.tags(nombrenormalizado);
+
+CREATE TABLE dbo.tagsticket (
+    idtagticket UNIQUEIDENTIFIER PRIMARY KEY,
+    idticket UNIQUEIDENTIFIER NOT NULL,
+    idtag UNIQUEIDENTIFIER NOT NULL,
+    fechaasignacion DATETIMEOFFSET NOT NULL CONSTRAINT df_tagsticket_fecha DEFAULT SYSDATETIMEOFFSET(),
+    CONSTRAINT fk_tagsticket_tickets FOREIGN KEY (idticket) REFERENCES dbo.tickets(idticket) ON DELETE CASCADE,
+    CONSTRAINT fk_tagsticket_tags FOREIGN KEY (idtag) REFERENCES dbo.tags(idtag) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX ux_tagsticket_ticket_tag ON dbo.tagsticket(idticket, idtag);
+
 INSERT INTO dbo.roles (idrol, nombrerol, descripcion, activo) VALUES
 (1, 'Desarrollador', 'Ingeniero encargado del mantenimiento tecnico', 1),
 (2, 'QA', 'Analista de calidad y pruebas', 1),
@@ -206,6 +329,30 @@ INSERT INTO dbo.areas (idarea, area, descripcion, activo) VALUES
 (1, 'Mantenimiento', '', 1),
 (2, 'Soporte', '', 1),
 (3, 'Vulnerabilidades', '', 1);
+
+INSERT INTO dbo.tiposentradaconocimiento (idtipoentrada, nombre, descripcion, activo) VALUES
+(1, 'Diagnostico', 'Hipotesis y comprobaciones tecnicas realizadas', 1),
+(2, 'Solucion', 'Solucion planteada o implementada', 1),
+(3, 'ValidacionQa', 'Validacion funcional realizada por QA', 1);
+
+INSERT INTO dbo.resultadosentradaconocimiento (idresultado, idtipoentrada, nombre, descripcion, activo) VALUES
+(1, 1, 'Confirmado', 'La hipotesis fue confirmada', 1),
+(2, 1, 'Descartado', 'La hipotesis fue descartada', 1),
+(3, 1, 'Inconcluso', 'No fue posible confirmar ni descartar la hipotesis', 1),
+(4, 2, 'Exitosa', 'La solucion produjo el resultado esperado', 1),
+(5, 2, 'Fallida', 'La solucion no produjo el resultado esperado', 1),
+(6, 2, 'Parcial', 'La solucion resolvio parcialmente el caso', 1),
+(7, 2, 'NoImplementada', 'La solucion no fue implementada', 1),
+(8, 3, 'Aprobada', 'QA aprobo la validacion', 1),
+(9, 3, 'Rechazada', 'QA rechazo la validacion', 1),
+(10, 3, 'ConObservaciones', 'QA registro observaciones pendientes', 1);
+
+INSERT INTO dbo.ambientesticket (idambiente, nombre, descripcion, activo) VALUES
+(1, 'Local', 'Ambiente local del desarrollador', 1),
+(2, 'Desarrollo', 'Ambiente compartido de desarrollo', 1),
+(3, 'ApiTesting', 'Ambiente de pruebas de API', 1),
+(4, 'QA', 'Ambiente formal de calidad', 1),
+(5, 'Produccion', 'Ambiente productivo', 1);
 
 COMMIT TRANSACTION;
 GO

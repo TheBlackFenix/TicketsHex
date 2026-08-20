@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -22,6 +22,8 @@ using PostgreSqlParametroRepository = TicketsHex.infrastructure.Adaptadores.Pers
 using PostgreSqlRepositorioRamaRepository = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.RepositorioRamaRepository;
 using PostgreSqlTicketRepository = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.TicketRepository;
 using PostgreSqlUsuarioRepository = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.UsuarioRepository;
+using SqlServerConocimientoTicketRepository = TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.ConocimientoTicketRepository;
+using PostgreSqlConocimientoTicketRepository = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.ConocimientoTicketRepository;
 
 namespace TicketsHex.infrastructure
 {
@@ -53,6 +55,7 @@ namespace TicketsHex.infrastructure
             services.AddScoped<IAutenticacionRepository, SqlServerAutenticacionRepository>();
             services.AddScoped<IRepositorioRamaRepository, SqlServerRepositorioRamaRepository>();
             services.AddScoped<IAplicativoRepository, SqlServerAplicativoRepository>();
+            services.AddScoped<IConocimientoTicketRepository, SqlServerConocimientoTicketRepository>();
         }
 
         private static void RegistrarPostgreSql(IServiceCollection services, string? connectionString)
@@ -66,6 +69,7 @@ namespace TicketsHex.infrastructure
             services.AddScoped<IAutenticacionRepository, PostgreSqlAutenticacionRepository>();
             services.AddScoped<IRepositorioRamaRepository, PostgreSqlRepositorioRamaRepository>();
             services.AddScoped<IAplicativoRepository, PostgreSqlAplicativoRepository>();
+            services.AddScoped<IConocimientoTicketRepository, PostgreSqlConocimientoTicketRepository>();
         }
     }
 }

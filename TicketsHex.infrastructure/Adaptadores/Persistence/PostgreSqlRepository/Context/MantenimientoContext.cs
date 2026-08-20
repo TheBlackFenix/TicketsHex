@@ -5,6 +5,8 @@ using TicketsHex.Domain.Entidades.Parametros;
 using TicketsHex.Domain.Entidades.Ticket;
 using TicketsHex.Domain.Entidades.Usuario;
 using TicketsHex.Domain.ValueObjects.Ticket;
+using TicketsHex.Domain.Entidades.Conocimiento;
+using TicketsHex.infrastructure.Adaptadores.Persistence;
 
 namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.Context
 {
@@ -15,6 +17,7 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
 
         public DbSet<Ticket> Tickets => Set<Ticket>();
         public DbSet<HistoricoEstadosTicket> HistoricoEstados => Set<HistoricoEstadosTicket>();
+        public DbSet<HistoricoAsignacionTicket> HistoricoAsignaciones => Set<HistoricoAsignacionTicket>();
         public DbSet<Usuario> Usuarios => Set<Usuario>();
         public DbSet<RolParametro> Roles => Set<RolParametro>();
         public DbSet<EstadoTicketParametro> EstadosTicket => Set<EstadoTicketParametro>();
@@ -27,10 +30,19 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
         public DbSet<Aplicativo> Aplicativos => Set<Aplicativo>();
         public DbSet<AplicativoTicket> AplicativosTicket => Set<AplicativoTicket>();
         public DbSet<RepositorioAplicativo> RepositoriosAplicativo => Set<RepositorioAplicativo>();
+        public DbSet<EntradaConocimientoTicket> EntradasConocimiento => Set<EntradaConocimientoTicket>();
+        public DbSet<RevisionEntradaConocimiento> RevisionesConocimiento => Set<RevisionEntradaConocimiento>();
+        public DbSet<ReferenciaEntradaConocimiento> ReferenciasConocimiento => Set<ReferenciaEntradaConocimiento>();
+        public DbSet<TagConocimiento> Tags => Set<TagConocimiento>();
+        public DbSet<TagTicket> TagsTicket => Set<TagTicket>();
+        public DbSet<TipoEntradaConocimientoParametro> TiposEntradaConocimiento => Set<TipoEntradaConocimientoParametro>();
+        public DbSet<ResultadoEntradaConocimientoParametro> ResultadosEntradaConocimiento => Set<ResultadoEntradaConocimientoParametro>();
+        public DbSet<AmbienteTicketParametro> AmbientesTicket => Set<AmbienteTicketParametro>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.HasDefaultSchema("public");
+            modelBuilder.ConfigurarConocimiento(esSqlServer: false);
 
             modelBuilder.Entity<Ticket>(b =>
             {
@@ -67,6 +79,11 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
                     .HasForeignKey(h => h.IdTicket)
                     .OnDelete(DeleteBehavior.Cascade);
 
+                b.HasMany(t => t.HistoricoAsignaciones)
+                    .WithOne()
+                    .HasForeignKey(h => h.IdTicket)
+                    .OnDelete(DeleteBehavior.Cascade);
+
                 b.HasOne<Usuario>()
                     .WithMany()
                     .HasForeignKey(t => t.IdUsuarioAsignado)
@@ -85,6 +102,28 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
                 b.HasOne<Usuario>()
                     .WithMany()
                     .HasForeignKey(h => h.IdUsuarioAccion)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<HistoricoAsignacionTicket>(b =>
+            {
+                b.ToTable("historicoasignacionesticket");
+                b.HasKey(e => e.IdHistoricoAsignacion);
+                b.Property(e => e.IdHistoricoAsignacion).ValueGeneratedNever();
+                b.Property(e => e.Comentario).HasMaxLength(1000);
+                b.HasIndex(e => new { e.IdUsuarioAsignado, e.IdTicket });
+
+                b.HasOne<Ticket>()
+                    .WithMany(t => t.HistoricoAsignaciones)
+                    .HasForeignKey(e => e.IdTicket)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne<Usuario>()
+                    .WithMany()
+                    .HasForeignKey(e => e.IdUsuarioAsignado)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne<Usuario>()
+                    .WithMany()
+                    .HasForeignKey(e => e.IdUsuarioAccion)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 

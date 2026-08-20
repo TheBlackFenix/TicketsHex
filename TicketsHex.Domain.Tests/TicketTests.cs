@@ -51,11 +51,21 @@ public class TicketTests
         var ticket = CrearTicket();
 
         ticket.ActualizarEstado(TicketEstado.EnProceso, 2, Rol.QA, null);
-        ticket.ActualizarEstado(TicketEstado.Bloqueado, 2, Rol.Planner, "Bloqueo");
         ticket.ActualizarEstado(TicketEstado.Entregado, 2, Rol.Desarrollador, null);
         ticket.ActualizarEstado(TicketEstado.DespliegueApitesting, 2, Rol.QA, null);
 
         Assert.Equal(TicketEstado.DespliegueApitesting, ticket.IdEstado);
+    }
+
+    [Fact]
+    public void Bloqueado_no_es_un_paso_obligatorio_del_flujo_normal()
+    {
+        var ticket = CrearTicket();
+
+        ticket.ActualizarEstado(TicketEstado.EnProceso, 2, Rol.Desarrollador, null);
+        ticket.ActualizarEstado(TicketEstado.Entregado, 2, Rol.Desarrollador, null);
+
+        Assert.Equal(TicketEstado.Entregado, ticket.IdEstado);
     }
 
     [Fact]
@@ -106,6 +116,28 @@ public class TicketTests
         ticket.ReasignarTicket(3, 1, rol, "Cambio de responsable");
 
         Assert.Equal(3, ticket.IdUsuarioAsignado);
+    }
+
+    [Fact]
+    public void Ticket_registra_asignacion_inicial_y_reasignaciones()
+    {
+        var ticket = CrearTicket();
+
+        ticket.ReasignarTicket(3, 1, Rol.Planner, "Cambio de responsable");
+
+        Assert.Collection(
+            ticket.HistoricoAsignaciones.OrderBy(item => item.FechaAsignacion),
+            asignacionInicial =>
+            {
+                Assert.Equal(2, asignacionInicial.IdUsuarioAsignado);
+                Assert.Equal(1, asignacionInicial.IdUsuarioAccion);
+            },
+            reasignacion =>
+            {
+                Assert.Equal(3, reasignacion.IdUsuarioAsignado);
+                Assert.Equal(1, reasignacion.IdUsuarioAccion);
+                Assert.Equal("Cambio de responsable", reasignacion.Comentario);
+            });
     }
 
     [Fact]

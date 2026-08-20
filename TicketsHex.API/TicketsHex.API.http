@@ -38,12 +38,15 @@ Authorization: Bearer {{token}}
   "nombres": "Usuario",
   "apellidos": "Desarrollador",
   "rol": "Desarrollador",
-  "idArea": 1,
-  "contrasena": "Developer#2026"
+  "idArea": 1
 }
 
-### Listado general del Planner
+### Listado general del Planner o Lider Tecnico
 GET {{host}}/api/tickets?pagina=1&tamanoPagina=20&incluirEliminados=false
+Authorization: Bearer {{token}}
+
+### Historico de tickets que han estado asignados al usuario autenticado
+GET {{host}}/api/tickets/mis-tickets/historico?pagina=1&tamanoPagina=20
 Authorization: Bearer {{token}}
 
 ### Actualización parcial técnica
@@ -61,6 +64,43 @@ Authorization: Bearer {{token}}
 GET {{host}}/api/parametros/roles
 Authorization: Bearer {{token}}
 
+### Base de conocimiento del ticket
+GET {{host}}/api/tickets/{{ticketId}}/conocimiento
+Authorization: Bearer {{token}}
+
+### Registrar diagnóstico (resultado 1 = Confirmado)
+POST {{host}}/api/tickets/{{ticketId}}/conocimiento/diagnosticos
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "idResultado": 1,
+  "resumen": "La expiración de la sesión reproduce el problema.",
+  "sintomas": "El usuario vuelve a la pantalla de acceso.",
+  "comprobaciones": "Se redujo temporalmente la vigencia del token.",
+  "pasosReproduccion": "Iniciar sesión, esperar la expiración y realizar una petición.",
+  "idAmbiente": 2,
+  "tags": ["autenticación", "sesión"],
+  "referencias": []
+}
+
+### Registrar solución (resultado 4 = Exitosa)
+POST {{host}}/api/tickets/{{ticketId}}/conocimiento/soluciones
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "idResultado": 4,
+  "resumen": "Se renovó la sesión antes de expirar el token.",
+  "requiereDespliegue": true,
+  "observaciones": "Requiere desplegar API y frontend.",
+  "referencias": []
+}
+
+### Buscar conocimiento reutilizable
+GET {{host}}/api/conocimiento?pagina=1&tamanoPagina=20&texto=sesión&tag=autenticación
+Authorization: Bearer {{token}}
+
 ###
 GET {{host}}/api/parametros/estados-ticket
 Authorization: Bearer {{token}}
@@ -73,12 +113,21 @@ Authorization: Bearer {{token}}
 GET {{host}}/api/parametros/areas-ticket
 Authorization: Bearer {{token}}
 
-### Cambiar contraseña (también funciona si expiró)
-POST {{host}}/api/auth/cambiar-contrasena
+### Actualizar imagen del usuario autenticado
+PATCH {{host}}/api/usuarios/me
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
-  "nombreUsuario": "planner",
+  "imagenPerfilBase64": "aW1hZ2Vu"
+}
+
+### Cambiar solamente la contrasena del usuario autenticado
+POST {{host}}/api/auth/cambiar-contrasena
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
   "contrasenaActual": "Planner#2026",
   "nuevaContrasena": "Planner#2026Nueva"
 }

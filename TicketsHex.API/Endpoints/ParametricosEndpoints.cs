@@ -23,7 +23,10 @@ namespace TicketsHex.API.Endpoints
                     new("estadosTicket", await parametros.ObtenerEstadosTicketAsync(false)),
                     new("origenesTicket", await parametros.ObtenerOrigenesTicketAsync(false)),
                     new("areas", await parametros.ObtenerAreasTicketAsync(false)),
-                    new("aplicativos", await aplicativos.ObtenerAplicativosAsync(false))
+                    new("aplicativos", await aplicativos.ObtenerAplicativosAsync(false)),
+                    new("tiposEntradaConocimiento", await parametros.ObtenerTiposEntradaConocimientoAsync(false)),
+                    new("resultadosEntradaConocimiento", await parametros.ObtenerResultadosEntradaConocimientoAsync(false)),
+                    new("ambientesTicket", await parametros.ObtenerAmbientesTicketAsync(false))
                 };
 
                 return Results.Ok(ApiResponse<IReadOnlyCollection<ParametricosGrupoDTO>>.Ok(

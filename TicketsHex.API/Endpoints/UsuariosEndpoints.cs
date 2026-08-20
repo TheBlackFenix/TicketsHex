@@ -25,6 +25,16 @@ namespace TicketsHex.API.Endpoints
                 return Results.Ok(ApiResponse<UsuarioDTO>.Ok(usuario));
             });
 
+            group.MapPatch("/me", async (
+                ActualizarPerfilPropioRequest request,
+                IUsuarioService service) =>
+            {
+                var usuario = await service.ActualizarPerfilPropioAsync(request);
+                return Results.Ok(ApiResponse<UsuarioDTO>.Ok(
+                    usuario,
+                    "Imagen de perfil actualizada correctamente."));
+            });
+
             group.MapPost("/", async (CrearUsuarioRequest request, IUsuarioService service) =>
             {
                 await service.CrearAsync(request);
@@ -55,7 +65,7 @@ namespace TicketsHex.API.Endpoints
                 await service.DesbloquearAsync(id);
                 return Results.Ok(ApiResponse<bool>.Ok(
                     true,
-                    "Usuario desbloqueado correctamente."));
+                    "Usuario desbloqueado y contraseÃ±a temporal restablecida. Debe cambiarla en el siguiente inicio de sesiÃ³n."));
             }).RequireAuthorization("PlannerOrLiderTecnico");
 
             return app;

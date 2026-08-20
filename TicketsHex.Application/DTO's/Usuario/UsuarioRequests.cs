@@ -19,4 +19,7 @@ namespace TicketsHex.Application.DTO_s.Usuario
         Area? IdArea,
         bool Activo,
         string? ImagenPerfilBase64 = null);
+
+    public sealed record ActualizarPerfilPropioRequest(
+        string? ImagenPerfilBase64 = null);
 }

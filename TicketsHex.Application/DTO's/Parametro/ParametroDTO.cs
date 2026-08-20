@@ -5,4 +5,11 @@ namespace TicketsHex.Application.DTO_s.Parametro
         string Nombre,
         string? Descripcion,
         bool Activo);
+
+    public sealed record ResultadoEntradaParametroDTO(
+        int Id,
+        int IdTipoEntrada,
+        string Nombre,
+        string? Descripcion,
+        bool Activo);
 }
