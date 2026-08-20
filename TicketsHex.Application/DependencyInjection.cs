@@ -18,6 +18,8 @@ using TicketsHex.Application.CasosUso.RepositorioCasosUso;
 using TicketsHex.Application.Puertos.Entrada.Repositorio;
 using TicketsHex.Application.CasosUso.AplicativoCasosUso;
 using TicketsHex.Application.Puertos.Entrada.Aplicativo;
+using TicketsHex.Application.CasosUso.NotificacionCasosUso;
+using TicketsHex.Application.Puertos.Entrada.Notificacion;
 using TicketsHex.Application.CasosUso.ConocimientoCasosUso;
 using TicketsHex.Application.Puertos.Entrada.Conocimiento;
 
@@ -34,6 +36,7 @@ namespace TicketsHex.Application
             services.AddScoped<IAutenticacionService, AutenticacionService>();
             services.AddScoped<IRepositorioRamaService, RepositorioRamaService>();
             services.AddScoped<IAplicativoService, AplicativoService>();
+            services.AddScoped<INotificacionQuery, NotificacionQuery>();
             services.AddScoped<IConocimientoTicketService, ConocimientoTicketService>();
             services.AddScoped<UsuarioActualTemporal>();
             services.AddScoped<IUsuarioActual>(provider =>
