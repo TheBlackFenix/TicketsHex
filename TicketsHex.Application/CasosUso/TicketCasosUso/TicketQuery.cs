@@ -21,10 +21,14 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
 
         public async Task<PaginaResultado<TicketDTO>> ObtenerListaTicketsAsync(TicketFiltroRequest filtro)
         {
-            if (_usuarioActual.Rol != Rol.Planner)
-                throw new UnauthorizedAccessException("Solo el Planner puede consultar el listado general.");
+            if (!PuedeConsultarTodosLosTickets())
+                throw new UnauthorizedAccessException("Solo Planner o Lider Tecnico pueden consultar el listado general.");
 
-            return await ObtenerPaginaAsync(filtro.Normalizar());
+            var filtroNormalizado = filtro.Normalizar();
+            if (_usuarioActual.Rol == Rol.LiderTecnico)
+                filtroNormalizado = filtroNormalizado with { IncluirEliminados = false };
+
+            return await ObtenerPaginaAsync(filtroNormalizado);
         }
 
         public async Task<PaginaResultado<TicketDTO>> ObtenerMisTicketsAsync(TicketFiltroRequest filtro)
@@ -38,13 +42,29 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
             return await ObtenerPaginaAsync(filtroUsuario);
         }
 
+        public async Task<PaginaResultado<TicketDTO>> ObtenerHistoricoMisTicketsAsync(
+            TicketFiltroRequest filtro)
+        {
+            var filtroNormalizado = filtro.Normalizar() with
+            {
+                IdUsuarioAsignado = null,
+                IncluirEliminados = false
+            };
+            var pagina = await _ticketRepository.ObtenerPaginaPorAsignacionHistoricaAsync(
+                _usuarioActual.IdUsuario,
+                filtroNormalizado);
+
+            return MapearPagina(pagina);
+        }
+
         public async Task<TicketDTO> ObtenerTicketPorIdAsync(Guid id)
         {
-            var esPlanner = _usuarioActual.Rol == Rol.Planner;
-            var ticket = await _ticketRepository.ObtenerPorIdAsync(id, esPlanner)
+            var puedeConsultarTodos = PuedeConsultarTodosLosTickets();
+            var puedeConsultarEliminados = _usuarioActual.Rol == Rol.Planner;
+            var ticket = await _ticketRepository.ObtenerPorIdAsync(id, puedeConsultarEliminados)
                 ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
 
-            if (!esPlanner && ticket.IdUsuarioAsignado != _usuarioActual.IdUsuario)
+            if (!puedeConsultarTodos && ticket.IdUsuarioAsignado != _usuarioActual.IdUsuario)
                 throw new UnauthorizedAccessException("No tiene acceso a este ticket.");
 
             return ticket.ToDto();
@@ -53,11 +73,20 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
         private async Task<PaginaResultado<TicketDTO>> ObtenerPaginaAsync(TicketFiltroRequest filtro)
         {
             var pagina = await _ticketRepository.ObtenerPaginaAsync(filtro);
+            return MapearPagina(pagina);
+        }
+
+        private static PaginaResultado<TicketDTO> MapearPagina(
+            PaginaResultado<TicketsHex.Domain.Entidades.Ticket.Ticket> pagina)
+        {
             return new PaginaResultado<TicketDTO>(
                 pagina.Elementos.Select(ticket => ticket.ToDto()).ToArray(),
                 pagina.Pagina,
                 pagina.TamanoPagina,
                 pagina.TotalElementos);
         }
+
+        private bool PuedeConsultarTodosLosTickets() =>
+            _usuarioActual.Rol is Rol.Planner or Rol.LiderTecnico;
     }
 }

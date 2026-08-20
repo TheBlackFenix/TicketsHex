@@ -98,6 +98,18 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
             await _repository.ActualizarAsync(usuario);
         }
 
+        public async Task<UsuarioDTO> ActualizarPerfilPropioAsync(ActualizarPerfilPropioRequest request)
+        {
+            if (request.ImagenPerfilBase64 is null)
+                throw new ArgumentException("Debe indicar la imagen de perfil.");
+
+            var usuario = await ObtenerEntidadAsync(_usuarioActual.IdUsuario);
+            usuario.ActualizarImagenPerfilBase64(request.ImagenPerfilBase64);
+
+            await _repository.ActualizarAsync(usuario);
+            return Mapear(usuario);
+        }
+
         public async Task DesactivarAsync(long idUsuario)
         {
             ValidarPlannerOLiderTecnico();
@@ -116,7 +128,15 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
         {
             ValidarPlannerOLiderTecnico();
             var usuario = await ObtenerEntidadAsync(idUsuario);
-            usuario.Desbloquear();
+
+            var contrasenaPorDefecto = ObtenerContrasenaPorDefecto();
+            ValidadorContrasena.Validar(contrasenaPorDefecto);
+            var ahora = DateTimeOffset.UtcNow;
+            usuario.RestablecerContrasena(
+                _contrasenaHasher.CrearHash(contrasenaPorDefecto),
+                ahora);
+
+            await _autenticacionRepository.RevocarSesionesAsync(idUsuario, ahora);
             await _repository.ActualizarAsync(usuario);
         }
 

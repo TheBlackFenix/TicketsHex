@@ -36,10 +36,25 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository
                 .FirstOrDefaultAsync(t => t.IdTicket == id);
         }
 
-        public async Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(TicketFiltroRequest filtro)
-        {
-            IQueryable<Ticket> query = _dbContext.Tickets.AsNoTracking();
+        public Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(TicketFiltroRequest filtro) =>
+            ObtenerPaginaAsync(_dbContext.Tickets.AsNoTracking(), filtro);
 
+        public Task<PaginaResultado<Ticket>> ObtenerPaginaPorAsignacionHistoricaAsync(
+            long idUsuario,
+            TicketFiltroRequest filtro) =>
+            ObtenerPaginaAsync(
+                _dbContext.Tickets
+                    .AsNoTracking()
+                    .Where(ticket =>
+                        ticket.IdUsuarioAsignado == idUsuario ||
+                        ticket.HistoricoAsignaciones.Any(
+                            asignacion => asignacion.IdUsuarioAsignado == idUsuario)),
+                filtro);
+
+        private static async Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(
+            IQueryable<Ticket> query,
+            TicketFiltroRequest filtro)
+        {
             if (!filtro.IncluirEliminados)
                 query = query.Where(t => t.Activo);
             if (filtro.Estado.HasValue)

@@ -114,6 +114,12 @@ namespace TicketsHex.Domain.Entidades.Usuario
 
         public void ForzarCambioContrasena() => DebeCambiarContrasena = true;
 
+        public void RestablecerContrasena(string contrasenaHash, DateTimeOffset fechaCambio) =>
+            CambiarContrasena(
+                contrasenaHash,
+                fechaCambio,
+                debeCambiarContrasena: true);
+
         public void ActualizarHashContrasena(string contrasenaHash)
         {
             if (string.IsNullOrWhiteSpace(contrasenaHash))
