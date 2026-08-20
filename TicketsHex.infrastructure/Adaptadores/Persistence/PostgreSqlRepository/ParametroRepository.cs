@@ -43,5 +43,29 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
                 .Where(item => incluirInactivos || item.Activo)
                 .OrderBy(item => item.IdArea)
                 .ToListAsync();
+
+        public async Task<IReadOnlyCollection<TipoEntradaConocimientoParametro>> ObtenerTiposEntradaConocimientoAsync(
+            bool incluirInactivos) =>
+            await _dbContext.TiposEntradaConocimiento
+                .AsNoTracking()
+                .Where(item => incluirInactivos || item.Activo)
+                .OrderBy(item => item.IdTipoEntrada)
+                .ToListAsync();
+
+        public async Task<IReadOnlyCollection<ResultadoEntradaConocimientoParametro>> ObtenerResultadosEntradaConocimientoAsync(
+            bool incluirInactivos) =>
+            await _dbContext.ResultadosEntradaConocimiento
+                .AsNoTracking()
+                .Where(item => incluirInactivos || item.Activo)
+                .OrderBy(item => item.IdResultado)
+                .ToListAsync();
+
+        public async Task<IReadOnlyCollection<AmbienteTicketParametro>> ObtenerAmbientesTicketAsync(
+            bool incluirInactivos) =>
+            await _dbContext.AmbientesTicket
+                .AsNoTracking()
+                .Where(item => incluirInactivos || item.Activo)
+                .OrderBy(item => item.IdAmbiente)
+                .ToListAsync();
     }
 }

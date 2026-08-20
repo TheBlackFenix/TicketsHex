@@ -51,5 +51,36 @@ namespace TicketsHex.Application.CasosUso.ParametroCasosUso
                     item.Descripcion,
                     item.Activo))
                 .ToArray();
+
+        public async Task<IReadOnlyCollection<ParametroDTO>> ObtenerTiposEntradaConocimientoAsync(
+            bool incluirInactivos) =>
+            (await _repository.ObtenerTiposEntradaConocimientoAsync(incluirInactivos))
+                .Select(item => new ParametroDTO(
+                    item.IdTipoEntrada,
+                    item.Nombre,
+                    item.Descripcion,
+                    item.Activo))
+                .ToArray();
+
+        public async Task<IReadOnlyCollection<ResultadoEntradaParametroDTO>> ObtenerResultadosEntradaConocimientoAsync(
+            bool incluirInactivos) =>
+            (await _repository.ObtenerResultadosEntradaConocimientoAsync(incluirInactivos))
+                .Select(item => new ResultadoEntradaParametroDTO(
+                    item.IdResultado,
+                    item.IdTipoEntrada,
+                    item.Nombre,
+                    item.Descripcion,
+                    item.Activo))
+                .ToArray();
+
+        public async Task<IReadOnlyCollection<ParametroDTO>> ObtenerAmbientesTicketAsync(
+            bool incluirInactivos) =>
+            (await _repository.ObtenerAmbientesTicketAsync(incluirInactivos))
+                .Select(item => new ParametroDTO(
+                    item.IdAmbiente,
+                    item.Nombre,
+                    item.Descripcion,
+                    item.Activo))
+                .ToArray();
     }
 }

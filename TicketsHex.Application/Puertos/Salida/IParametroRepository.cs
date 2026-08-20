@@ -8,5 +8,8 @@ namespace TicketsHex.Application.Puertos.Salida
         Task<IReadOnlyCollection<EstadoTicketParametro>> ObtenerEstadosTicketAsync(bool incluirInactivos);
         Task<IReadOnlyCollection<OrigenTicketParametro>> ObtenerOrigenesTicketAsync(bool incluirInactivos);
         Task<IReadOnlyCollection<AreaTicketParametro>> ObtenerAreasTicketAsync(bool incluirInactivos);
+        Task<IReadOnlyCollection<TipoEntradaConocimientoParametro>> ObtenerTiposEntradaConocimientoAsync(bool incluirInactivos);
+        Task<IReadOnlyCollection<ResultadoEntradaConocimientoParametro>> ObtenerResultadosEntradaConocimientoAsync(bool incluirInactivos);
+        Task<IReadOnlyCollection<AmbienteTicketParametro>> ObtenerAmbientesTicketAsync(bool incluirInactivos);
     }
 }

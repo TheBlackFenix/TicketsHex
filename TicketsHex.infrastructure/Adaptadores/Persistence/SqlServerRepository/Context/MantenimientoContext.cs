@@ -5,6 +5,8 @@ using TicketsHex.Domain.Entidades.Parametros;
 using TicketsHex.Domain.Entidades.Ticket;
 using TicketsHex.Domain.Entidades.Usuario;
 using TicketsHex.Domain.ValueObjects.Ticket;
+using TicketsHex.Domain.Entidades.Conocimiento;
+using TicketsHex.infrastructure.Adaptadores.Persistence;
 
 namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.Context
 {
@@ -28,10 +30,19 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.
         public DbSet<Aplicativo> Aplicativos => Set<Aplicativo>();
         public DbSet<AplicativoTicket> AplicativosTicket => Set<AplicativoTicket>();
         public DbSet<RepositorioAplicativo> RepositoriosAplicativo => Set<RepositorioAplicativo>();
+        public DbSet<EntradaConocimientoTicket> EntradasConocimiento => Set<EntradaConocimientoTicket>();
+        public DbSet<RevisionEntradaConocimiento> RevisionesConocimiento => Set<RevisionEntradaConocimiento>();
+        public DbSet<ReferenciaEntradaConocimiento> ReferenciasConocimiento => Set<ReferenciaEntradaConocimiento>();
+        public DbSet<TagConocimiento> Tags => Set<TagConocimiento>();
+        public DbSet<TagTicket> TagsTicket => Set<TagTicket>();
+        public DbSet<TipoEntradaConocimientoParametro> TiposEntradaConocimiento => Set<TipoEntradaConocimientoParametro>();
+        public DbSet<ResultadoEntradaConocimientoParametro> ResultadosEntradaConocimiento => Set<ResultadoEntradaConocimientoParametro>();
+        public DbSet<AmbienteTicketParametro> AmbientesTicket => Set<AmbienteTicketParametro>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.HasDefaultSchema("dbo");
+            modelBuilder.ConfigurarConocimiento(esSqlServer: true);
 
             modelBuilder.Entity<Ticket>(b =>
             {
