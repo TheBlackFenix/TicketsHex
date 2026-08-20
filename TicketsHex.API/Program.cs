@@ -1,23 +1,24 @@
-using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using TicketsHex.API.Servicios;
-using TicketsHex.Application.Comun.Seguridad;
-using TicketsHex.Application.Puertos.Entrada.Autenticacion;
-using TicketsHex.Application.Puertos.Salida;
+using Microsoft.OpenApi.Models;
 using Serilog;
+using System.IdentityModel.Tokens.Jwt;
 using System.IO.Compression;
+using System.Security.Claims;
 using TicketsHex.API.Endpoints;
 using TicketsHex.API.Hubs;
 using TicketsHex.API.Middelwares;
 using TicketsHex.API.Middelwares.ExceptionHandling;
+using TicketsHex.API.Servicios;
 using TicketsHex.Application;
+using TicketsHex.Application.Comun.Seguridad;
+using TicketsHex.Application.Puertos.Entrada.Autenticacion;
+using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.infrastructure;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.AspNetCore.OutputCaching;
 
 
 
@@ -149,6 +150,14 @@ try
                             context.Fail("El sujeto no coincide con la sesión.");
                             return;
                         }
+                        var claimsAdicionales = new List<Claim>
+                            {
+                                new Claim(ClaimTypes.Role, identidad.Rol.ToString()),
+                                new Claim(JwtRegisteredClaimNames.Sub, identidad.IdUsuario.ToString())
+                            };
+                        var appIdentity = new ClaimsIdentity(claimsAdicionales);
+                        context.Principal.AddIdentity(appIdentity);
+
                         var usuarioActual = context.HttpContext.RequestServices
                             .GetRequiredService<UsuarioActualTemporal>();
                         usuarioActual.Establecer(identidad.IdUsuario, identidad.Rol);
@@ -178,9 +187,11 @@ try
     {
         options.AddPolicy("AllowAll", policy =>
             policy
-                .AllowAnyOrigin()
+                .SetIsOriginAllowed(origin => true)
                 .AllowAnyMethod()
-                .AllowAnyHeader());
+                .AllowAnyHeader()
+                .AllowCredentials()
+                );
     });
     // Add services to the container.
     builder.Services.AddSerilog((services, configuration) =>
