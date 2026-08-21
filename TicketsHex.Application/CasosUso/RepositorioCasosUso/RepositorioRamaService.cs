@@ -12,15 +12,18 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
         private readonly IRepositorioRamaRepository _repository;
         private readonly ITicketRepository _ticketRepository;
         private readonly IUsuarioActual _usuarioActual;
+        private readonly INotificacionPublisher _notificacionPublisher;
 
         public RepositorioRamaService(
             IRepositorioRamaRepository repository,
             ITicketRepository ticketRepository,
-            IUsuarioActual usuarioActual)
+            IUsuarioActual usuarioActual,
+            INotificacionPublisher notificacionPublisher)
         {
             _repository = repository;
             _ticketRepository = ticketRepository;
             _usuarioActual = usuarioActual;
+            _notificacionPublisher = notificacionPublisher;
         }
 
         public async Task<IReadOnlyCollection<RepositorioDTO>> ObtenerRepositoriosAsync()
@@ -121,6 +124,7 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
 
             var asignacion = new RamaTicket(idTicket, request.IdRama);
             await _repository.GuardarAsignacionAsync(asignacion);
+            await _notificacionPublisher.PublicarResumenAsync();
             return asignacion.IdRamaTicket;
         }
 
@@ -132,6 +136,7 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
                     "La rama no está asignada al ticket.");
 
             await _repository.EliminarAsignacionAsync(idTicket, idRama);
+            await _notificacionPublisher.PublicarResumenAsync();
         }
 
         private async Task<Repositorio> ObtenerRepositorioAsync(Guid idRepositorio)
