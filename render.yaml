@@ -1,0 +1,38 @@
+previews:
+  generation: automatic
+
+services:
+  - type: web
+    name: ticketshex-api
+    runtime: docker
+    dockerfilePath: ./TicketsHex.API/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    previews:
+      generation: automatic
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: development
+        previewValue: development
+        fromGroup: preview_env
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+        fromGroup: preview_env 
+      - key: Jwt__Issuer
+        sync: false
+      - key: Jwt__Audience
+        value: TicketsHex.API
+      - key: Jwt__ClientId
+        value: TicketsHex.Client
+      - key: Jwt__PrivateKeyBase64
+        sync: false
+      - key: Jwt__PublicKeyBase64
+        sync: false
+      - key: Jwt__AccessTokenMinutes
+        value: 15
+      - key: Jwt__ClockSkewSeconds
+        value: 30
+      - key: Usuarios__ContrasenaPorDefecto
+        sync: false
+        fromGroup: preview_env 

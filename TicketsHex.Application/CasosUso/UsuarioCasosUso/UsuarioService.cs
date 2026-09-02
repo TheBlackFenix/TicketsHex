@@ -5,51 +5,56 @@ using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Usuario;
 using TicketsHex.Domain.Enums;
 using TicketsHex.Domain.Servicios;
+using Microsoft.Extensions.Configuration;
 
 namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
 {
     public sealed class UsuarioService : IUsuarioService
     {
+        private const string ContrasenaPorDefectoKey = "Usuarios:ContrasenaPorDefecto";
+
         private readonly IUsuarioRepository _repository;
         private readonly IUsuarioActual _usuarioActual;
         private readonly IAutenticacionRepository _autenticacionRepository;
         private readonly IContrasenaHasher _contrasenaHasher;
+        private readonly IConfiguration _configuration;
 
         public UsuarioService(
             IUsuarioRepository repository,
             IUsuarioActual usuarioActual,
             IAutenticacionRepository autenticacionRepository,
-            IContrasenaHasher contrasenaHasher)
+            IContrasenaHasher contrasenaHasher,
+            IConfiguration configuration)
         {
             _repository = repository;
             _usuarioActual = usuarioActual;
             _autenticacionRepository = autenticacionRepository;
             _contrasenaHasher = contrasenaHasher;
+            _configuration = configuration;
         }
 
         public async Task<IReadOnlyCollection<UsuarioDTO>> ObtenerTodosAsync(bool incluirInactivos)
         {
-            ValidarPlanner();
             var usuarios = await _repository.ObtenerTodosAsync(incluirInactivos);
             return usuarios.Select(Mapear).ToArray();
         }
 
         public async Task<UsuarioDTO> ObtenerPorIdAsync(long idUsuario)
         {
-            ValidarPlanner();
             var usuario = await ObtenerEntidadAsync(idUsuario);
             return Mapear(usuario);
         }
 
         public async Task CrearAsync(CrearUsuarioRequest request)
         {
-            ValidarPlanner();
+            ValidarPlannerOLiderTecnico();
             if (await _repository.ObtenerPorIdAsync(request.IdUsuario) is not null)
                 throw new ConflictoException($"El usuario {request.IdUsuario} ya existe.");
             if (await _autenticacionRepository.ObtenerUsuarioPorNombreAsync(request.NombreUsuario) is not null)
                 throw new ConflictoException($"El nombre de usuario {request.NombreUsuario} ya existe.");
 
-            ValidadorContrasena.Validar(request.Contrasena);
+            var contrasenaPorDefecto = ObtenerContrasenaPorDefecto();
+            ValidadorContrasena.Validar(contrasenaPorDefecto);
             var usuario = new Usuario(
                 request.IdUsuario,
                 request.NombreUsuario,
@@ -57,14 +62,16 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
                 request.Apellidos,
                 request.Rol,
                 request.IdArea,
-                _contrasenaHasher.CrearHash(request.Contrasena));
+                _contrasenaHasher.CrearHash(contrasenaPorDefecto),
+                request.ImagenPerfilBase64,
+                debeCambiarContrasena: true);
 
             await _repository.GuardarAsync(usuario);
         }
 
         public async Task ActualizarAsync(long idUsuario, ActualizarUsuarioRequest request)
         {
-            ValidarPlanner();
+            ValidarPlannerOLiderTecnico();
             var usuario = await ObtenerEntidadAsync(idUsuario);
             var usuarioMismoNombre = await _autenticacionRepository
                 .ObtenerUsuarioPorNombreAsync(request.NombreUsuario);
@@ -77,6 +84,8 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
                 request.Apellidos,
                 request.Rol,
                 request.IdArea);
+            if (request.ImagenPerfilBase64 is not null)
+                usuario.ActualizarImagenPerfilBase64(request.ImagenPerfilBase64);
 
             if (request.Activo)
                 usuario.Activar();
@@ -89,9 +98,21 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
             await _repository.ActualizarAsync(usuario);
         }
 
+        public async Task<UsuarioDTO> ActualizarPerfilPropioAsync(ActualizarPerfilPropioRequest request)
+        {
+            if (request.ImagenPerfilBase64 is null)
+                throw new ArgumentException("Debe indicar la imagen de perfil.");
+
+            var usuario = await ObtenerEntidadAsync(_usuarioActual.IdUsuario);
+            usuario.ActualizarImagenPerfilBase64(request.ImagenPerfilBase64);
+
+            await _repository.ActualizarAsync(usuario);
+            return Mapear(usuario);
+        }
+
         public async Task DesactivarAsync(long idUsuario)
         {
-            ValidarPlanner();
+            ValidarPlannerOLiderTecnico();
             if (idUsuario == _usuarioActual.IdUsuario)
                 throw new InvalidOperationException("El Planner no puede desactivar su propio usuario.");
 
@@ -105,16 +126,24 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
 
         public async Task DesbloquearAsync(long idUsuario)
         {
-            ValidarPlanner();
+            ValidarPlannerOLiderTecnico();
             var usuario = await ObtenerEntidadAsync(idUsuario);
-            usuario.Desbloquear();
+
+            var contrasenaPorDefecto = ObtenerContrasenaPorDefecto();
+            ValidadorContrasena.Validar(contrasenaPorDefecto);
+            var ahora = DateTimeOffset.UtcNow;
+            usuario.RestablecerContrasena(
+                _contrasenaHasher.CrearHash(contrasenaPorDefecto),
+                ahora);
+
+            await _autenticacionRepository.RevocarSesionesAsync(idUsuario, ahora);
             await _repository.ActualizarAsync(usuario);
         }
 
-        private void ValidarPlanner()
+        private void ValidarPlannerOLiderTecnico()
         {
-            if (_usuarioActual.Rol != Rol.Planner)
-                throw new UnauthorizedAccessException("Solo el Planner puede administrar usuarios.");
+            if (_usuarioActual.Rol is not Rol.Planner and not Rol.LiderTecnico)
+                throw new UnauthorizedAccessException("Solo Planner o Lider Tecnico pueden administrar usuarios.");
         }
 
         private async Task<Usuario> ObtenerEntidadAsync(long idUsuario)
@@ -130,10 +159,21 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
             usuario.Apellidos,
             usuario.IdRol,
             usuario.IdArea,
+            usuario.ImagenPerfilBase64,
             usuario.Activo,
             usuario.Bloqueado,
             usuario.IntentosFallidos,
             usuario.FechaBloqueo,
             usuario.ContrasenaExpiraEn);
+
+        private string ObtenerContrasenaPorDefecto()
+        {
+            var contrasenaPorDefecto = _configuration[ContrasenaPorDefectoKey];
+            if (string.IsNullOrWhiteSpace(contrasenaPorDefecto))
+                throw new InvalidOperationException(
+                    $"No existe la configuraciÃ³n obligatoria {ContrasenaPorDefectoKey}.");
+
+            return contrasenaPorDefecto;
+        }
     }
 }

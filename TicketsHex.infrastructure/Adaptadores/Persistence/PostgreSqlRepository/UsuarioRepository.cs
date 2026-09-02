@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Usuario;
-using TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context;
+using TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.Context;
 
-namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository
+namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
 {
     public sealed class UsuarioRepository : IUsuarioRepository
     {

@@ -1,21 +1,24 @@
-using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using Serilog;
 using System.IdentityModel.Tokens.Jwt;
+using System.IO.Compression;
 using System.Security.Claims;
+using TicketsHex.API.Endpoints;
+using TicketsHex.API.Hubs;
+using TicketsHex.API.Middelwares;
+using TicketsHex.API.Middelwares.ExceptionHandling;
 using TicketsHex.API.Servicios;
+using TicketsHex.Application;
 using TicketsHex.Application.Comun.Seguridad;
 using TicketsHex.Application.Puertos.Entrada.Autenticacion;
 using TicketsHex.Application.Puertos.Salida;
-using Serilog;
-using System.IO.Compression;
-using TicketsHex.API.Endpoints;
-using TicketsHex.API.Middelwares;
-using TicketsHex.API.Middelwares.ExceptionHandling;
-using TicketsHex.Application;
 using TicketsHex.infrastructure;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 
 
@@ -98,6 +101,19 @@ try
             };
             options.Events = new JwtBearerEvents
             {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    var path = context.HttpContext.Request.Path;
+
+                    if (!string.IsNullOrWhiteSpace(accessToken) &&
+                        path.StartsWithSegments(NotificacionesHub.Ruta))
+                    {
+                        context.Token = accessToken;
+                    }
+
+                    return Task.CompletedTask;
+                },
                 OnTokenValidated = async context =>
                 {
                     var jti = context.Principal?
@@ -134,6 +150,14 @@ try
                             context.Fail("El sujeto no coincide con la sesión.");
                             return;
                         }
+                        var claimsAdicionales = new List<Claim>
+                            {
+                                new Claim(ClaimTypes.Role, identidad.Rol.ToString()),
+                                new Claim(JwtRegisteredClaimNames.Sub, identidad.IdUsuario.ToString())
+                            };
+                        var appIdentity = new ClaimsIdentity(claimsAdicionales);
+                        context.Principal.AddIdentity(appIdentity);
+
                         var usuarioActual = context.HttpContext.RequestServices
                             .GetRequiredService<UsuarioActualTemporal>();
                         usuarioActual.Establecer(identidad.IdUsuario, identidad.Rol);
@@ -145,15 +169,29 @@ try
                 }
             };
         });
-    builder.Services.AddAuthorization();
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy("PlannerOrLiderTecnico", policy =>
+            policy.RequireRole("Planner", "LiderTecnico"));
+    });
+    builder.Services.AddOutputCache(options =>
+    {
+        options.AddPolicy(ParametricosEndpoints.CachePolicyName, policy =>
+            policy
+                .Expire(TimeSpan.FromHours(12))
+                .Tag(ParametricosEndpoints.CacheTag));
+    });
     builder.Services.AddHealthChecks();
+    builder.Services.AddSignalR();
     builder.Services.AddCors(options =>
     {
         options.AddPolicy("AllowAll", policy =>
             policy
-                .AllowAnyOrigin()
+                .SetIsOriginAllowed(origin => true)
                 .AllowAnyMethod()
-                .AllowAnyHeader());
+                .AllowAnyHeader()
+                .AllowCredentials()
+                );
     });
     // Add services to the container.
     builder.Services.AddSerilog((services, configuration) =>
@@ -167,6 +205,7 @@ try
     builder.Services
         .AddApplication()
         .AddInfrastructure(builder.Configuration);
+    builder.Services.AddScoped<INotificacionPublisher, SignalRNotificacionPublisher>();
 
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(options =>
@@ -233,9 +272,13 @@ try
     app.UseCors("AllowAll");
     app.UseAuthentication();
     app.UseAuthorization();
+    app.UseOutputCache();
     app.MapHealthChecks("/health", new HealthCheckOptions())
         .AllowAnonymous();
     app.MapTicketEndpoints();
+    app.MapParametricosEndpoints();
+    app.MapNotificacionesEndpoints();
+    app.MapHub<NotificacionesHub>(NotificacionesHub.Ruta);
 
     await app.RunAsync();
 

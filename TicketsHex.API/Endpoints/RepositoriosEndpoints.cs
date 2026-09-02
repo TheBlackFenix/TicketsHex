@@ -29,7 +29,7 @@ namespace TicketsHex.API.Endpoints
                 return Results.Created(
                     $"/api/repositorios/{id}",
                     ApiResponse<Guid>.Ok(id, "Repositorio creado correctamente."));
-            });
+            }).RequireAuthorization("PlannerOrLiderTecnico");
 
             repositorios.MapGet("/{idRepositorio:guid}/ramas", async (
                 Guid idRepositorio,
@@ -49,7 +49,7 @@ namespace TicketsHex.API.Endpoints
                 return Results.Created(
                     $"/api/repositorios/{idRepositorio}/ramas/{id}",
                     ApiResponse<Guid>.Ok(id, "Rama creada correctamente."));
-            });
+            }).RequireAuthorization("PlannerOrLiderTecnico");
 
             var ramasTicket = app.MapGroup("/api/tickets/{idTicket:guid}/ramas")
                 .WithTags("Repositorios y ramas")
@@ -74,7 +74,7 @@ namespace TicketsHex.API.Endpoints
                 return Results.Created(
                     $"/api/tickets/{idTicket}/ramas/{request.IdRama}",
                     ApiResponse<Guid>.Ok(id, "Rama asignada correctamente."));
-            });
+            }).RequireAuthorization("PlannerOrLiderTecnico");
 
             ramasTicket.MapDelete("/{idRama:guid}", async (
                 Guid idTicket,
@@ -84,7 +84,7 @@ namespace TicketsHex.API.Endpoints
                 await service.DesasignarRamaAsync(idTicket, idRama);
                 return Results.Ok(
                     ApiResponse<bool>.Ok(true, "Rama desasignada correctamente."));
-            });
+            }).RequireAuthorization("PlannerOrLiderTecnico");
 
             return app;
         }

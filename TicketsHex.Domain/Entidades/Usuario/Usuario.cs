@@ -13,10 +13,12 @@ namespace TicketsHex.Domain.Entidades.Usuario
         public string? Apellidos { get; private set; }
         public Rol IdRol { get; private set; }
         public Area? IdArea { get; private set; }
+        public string? ImagenPerfilBase64 { get; private set; }
         public bool Activo { get; private set; } = true;
         public string? ContrasenaHash { get; private set; }
         public int IntentosFallidos { get; private set; }
         public bool Bloqueado { get; private set; }
+        public bool DebeCambiarContrasena { get; private set; }
         public DateTimeOffset? FechaBloqueo { get; private set; }
         public DateTimeOffset? FechaCambioContrasena { get; private set; }
 
@@ -29,14 +31,17 @@ namespace TicketsHex.Domain.Entidades.Usuario
             string? apellidos,
             Rol rol,
             Area? idArea,
-            string contrasenaHash)
+            string contrasenaHash,
+            string? imagenPerfilBase64 = null,
+            bool debeCambiarContrasena = false)
         {
             if (idUsuario <= 0)
                 throw new ArgumentException("El ID del usuario debe ser positivo.", nameof(idUsuario));
 
             IdUsuario = idUsuario;
             Actualizar(nombreUsuario, nombres, apellidos, rol, idArea);
-            CambiarContrasena(contrasenaHash, DateTimeOffset.UtcNow);
+            ActualizarImagenPerfilBase64(imagenPerfilBase64);
+            CambiarContrasena(contrasenaHash, DateTimeOffset.UtcNow, debeCambiarContrasena);
         }
 
         public void Actualizar(
@@ -66,15 +71,54 @@ namespace TicketsHex.Domain.Entidades.Usuario
             IdArea = idArea;
         }
 
-        public void CambiarContrasena(string contrasenaHash, DateTimeOffset fechaCambio)
+        public void ActualizarImagenPerfilBase64(string? imagenPerfilBase64)
+        {
+            if (string.IsNullOrWhiteSpace(imagenPerfilBase64))
+            {
+                ImagenPerfilBase64 = null;
+                return;
+            }
+
+            var imagenNormalizada = imagenPerfilBase64.Trim();
+            var base64 = ObtenerContenidoBase64(imagenNormalizada);
+            Span<byte> buffer = new byte[base64.Length];
+            if (!Convert.TryFromBase64String(base64, buffer, out _))
+                throw new ArgumentException("La imagen de perfil debe estar en formato Base64.", nameof(imagenPerfilBase64));
+
+            ImagenPerfilBase64 = imagenNormalizada;
+        }
+
+        private static string ObtenerContenidoBase64(string valor)
+        {
+            var separadorDataUri = valor.IndexOf(',');
+            if (valor.StartsWith("data:", StringComparison.OrdinalIgnoreCase) &&
+                separadorDataUri >= 0)
+                return valor[(separadorDataUri + 1)..];
+
+            return valor;
+        }
+
+        public void CambiarContrasena(
+            string contrasenaHash,
+            DateTimeOffset fechaCambio,
+            bool debeCambiarContrasena = false)
         {
             if (string.IsNullOrWhiteSpace(contrasenaHash))
                 throw new ArgumentException("El hash de la contraseña es obligatorio.", nameof(contrasenaHash));
 
             ContrasenaHash = contrasenaHash;
             FechaCambioContrasena = fechaCambio;
+            DebeCambiarContrasena = debeCambiarContrasena;
             ReiniciarIntentosFallidos();
         }
+
+        public void ForzarCambioContrasena() => DebeCambiarContrasena = true;
+
+        public void RestablecerContrasena(string contrasenaHash, DateTimeOffset fechaCambio) =>
+            CambiarContrasena(
+                contrasenaHash,
+                fechaCambio,
+                debeCambiarContrasena: true);
 
         public void ActualizarHashContrasena(string contrasenaHash)
         {

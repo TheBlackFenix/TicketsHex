@@ -58,6 +58,52 @@ public class AutenticacionServiceTests
                 new LoginRequest("planner", "Valida#2026")));
     }
 
+    [Fact]
+    public async Task Login_devuelve_si_usuario_debe_cambiar_contrasena()
+    {
+        var contexto = CrearContexto();
+        contexto.Usuario.CambiarContrasena(
+            contexto.Hasher.CrearHash("Valida#2026"),
+            DateTimeOffset.UtcNow,
+            debeCambiarContrasena: true);
+
+        var login = await contexto.Service.IniciarSesionAsync(
+            new LoginRequest("planner", "Valida#2026"));
+
+        Assert.True(login.Usuario.DebeCambiarContrasena);
+    }
+
+    [Fact]
+    public async Task Cambiar_contrasena_desactiva_debe_cambiar_contrasena()
+    {
+        var contexto = CrearContexto();
+        contexto.Usuario.CambiarContrasena(
+            contexto.Hasher.CrearHash("Valida#2026"),
+            DateTimeOffset.UtcNow,
+            debeCambiarContrasena: true);
+
+        await contexto.Service.CambiarContrasenaAsync(
+            contexto.Usuario.IdUsuario,
+            new CambiarContrasenaRequest("Valida#2026", "Nueva#2026"));
+
+        Assert.False(contexto.Usuario.DebeCambiarContrasena);
+    }
+
+    [Fact]
+    public async Task Cambiar_contrasena_rechaza_la_contrasena_actual_incorrecta()
+    {
+        var contexto = CrearContexto();
+        var hashActual = contexto.Usuario.ContrasenaHash;
+
+        await Assert.ThrowsAsync<UsuarioNoAutenticadoException>(() =>
+            contexto.Service.CambiarContrasenaAsync(
+                contexto.Usuario.IdUsuario,
+                new CambiarContrasenaRequest("Incorrecta#2026", "Nueva#2026")));
+
+        Assert.Equal(hashActual, contexto.Usuario.ContrasenaHash);
+        Assert.Equal(1, contexto.Usuario.IntentosFallidos);
+    }
+
     private static ContextoPrueba CrearContexto()
     {
         var hasher = new ContrasenaHasher();

@@ -4,9 +4,9 @@ using TicketsHex.Application.DTO_s.Ticket;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Ticket;
 using TicketsHex.Domain.ValueObjects.Ticket;
-using TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context;
+using TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.Context;
 
-namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository
+namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
 {
     public class TicketRepository : ITicketRepository
     {
@@ -36,10 +36,25 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository
                 .FirstOrDefaultAsync(t => t.IdTicket == id);
         }
 
-        public async Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(TicketFiltroRequest filtro)
-        {
-            IQueryable<Ticket> query = _dbContext.Tickets.AsNoTracking();
+        public Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(TicketFiltroRequest filtro) =>
+            ObtenerPaginaAsync(_dbContext.Tickets.AsNoTracking(), filtro);
 
+        public Task<PaginaResultado<Ticket>> ObtenerPaginaPorAsignacionHistoricaAsync(
+            long idUsuario,
+            TicketFiltroRequest filtro) =>
+            ObtenerPaginaAsync(
+                _dbContext.Tickets
+                    .AsNoTracking()
+                    .Where(ticket =>
+                        ticket.IdUsuarioAsignado == idUsuario ||
+                        ticket.HistoricoAsignaciones.Any(
+                            asignacion => asignacion.IdUsuarioAsignado == idUsuario)),
+                filtro);
+
+        private static async Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(
+            IQueryable<Ticket> query,
+            TicketFiltroRequest filtro)
+        {
             if (!filtro.IncluirEliminados)
                 query = query.Where(t => t.Activo);
             if (filtro.Estado.HasValue)

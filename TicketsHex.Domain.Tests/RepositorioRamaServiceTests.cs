@@ -18,7 +18,7 @@ public sealed class RepositorioRamaServiceTests
         var configuracion = new RepositorioRamaRepositoryFake();
         var tickets = new TicketRepositoryFake();
         var usuario = new UsuarioActualFake(3, Rol.LiderTecnico);
-        var service = new RepositorioRamaService(configuracion, tickets, usuario);
+        var service = new RepositorioRamaService(configuracion, tickets, usuario, new NotificacionPublisherFake());
         var ticket = tickets.Ticket;
 
         var idRepositorio = await service.CrearRepositorioAsync(
@@ -41,12 +41,13 @@ public sealed class RepositorioRamaServiceTests
     }
 
     [Fact]
-    public async Task Usuario_que_no_es_lider_no_puede_crear_repositorio()
+    public async Task Usuario_que_no_es_planner_ni_lider_no_puede_crear_repositorio()
     {
         var service = new RepositorioRamaService(
             new RepositorioRamaRepositoryFake(),
             new TicketRepositoryFake(),
-            new UsuarioActualFake(1, Rol.Planner));
+            new UsuarioActualFake(1, Rol.QA),
+            new NotificacionPublisherFake());
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             service.CrearRepositorioAsync(
@@ -61,7 +62,8 @@ public sealed class RepositorioRamaServiceTests
         var service = new RepositorioRamaService(
             configuracion,
             tickets,
-            new UsuarioActualFake(3, Rol.LiderTecnico));
+            new UsuarioActualFake(3, Rol.LiderTecnico),
+            new NotificacionPublisherFake());
 
         var repositorioUno = await service.CrearRepositorioAsync(
             new CrearRepositorioRequest("repo-uno", null, null));
@@ -99,7 +101,8 @@ public sealed class RepositorioRamaServiceTests
                 "Descripción del ticket de prueba",
                 3,
                 1,
-                TicketOrigen.SAIA);
+                TicketOrigen.SAIA,
+                esDesarrollo: true);
         }
 
         public Ticket Ticket { get; }
@@ -110,6 +113,11 @@ public sealed class RepositorioRamaServiceTests
             Task.FromResult<Ticket?>(id == Ticket.IdTicket ? Ticket : null);
 
         public Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(TicketFiltroRequest filtro) =>
+            Task.FromResult(new PaginaResultado<Ticket>([Ticket], 1, 20, 1));
+
+        public Task<PaginaResultado<Ticket>> ObtenerPaginaPorAsignacionHistoricaAsync(
+            long idUsuario,
+            TicketFiltroRequest filtro) =>
             Task.FromResult(new PaginaResultado<Ticket>([Ticket], 1, 20, 1));
 
         public Task GuardarAsync(Ticket ticket) => Task.CompletedTask;
@@ -174,5 +182,10 @@ public sealed class RepositorioRamaServiceTests
                 item.IdTicket == idTicket && item.IdRama == idRama);
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class NotificacionPublisherFake : INotificacionPublisher
+    {
+        public Task PublicarResumenAsync() => Task.CompletedTask;
     }
 }

@@ -12,6 +12,7 @@ namespace TicketsHex.Application.DTO_s.Ticket
         TicketOrigen OrigenTicket,
         string Titulo,
         string Descripcion,
-        long IdUsuarioAsignado
+        long IdUsuarioAsignado,
+        bool EsDesarrollo = false
     );
 }

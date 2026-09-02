@@ -25,13 +25,23 @@ namespace TicketsHex.API.Endpoints
                 return Results.Ok(ApiResponse<UsuarioDTO>.Ok(usuario));
             });
 
+            group.MapPatch("/me", async (
+                ActualizarPerfilPropioRequest request,
+                IUsuarioService service) =>
+            {
+                var usuario = await service.ActualizarPerfilPropioAsync(request);
+                return Results.Ok(ApiResponse<UsuarioDTO>.Ok(
+                    usuario,
+                    "Imagen de perfil actualizada correctamente."));
+            });
+
             group.MapPost("/", async (CrearUsuarioRequest request, IUsuarioService service) =>
             {
                 await service.CrearAsync(request);
                 return Results.Created(
                     $"/api/usuarios/{request.IdUsuario}",
                     ApiResponse<long>.Ok(request.IdUsuario, "Usuario creado correctamente."));
-            });
+            }).RequireAuthorization("PlannerOrLiderTecnico");
 
             group.MapPut("/{id:long}", async (
                 long id,
@@ -40,13 +50,13 @@ namespace TicketsHex.API.Endpoints
             {
                 await service.ActualizarAsync(id, request);
                 return Results.Ok(ApiResponse<bool>.Ok(true, "Usuario actualizado correctamente."));
-            });
+            }).RequireAuthorization("PlannerOrLiderTecnico");
 
             group.MapDelete("/{id:long}", async (long id, IUsuarioService service) =>
             {
                 await service.DesactivarAsync(id);
                 return Results.Ok(ApiResponse<bool>.Ok(true, "Usuario desactivado correctamente."));
-            });
+            }).RequireAuthorization("PlannerOrLiderTecnico");
 
             group.MapPatch("/{id:long}/desbloquear", async (
                 long id,
@@ -55,8 +65,8 @@ namespace TicketsHex.API.Endpoints
                 await service.DesbloquearAsync(id);
                 return Results.Ok(ApiResponse<bool>.Ok(
                     true,
-                    "Usuario desbloqueado correctamente."));
-            });
+                    "Usuario desbloqueado y contraseÃ±a temporal restablecida. Debe cambiarla en el siguiente inicio de sesiÃ³n."));
+            }).RequireAuthorization("PlannerOrLiderTecnico");
 
             return app;
         }

@@ -12,15 +12,18 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
         private readonly IRepositorioRamaRepository _repository;
         private readonly ITicketRepository _ticketRepository;
         private readonly IUsuarioActual _usuarioActual;
+        private readonly INotificacionPublisher _notificacionPublisher;
 
         public RepositorioRamaService(
             IRepositorioRamaRepository repository,
             ITicketRepository ticketRepository,
-            IUsuarioActual usuarioActual)
+            IUsuarioActual usuarioActual,
+            INotificacionPublisher notificacionPublisher)
         {
             _repository = repository;
             _ticketRepository = ticketRepository;
             _usuarioActual = usuarioActual;
+            _notificacionPublisher = notificacionPublisher;
         }
 
         public async Task<IReadOnlyCollection<RepositorioDTO>> ObtenerRepositoriosAsync()
@@ -78,7 +81,7 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
 
         public async Task<Guid> CrearRepositorioAsync(CrearRepositorioRequest request)
         {
-            ValidarLiderTecnico();
+            ValidarPlannerOLiderTecnico();
             if (await _repository.ObtenerRepositorioPorNombreAsync(request.Nombre) is not null)
                 throw new ConflictoException($"Ya existe el repositorio '{request.Nombre}'.");
 
@@ -89,7 +92,7 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
 
         public async Task<Guid> CrearRamaAsync(Guid idRepositorio, CrearRamaRequest request)
         {
-            ValidarLiderTecnico();
+            ValidarPlannerOLiderTecnico();
             var repositorio = await ObtenerRepositorioAsync(idRepositorio);
             if (await _repository.ObtenerRamaPorNombreAsync(idRepositorio, request.Nombre) is not null)
                 throw new ConflictoException(
@@ -104,9 +107,11 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
             Guid idTicket,
             AsignarRamaTicketRequest request)
         {
-            ValidarLiderTecnico();
-            _ = await _ticketRepository.ObtenerPorIdAsync(idTicket)
+            ValidarPlannerOLiderTecnico();
+            var ticket = await _ticketRepository.ObtenerPorIdAsync(idTicket)
                 ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
+            if (!ticket.EsDesarrollo)
+                throw new InvalidOperationException("Solo se pueden asociar ramas a tickets de desarrollo.");
             _ = await ObtenerRepositorioAsync(request.IdRepositorio);
             var rama = await _repository.ObtenerRamaAsync(request.IdRama)
                 ?? throw new RecursoNoEncontradoException("Rama no encontrada.");
@@ -119,17 +124,19 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
 
             var asignacion = new RamaTicket(idTicket, request.IdRama);
             await _repository.GuardarAsignacionAsync(asignacion);
+            await _notificacionPublisher.PublicarResumenAsync();
             return asignacion.IdRamaTicket;
         }
 
         public async Task DesasignarRamaAsync(Guid idTicket, Guid idRama)
         {
-            ValidarLiderTecnico();
+            ValidarPlannerOLiderTecnico();
             if (!await _repository.ExisteAsignacionAsync(idTicket, idRama))
                 throw new RecursoNoEncontradoException(
                     "La rama no está asignada al ticket.");
 
             await _repository.EliminarAsignacionAsync(idTicket, idRama);
+            await _notificacionPublisher.PublicarResumenAsync();
         }
 
         private async Task<Repositorio> ObtenerRepositorioAsync(Guid idRepositorio)
@@ -138,11 +145,11 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
                 ?? throw new RecursoNoEncontradoException("Repositorio no encontrado.");
         }
 
-        private void ValidarLiderTecnico()
+        private void ValidarPlannerOLiderTecnico()
         {
-            if (_usuarioActual.Rol != Rol.LiderTecnico)
+            if (_usuarioActual.Rol is not Rol.LiderTecnico and not Rol.Planner)
                 throw new UnauthorizedAccessException(
-                    "Solo el Líder Técnico puede administrar repositorios y ramas.");
+                    "Solo Planner o Lider Tecnico pueden administrar repositorios y ramas.");
         }
 
         private static RamaDTO MapearRama(Rama rama) => new(

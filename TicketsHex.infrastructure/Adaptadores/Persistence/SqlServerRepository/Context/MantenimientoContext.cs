@@ -1,11 +1,14 @@
 using Microsoft.EntityFrameworkCore;
+using TicketsHex.Domain.Entidades.Aplicativos;
 using TicketsHex.Domain.Entidades.ConfiguracionGit;
 using TicketsHex.Domain.Entidades.Parametros;
 using TicketsHex.Domain.Entidades.Ticket;
 using TicketsHex.Domain.Entidades.Usuario;
 using TicketsHex.Domain.ValueObjects.Ticket;
+using TicketsHex.Domain.Entidades.Conocimiento;
+using TicketsHex.infrastructure.Adaptadores.Persistence;
 
-namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
+namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.Context
 {
     public class MantenimientoContext : DbContext
     {
@@ -14,6 +17,7 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
 
         public DbSet<Ticket> Tickets => Set<Ticket>();
         public DbSet<HistoricoEstadosTicket> HistoricoEstados => Set<HistoricoEstadosTicket>();
+        public DbSet<HistoricoAsignacionTicket> HistoricoAsignaciones => Set<HistoricoAsignacionTicket>();
         public DbSet<Usuario> Usuarios => Set<Usuario>();
         public DbSet<RolParametro> Roles => Set<RolParametro>();
         public DbSet<EstadoTicketParametro> EstadosTicket => Set<EstadoTicketParametro>();
@@ -23,10 +27,22 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
         public DbSet<Repositorio> Repositorios => Set<Repositorio>();
         public DbSet<Rama> Ramas => Set<Rama>();
         public DbSet<RamaTicket> RamasTicket => Set<RamaTicket>();
+        public DbSet<Aplicativo> Aplicativos => Set<Aplicativo>();
+        public DbSet<AplicativoTicket> AplicativosTicket => Set<AplicativoTicket>();
+        public DbSet<RepositorioAplicativo> RepositoriosAplicativo => Set<RepositorioAplicativo>();
+        public DbSet<EntradaConocimientoTicket> EntradasConocimiento => Set<EntradaConocimientoTicket>();
+        public DbSet<RevisionEntradaConocimiento> RevisionesConocimiento => Set<RevisionEntradaConocimiento>();
+        public DbSet<ReferenciaEntradaConocimiento> ReferenciasConocimiento => Set<ReferenciaEntradaConocimiento>();
+        public DbSet<TagConocimiento> Tags => Set<TagConocimiento>();
+        public DbSet<TagTicket> TagsTicket => Set<TagTicket>();
+        public DbSet<TipoEntradaConocimientoParametro> TiposEntradaConocimiento => Set<TipoEntradaConocimientoParametro>();
+        public DbSet<ResultadoEntradaConocimientoParametro> ResultadosEntradaConocimiento => Set<ResultadoEntradaConocimientoParametro>();
+        public DbSet<AmbienteTicketParametro> AmbientesTicket => Set<AmbienteTicketParametro>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.HasDefaultSchema("public");
+            modelBuilder.HasDefaultSchema("dbo");
+            modelBuilder.ConfigurarConocimiento(esSqlServer: true);
 
             modelBuilder.Entity<Ticket>(b =>
             {
@@ -52,8 +68,18 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
                 b.Property(t => t.IdEstado).HasConversion<int>();
                 b.Property(t => t.CausaRaiz).HasMaxLength(1000);
                 b.Property(t => t.SolucionPropuesta).HasMaxLength(1000);
+                b.Property(t => t.EsDesarrollo)
+                    .HasDefaultValue(false)
+                    .IsRequired();
+                b.Property(t => t.NombreHu).HasMaxLength(100);
+                b.Property(t => t.UrlHu).HasMaxLength(2048);
 
                 b.HasMany(t => t.HistoricoEstados)
+                    .WithOne()
+                    .HasForeignKey(h => h.IdTicket)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                b.HasMany(t => t.HistoricoAsignaciones)
                     .WithOne()
                     .HasForeignKey(h => h.IdTicket)
                     .OnDelete(DeleteBehavior.Cascade);
@@ -79,6 +105,28 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
+            modelBuilder.Entity<HistoricoAsignacionTicket>(b =>
+            {
+                b.ToTable("historicoasignacionesticket");
+                b.HasKey(e => e.IdHistoricoAsignacion);
+                b.Property(e => e.IdHistoricoAsignacion).ValueGeneratedNever();
+                b.Property(e => e.Comentario).HasMaxLength(1000);
+                b.HasIndex(e => new { e.IdUsuarioAsignado, e.IdTicket });
+
+                b.HasOne<Ticket>()
+                    .WithMany(t => t.HistoricoAsignaciones)
+                    .HasForeignKey(e => e.IdTicket)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne<Usuario>()
+                    .WithMany()
+                    .HasForeignKey(e => e.IdUsuarioAsignado)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne<Usuario>()
+                    .WithMany()
+                    .HasForeignKey(e => e.IdUsuarioAccion)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
             modelBuilder.Entity<Usuario>(b =>
             {
                 b.ToTable("usuarios");
@@ -88,7 +136,11 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
                 b.Property(u => u.Apellidos).HasMaxLength(100);
                 b.Property(u => u.IdRol).HasConversion<int>();
                 b.Property(u => u.IdArea).HasConversion<int?>();
+                b.Property(u => u.ImagenPerfilBase64).HasColumnType("varchar(max)");
                 b.Property(u => u.ContrasenaHash).HasMaxLength(500);
+                b.Property(u => u.DebeCambiarContrasena)
+                    .HasDefaultValue(false)
+                    .IsRequired();
                 b.HasIndex(u => u.NombreUsuario).IsUnique();
             });
 
@@ -100,7 +152,7 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
                 b.HasIndex(s => s.Jti).IsUnique();
                 b.HasIndex(s => s.IdUsuario)
                     .IsUnique()
-                    .HasFilter("\"fecharevocacion\" IS NULL");
+                    .HasFilter("[fecharevocacion] IS NULL");
                 b.HasOne<Usuario>()
                     .WithMany()
                     .HasForeignKey(s => s.IdUsuario)
@@ -132,9 +184,20 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
 
             modelBuilder.Entity<AreaTicketParametro>(b =>
             {
-                b.ToTable("areasticket");
+                b.ToTable("areas");
                 b.HasKey(item => item.IdArea);
                 b.Property(item => item.Area).IsRequired();
+                b.Property(item => item.Descripcion).HasMaxLength(200);
+            });
+
+            modelBuilder.Entity<Aplicativo>(b =>
+            {
+                b.ToTable("aplicativos");
+                b.HasKey(item => item.IdAplicativo);
+                b.Property(item => item.Nombre)
+                    .HasColumnName("aplicativo")
+                    .HasMaxLength(100)
+                    .IsRequired();
                 b.Property(item => item.Descripcion).HasMaxLength(200);
             });
 
@@ -179,6 +242,36 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
+            modelBuilder.Entity<AplicativoTicket>(b =>
+            {
+                b.ToTable("aplicativosticket");
+                b.HasKey(item => item.IdAplicativoTicket);
+                b.HasIndex(item => new { item.IdTicket, item.IdAplicativo }).IsUnique();
+                b.HasOne<Ticket>()
+                    .WithMany()
+                    .HasForeignKey(item => item.IdTicket)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne<Aplicativo>()
+                    .WithMany()
+                    .HasForeignKey(item => item.IdAplicativo)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<RepositorioAplicativo>(b =>
+            {
+                b.ToTable("repositoriosaplicativo");
+                b.HasKey(item => item.IdRepositorioAplicativo);
+                b.HasIndex(item => new { item.IdRepositorio, item.IdAplicativo }).IsUnique();
+                b.HasOne<Repositorio>()
+                    .WithMany()
+                    .HasForeignKey(item => item.IdRepositorio)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne<Aplicativo>()
+                    .WithMany()
+                    .HasForeignKey(item => item.IdAplicativo)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
             foreach (var entity in modelBuilder.Model.GetEntityTypes())
             {
                 foreach (var property in entity.GetProperties())
@@ -188,6 +281,9 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context
             modelBuilder.Entity<Repositorio>()
                 .Property(item => item.Nombre)
                 .HasColumnName("repositorio");
+            modelBuilder.Entity<Aplicativo>()
+                .Property(item => item.Nombre)
+                .HasColumnName("aplicativo");
         }
     }
 }

@@ -35,6 +35,16 @@ namespace TicketsHex.API.Endpoints
                     "Tickets asignados consultados correctamente."));
             });
 
+            group.MapGet("/mis-tickets/historico", async (
+                [AsParameters] TicketFiltroRequest filtro,
+                ITicketQuery queries) =>
+            {
+                var tickets = await queries.ObtenerHistoricoMisTicketsAsync(filtro);
+                return Results.Ok(ApiResponse<PaginaResultado<TicketDTO>>.Ok(
+                    tickets,
+                    "HistÃ³rico de tickets asignados consultado correctamente."));
+            });
+
             group.MapGet("/{id:guid}", async (Guid id, ITicketQuery queries) =>
             {
                 var ticket = await queries.ObtenerTicketPorIdAsync(id);
@@ -74,9 +84,10 @@ namespace TicketsHex.API.Endpoints
             });
 
             app.MapUsuariosEndpoints();
-            app.MapParametrosEndpoints();
             app.MapAutenticacionEndpoints();
             app.MapRepositoriosEndpoints();
+            app.MapAplicativosEndpoints();
+            app.MapConocimientoEndpoints();
             return app;
         }
     }

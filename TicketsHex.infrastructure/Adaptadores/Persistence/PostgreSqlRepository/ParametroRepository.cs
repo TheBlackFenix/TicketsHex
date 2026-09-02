@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Parametros;
-using TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository.Context;
+using TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.Context;
 
-namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository
+namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
 {
     public sealed class ParametroRepository : IParametroRepository
     {
@@ -42,6 +42,30 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PgRepository
                 .AsNoTracking()
                 .Where(item => incluirInactivos || item.Activo)
                 .OrderBy(item => item.IdArea)
+                .ToListAsync();
+
+        public async Task<IReadOnlyCollection<TipoEntradaConocimientoParametro>> ObtenerTiposEntradaConocimientoAsync(
+            bool incluirInactivos) =>
+            await _dbContext.TiposEntradaConocimiento
+                .AsNoTracking()
+                .Where(item => incluirInactivos || item.Activo)
+                .OrderBy(item => item.IdTipoEntrada)
+                .ToListAsync();
+
+        public async Task<IReadOnlyCollection<ResultadoEntradaConocimientoParametro>> ObtenerResultadosEntradaConocimientoAsync(
+            bool incluirInactivos) =>
+            await _dbContext.ResultadosEntradaConocimiento
+                .AsNoTracking()
+                .Where(item => incluirInactivos || item.Activo)
+                .OrderBy(item => item.IdResultado)
+                .ToListAsync();
+
+        public async Task<IReadOnlyCollection<AmbienteTicketParametro>> ObtenerAmbientesTicketAsync(
+            bool incluirInactivos) =>
+            await _dbContext.AmbientesTicket
+                .AsNoTracking()
+                .Where(item => incluirInactivos || item.Activo)
+                .OrderBy(item => item.IdAmbiente)
                 .ToListAsync();
     }
 }
