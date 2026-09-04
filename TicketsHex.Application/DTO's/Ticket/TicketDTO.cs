@@ -14,6 +14,9 @@ namespace TicketsHex.Application.DTO_s.Ticket
         string Descripcion,
         TicketEstado TicketEstado,
         TicketOrigen Origen,
+        TicketTipo? Tipo,
+        TicketPrioridad? Prioridad,
+        TicketImpacto? Impacto,
         long? IdUsuarioAsignado,
         long? IdDesarrolladorResponsable,
         long? IdQaResponsable,
@@ -27,6 +30,7 @@ namespace TicketsHex.Application.DTO_s.Ticket
         DateTimeOffset? FechaUltimaActualizacion,
         bool Activo,
         DateTimeOffset? FechaEliminacion,
-        IEnumerable<TicketHistoryDTO> Comentarios
+        IEnumerable<TicketHistoryDTO> Comentarios,
+        CapacidadesTicketDTO Capacidades
     );
 }
