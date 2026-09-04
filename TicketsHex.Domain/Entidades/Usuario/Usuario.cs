@@ -154,6 +154,9 @@ namespace TicketsHex.Domain.Entidades.Usuario
             !FechaCambioContrasena.HasValue ||
             FechaCambioContrasena.Value.AddDays(DiasVigenciaContrasena) <= fechaActual;
 
+        public bool RequiereCambioContrasena(DateTimeOffset fechaActual) =>
+            DebeCambiarContrasena || ContrasenaEstaExpirada(fechaActual);
+
         public DateTimeOffset? ContrasenaExpiraEn =>
             FechaCambioContrasena?.AddDays(DiasVigenciaContrasena);
 

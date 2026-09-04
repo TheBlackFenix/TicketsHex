@@ -48,6 +48,18 @@ public sealed class TicketQueryTests
     }
 
     [Fact]
+    public async Task QA_consulta_el_listado_filtrado_por_estados_de_validacion()
+    {
+        var repository = new TicketRepositoryFake(CrearTicket());
+        var query = new TicketQuery(repository, new UsuarioActualFake(3, Rol.QA));
+
+        var resultado = await query.ObtenerListaTicketsAsync(new TicketFiltroRequest());
+
+        Assert.True(repository.FueConsultadaPaginaQa);
+        Assert.Single(resultado.Elementos);
+    }
+
+    [Fact]
     public async Task Historico_mis_tickets_consulta_asignaciones_del_usuario_actual()
     {
         var ticket = CrearTicket();
@@ -84,12 +96,19 @@ public sealed class TicketQueryTests
     {
         public long? IdUsuarioHistoricoConsultado { get; private set; }
         public TicketFiltroRequest? FiltroHistorico { get; private set; }
+        public bool FueConsultadaPaginaQa { get; private set; }
 
         public Task<Ticket?> ObtenerPorIdAsync(Guid id, bool incluirEliminados = false) =>
             Task.FromResult(ticket.IdTicket == id ? ticket : null);
 
         public Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(TicketFiltroRequest filtro) =>
             Task.FromResult(new PaginaResultado<Ticket>([ticket], 1, 20, 1));
+
+        public Task<PaginaResultado<Ticket>> ObtenerPaginaParaQaAsync(TicketFiltroRequest filtro)
+        {
+            FueConsultadaPaginaQa = true;
+            return Task.FromResult(new PaginaResultado<Ticket>([ticket], 1, 20, 1));
+        }
 
         public Task<PaginaResultado<Ticket>> ObtenerPaginaPorAsignacionHistoricaAsync(
             long idUsuario,
@@ -102,5 +121,8 @@ public sealed class TicketQueryTests
 
         public Task GuardarAsync(Ticket ticketGuardado) => Task.CompletedTask;
         public Task ActualizarAsync(Ticket ticketActualizado) => Task.CompletedTask;
+        public Task<IReadOnlyCollection<Ticket>> ObtenerCargaActivaUsuarioAsync(long idUsuario) =>
+            Task.FromResult<IReadOnlyCollection<Ticket>>([]);
+        public Task ActualizarRangoAsync(IReadOnlyCollection<Ticket> tickets) => Task.CompletedTask;
     }
 }

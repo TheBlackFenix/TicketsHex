@@ -46,16 +46,20 @@ public class AutenticacionServiceTests
     }
 
     [Fact]
-    public async Task Rechaza_login_cuando_contrasena_cumple_treinta_dias()
+    public async Task Login_con_contrasena_expirada_entrega_token_restringido()
     {
         var contexto = CrearContexto();
         contexto.Usuario.CambiarContrasena(
             contexto.Hasher.CrearHash("Valida#2026"),
             DateTimeOffset.UtcNow.AddDays(-30));
 
-        await Assert.ThrowsAsync<ContrasenaExpiradaException>(() =>
-            contexto.Service.IniciarSesionAsync(
-                new LoginRequest("planner", "Valida#2026")));
+        var login = await contexto.Service.IniciarSesionAsync(
+            new LoginRequest("planner", "Valida#2026"));
+
+        Assert.NotEmpty(login.Token);
+        Assert.True(login.Usuario.DebeCambiarContrasena);
+        var sesion = await contexto.Service.ValidarSesionAsync(ObtenerJti(login.Token));
+        Assert.True(sesion.DebeCambiarContrasena);
     }
 
     [Fact]

@@ -15,6 +15,8 @@ namespace TicketsHex.Application.DTO_s.Ticket
         TicketEstado TicketEstado,
         TicketOrigen Origen,
         long? IdUsuarioAsignado,
+        long? IdDesarrolladorResponsable,
+        long? IdQaResponsable,
         string? CausaRaiz,
         string? SolucionPropuesta,
         bool EsDesarrollo,

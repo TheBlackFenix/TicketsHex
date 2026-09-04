@@ -4,25 +4,29 @@ namespace TicketsHex.Domain.Entidades.Ticket
 {
     public static class TicketWorkflow
     {
-        private record ReglaTransicion(TicketEstado[] EstadosPrevios, Rol[] RolesPermitidos, bool RequiereComentario = false);
+        private record ReglaTransicion(
+            TicketEstado EstadoOrigen,
+            TicketEstado EstadoDestino,
+            Rol[] RolesPermitidos,
+            bool RequiereComentario = false);
 
-        private static readonly Dictionary<TicketEstado, ReglaTransicion> ReglasDeTransicion = new()
-        {
-            [TicketEstado.EnProceso] = new([TicketEstado.EnAnalisis], []),
-            [TicketEstado.Bloqueado] = new([TicketEstado.EnProceso], [], true),
-            [TicketEstado.Entregado] = new([TicketEstado.EnProceso], []),
-            [TicketEstado.DespliegueApitesting] = new([TicketEstado.Entregado], []),
-            [TicketEstado.EnRevisionApitesting] = new([TicketEstado.DespliegueApitesting], []),
-            [TicketEstado.AprobadoApitesting] = new([TicketEstado.EnRevisionApitesting], []),
-            [TicketEstado.DespligueQA] = new([TicketEstado.AprobadoApitesting], []),
-            [TicketEstado.EnRevisionQA] = new([TicketEstado.DespligueQA], []),
-            [TicketEstado.AprobadoQA] = new([TicketEstado.EnRevisionQA], []),
-            [TicketEstado.PendienteCertificacion] = new([TicketEstado.AprobadoQA], []),
-            [TicketEstado.Certificado] = new([TicketEstado.PendienteCertificacion], []),
-            [TicketEstado.DespliegueProduccion] = new([TicketEstado.Certificado], []),
-            [TicketEstado.BUG] = new(Enum.GetValues<TicketEstado>(), [], true),
-            [TicketEstado.Rollback] = new(Enum.GetValues<TicketEstado>(), [], true)
-        };
+        private static readonly ReglaTransicion[] ReglasDeTransicion =
+        [
+            new(TicketEstado.EnAnalisis, TicketEstado.EnProceso, [Rol.Desarrollador, Rol.LiderTecnico, Rol.Planner]),
+            new(TicketEstado.EnAnalisis, TicketEstado.EnReplicaQA, [Rol.Desarrollador, Rol.QA, Rol.LiderTecnico, Rol.Planner]),
+            new(TicketEstado.EnReplicaQA, TicketEstado.EnAnalisis, [Rol.QA, Rol.LiderTecnico, Rol.Planner], true),
+            new(TicketEstado.EnProceso, TicketEstado.Bloqueado, Enum.GetValues<Rol>(), true),
+            new(TicketEstado.EnProceso, TicketEstado.Entregado, [Rol.Desarrollador, Rol.LiderTecnico, Rol.Planner]),
+            new(TicketEstado.Entregado, TicketEstado.DespliegueApitesting, [Rol.Desarrollador, Rol.LiderTecnico, Rol.Planner]),
+            new(TicketEstado.DespliegueApitesting, TicketEstado.EnRevisionApitesting, [Rol.QA, Rol.LiderTecnico, Rol.Planner]),
+            new(TicketEstado.EnRevisionApitesting, TicketEstado.AprobadoApitesting, [Rol.QA, Rol.LiderTecnico, Rol.Planner]),
+            new(TicketEstado.AprobadoApitesting, TicketEstado.DespligueQA, [Rol.Desarrollador, Rol.LiderTecnico, Rol.Planner]),
+            new(TicketEstado.DespligueQA, TicketEstado.EnRevisionQA, [Rol.QA, Rol.LiderTecnico, Rol.Planner]),
+            new(TicketEstado.EnRevisionQA, TicketEstado.AprobadoQA, [Rol.QA, Rol.LiderTecnico, Rol.Planner]),
+            new(TicketEstado.AprobadoQA, TicketEstado.PendienteCertificacion, [Rol.QA, Rol.LiderTecnico, Rol.Planner]),
+            new(TicketEstado.PendienteCertificacion, TicketEstado.Certificado, [Rol.QA, Rol.LiderTecnico, Rol.Planner]),
+            new(TicketEstado.Certificado, TicketEstado.DespliegueProduccion, [Rol.Desarrollador, Rol.LiderTecnico, Rol.Planner])
+        ];
 
         private static readonly TicketEstado[] EstadosConSalidaLibre =
         [
@@ -31,29 +35,116 @@ namespace TicketsHex.Domain.Entidades.Ticket
             TicketEstado.Rollback
         ];
 
+        private static readonly TicketEstado[] EstadosQa =
+        [
+            TicketEstado.EnReplicaQA,
+            TicketEstado.DespliegueApitesting,
+            TicketEstado.EnRevisionApitesting,
+            TicketEstado.AprobadoApitesting,
+            TicketEstado.DespligueQA,
+            TicketEstado.EnRevisionQA,
+            TicketEstado.AprobadoQA,
+            TicketEstado.PendienteCertificacion,
+            TicketEstado.Certificado,
+            TicketEstado.BUG
+        ];
+
+        public static IReadOnlyCollection<TicketEstado> EstadosAccesiblesParaQa => EstadosQa;
+
         public static void ValidarTransicion(TicketEstado estadoActual, TicketEstado nuevoEstado, Rol rolActualiza, string? comentario)
         {
             if (!Enum.IsDefined(nuevoEstado))
                 throw new ArgumentOutOfRangeException(nameof(nuevoEstado), nuevoEstado, "El estado objetivo no es válido.");
 
-            if (EstadosConSalidaLibre.Contains(estadoActual))
+            if (estadoActual == TicketEstado.Finalizado)
+                throw new InvalidOperationException("Un ticket finalizado es terminal y no admite nuevas transiciones.");
+
+            if (nuevoEstado == TicketEstado.Finalizado)
+            {
+                if (rolActualiza is not Rol.Planner and not Rol.LiderTecnico)
+                    throw new UnauthorizedAccessException("Solo Planner o Lider Tecnico pueden finalizar un ticket.");
+                ValidarComentarioObligatorio(nuevoEstado, comentario);
                 return;
+            }
 
-            if (!ReglasDeTransicion.TryGetValue(nuevoEstado, out var regla))
-                throw new InvalidOperationException($"No hay reglas de transición definidas para el estado objetivo: {nuevoEstado}.");
+            if (nuevoEstado is TicketEstado.BUG or TicketEstado.Rollback)
+            {
+                var roles = nuevoEstado == TicketEstado.BUG
+                    ? new[] { Rol.QA, Rol.LiderTecnico, Rol.Planner }
+                    : new[] { Rol.LiderTecnico, Rol.Planner };
+                ValidarRol(rolActualiza, roles, nuevoEstado);
+                ValidarComentarioObligatorio(nuevoEstado, comentario);
+                return;
+            }
 
-            // 1. Validar el estado previo
-            if (!regla.EstadosPrevios.Contains(estadoActual))
-                throw new InvalidOperationException($"Transición inválida. No se puede pasar a {nuevoEstado} desde el estado actual {estadoActual}. Estados válidos de origen: {string.Join(", ", regla.EstadosPrevios)}.");
+            var regla = ReglasDeTransicion.FirstOrDefault(item =>
+                item.EstadoOrigen == estadoActual && item.EstadoDestino == nuevoEstado);
 
-            // 2. Preparado para restricciones futuras por rol.
-            // Mientras RolesPermitidos esté vacío, cualquier rol autenticado puede ejecutar la transición.
-            if (regla.RolesPermitidos.Length > 0 && !regla.RolesPermitidos.Contains(rolActualiza))
-                throw new InvalidOperationException($"Rol [{rolActualiza}] no autorizado para esta transición. Requeridos: {string.Join(", ", regla.RolesPermitidos)}.");
+            if (regla is null && EstadosConSalidaLibre.Contains(estadoActual))
+            {
+                ValidarRol(rolActualiza, ObtenerRolesPorDestino(nuevoEstado), nuevoEstado);
+                return;
+            }
 
-            // 3. Validar obligatoriedad de justificación
-            if (regla.RequiereComentario && string.IsNullOrWhiteSpace(comentario))
-                throw new ArgumentException($"Se requiere obligatoriamente un comentario justificativo para cambiar al estado {nuevoEstado}.", nameof(comentario));
+            if (regla is null)
+            {
+                if (estadoActual == TicketEstado.EnReplicaQA)
+                {
+                    throw new InvalidOperationException(
+                        "Desde EnReplicaQA solo se puede volver a EnAnalisis o finalizar el ticket.");
+                }
+
+                if (rolActualiza is Rol.Planner or Rol.LiderTecnico)
+                {
+                    ValidarComentarioObligatorio(nuevoEstado, comentario);
+                    return;
+                }
+
+                throw new InvalidOperationException(
+                    $"Transición inválida. No se puede pasar a {nuevoEstado} desde {estadoActual}.");
+            }
+
+            ValidarRol(rolActualiza, regla.RolesPermitidos, nuevoEstado);
+            if (regla.RequiereComentario)
+                ValidarComentarioObligatorio(nuevoEstado, comentario);
+        }
+
+        public static bool EsEstadoAccesibleParaQa(TicketEstado estado) =>
+            EstadosQa.Contains(estado);
+
+        private static Rol[] ObtenerRolesPorDestino(TicketEstado estado) => estado switch
+        {
+            TicketEstado.EnProceso or
+            TicketEstado.EnAnalisis or
+            TicketEstado.Entregado or
+            TicketEstado.DespliegueApitesting or
+            TicketEstado.DespligueQA or
+            TicketEstado.DespliegueProduccion => [Rol.Desarrollador, Rol.LiderTecnico, Rol.Planner],
+            TicketEstado.EnReplicaQA =>
+                [Rol.Desarrollador, Rol.QA, Rol.LiderTecnico, Rol.Planner],
+            TicketEstado.EnRevisionApitesting or
+            TicketEstado.AprobadoApitesting or
+            TicketEstado.EnRevisionQA or
+            TicketEstado.AprobadoQA or
+            TicketEstado.PendienteCertificacion or
+            TicketEstado.Certificado => [Rol.QA, Rol.LiderTecnico, Rol.Planner],
+            TicketEstado.Bloqueado => Enum.GetValues<Rol>(),
+            _ => [Rol.LiderTecnico, Rol.Planner]
+        };
+
+        private static void ValidarRol(Rol rol, Rol[] roles, TicketEstado destino)
+        {
+            if (!roles.Contains(rol))
+                throw new UnauthorizedAccessException(
+                    $"El rol {rol} no puede realizar la transición hacia {destino}.");
+        }
+
+        private static void ValidarComentarioObligatorio(TicketEstado destino, string? comentario)
+        {
+            if (string.IsNullOrWhiteSpace(comentario))
+                throw new ArgumentException(
+                    $"Se requiere un comentario para cambiar al estado {destino}.",
+                    nameof(comentario));
         }
     }
 }

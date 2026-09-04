@@ -21,10 +21,17 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
 
         public async Task<PaginaResultado<TicketDTO>> ObtenerListaTicketsAsync(TicketFiltroRequest filtro)
         {
-            if (!PuedeConsultarTodosLosTickets())
-                throw new UnauthorizedAccessException("Solo Planner o Lider Tecnico pueden consultar el listado general.");
-
             var filtroNormalizado = filtro.Normalizar();
+            if (_usuarioActual.Rol == Rol.QA)
+            {
+                filtroNormalizado = filtroNormalizado with { IncluirEliminados = false };
+                var paginaQa = await _ticketRepository.ObtenerPaginaParaQaAsync(filtroNormalizado);
+                return MapearPagina(paginaQa);
+            }
+
+            if (!PuedeConsultarTodosLosTickets())
+                throw new UnauthorizedAccessException("Solo QA, Planner o Lider Tecnico pueden consultar el listado general.");
+
             if (_usuarioActual.Rol == Rol.LiderTecnico)
                 filtroNormalizado = filtroNormalizado with { IncluirEliminados = false };
 
@@ -64,7 +71,7 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
             var ticket = await _ticketRepository.ObtenerPorIdAsync(id, puedeConsultarEliminados)
                 ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
 
-            if (!puedeConsultarTodos && ticket.IdUsuarioAsignado != _usuarioActual.IdUsuario)
+            if (!puedeConsultarTodos && !ticket.PuedeConsultar(_usuarioActual.IdUsuario, _usuarioActual.Rol))
                 throw new UnauthorizedAccessException("No tiene acceso a este ticket.");
 
             return ticket.ToDto();

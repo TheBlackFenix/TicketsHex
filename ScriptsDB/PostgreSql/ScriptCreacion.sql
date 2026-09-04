@@ -109,14 +109,28 @@ CREATE INDEX ix_historicoestadosticket_idticket ON historicoestadosticket(idtick
 CREATE TABLE historicoasignacionesticket (
     idhistoricoasignacion UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     idticket UUID NOT NULL REFERENCES tickets(idticket) ON DELETE CASCADE,
+    idusuarioanterior BIGINT REFERENCES usuarios(idusuario),
     idusuarioasignado BIGINT NOT NULL REFERENCES usuarios(idusuario),
     idusuarioaccion BIGINT NOT NULL REFERENCES usuarios(idusuario),
+    idestado INT REFERENCES estadosticket(idestado),
+    idtipomovimiento INT,
     comentario VARCHAR(1000),
     fechaasignacion TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX ix_historicoasignacionesticket_usuario_ticket
     ON historicoasignacionesticket(idusuarioasignado, idticket);
+
+CREATE TABLE responsablesticket (
+    idresponsableticket UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    idticket UUID NOT NULL REFERENCES tickets(idticket) ON DELETE CASCADE,
+    idtiporesponsabilidad INT NOT NULL,
+    idusuario BIGINT NOT NULL REFERENCES usuarios(idusuario),
+    idusuarioasignador BIGINT NOT NULL REFERENCES usuarios(idusuario)
+);
+
+CREATE UNIQUE INDEX ux_responsablesticket_ticket_tipo
+    ON responsablesticket(idticket, idtiporesponsabilidad);
 
 CREATE TABLE repositorios (
     idrepositorio UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -279,7 +293,9 @@ INSERT INTO estadosticket (idestado, estado, descripcion, activo) VALUES
 (12, 'Certificado', 'Caso formalmente certificado para produccion', TRUE),
 (13, 'DespliegueProduccion', 'El cambio esta siendo liberado en vivo', TRUE),
 (14, 'BUG', 'Defecto encontrado en revisiones intermedias', TRUE),
-(15, 'Rollback', 'Reversion aplicada por fallos en despliegue', TRUE);
+(15, 'Rollback', 'Reversion aplicada por fallos en despliegue', TRUE),
+(16, 'EnReplicaQA', 'QA replica el escenario en ambiente preproductivo', TRUE),
+(17, 'Finalizado', 'Flujo cerrado de forma terminal por Planner o Lider Tecnico', TRUE);
 
 INSERT INTO origenesticket (idorigen, origen, descripcion, activo) VALUES
 (1, 'SAIA', NULL, TRUE),

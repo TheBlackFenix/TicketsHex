@@ -22,6 +22,8 @@ namespace TicketsHex.Domain.Enums
         Certificado = 12,
         DespliegueProduccion = 13,
         BUG = 14,
-        Rollback = 15
+        Rollback = 15,
+        EnReplicaQA = 16,
+        Finalizado = 17
     }
 }

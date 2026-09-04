@@ -22,4 +22,8 @@ namespace TicketsHex.Application.DTO_s.Usuario
 
     public sealed record ActualizarPerfilPropioRequest(
         string? ImagenPerfilBase64 = null);
+
+    public sealed record TransferirCargaUsuarioRequest(
+        long IdUsuarioReemplazo,
+        string Comentario);
 }

@@ -23,6 +23,7 @@ namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
         private static readonly TicketEstado[] EstadosValidacionQa =
         [
             TicketEstado.DespliegueApitesting,
+            TicketEstado.EnReplicaQA,
             TicketEstado.EnRevisionApitesting,
             TicketEstado.DespligueQA,
             TicketEstado.EnRevisionQA,
@@ -48,7 +49,8 @@ namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
 
         public async Task<BaseConocimientoTicketDTO> ObtenerBaseAsync(Guid idTicket)
         {
-            _ = await ObtenerTicketAsync(idTicket);
+            var ticket = await ObtenerTicketAsync(idTicket);
+            ValidarPuedeConsultar(ticket);
             var entradas = await _repository.ObtenerEntradasTicketAsync(idTicket);
             var tags = await _repository.ObtenerTagsTicketAsync(idTicket);
             var aplicativos = await _aplicativoRepository.ObtenerAsignacionesTicketAsync(idTicket);
@@ -75,7 +77,8 @@ namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
             Guid idTicket,
             Guid idEntrada)
         {
-            _ = await ObtenerTicketAsync(idTicket);
+            var ticket = await ObtenerTicketAsync(idTicket);
+            ValidarPuedeConsultar(ticket);
             var entrada = await ObtenerEntradaAsync(idTicket, idEntrada);
             var revisiones = await _repository.ObtenerRevisionesAsync(entrada.IdEntrada);
             return revisiones
@@ -221,11 +224,10 @@ namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
         {
             if (tipo is TipoEntradaConocimiento.Diagnostico or TipoEntradaConocimiento.Solucion)
             {
-                if (_usuarioActual.Rol != Rol.Desarrollador ||
-                    ticket.IdUsuarioAsignado != _usuarioActual.IdUsuario)
+                if (!ticket.PuedeEditarDatosDeDesarrollo(_usuarioActual.IdUsuario, _usuarioActual.Rol))
                 {
                     throw new UnauthorizedAccessException(
-                        "Solo el desarrollador actualmente asignado puede registrar diagnóstico o solución.");
+                        "Solo el desarrollador asignado, Planner o Líder Técnico pueden registrar diagnóstico o solución.");
                 }
                 if (!EstadosDesarrollador.Contains(ticket.IdEstado))
                     throw new InvalidOperationException(
@@ -273,6 +275,12 @@ namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
         private async Task<Ticket> ObtenerTicketAsync(Guid idTicket) =>
             await _ticketRepository.ObtenerPorIdAsync(idTicket)
             ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
+
+        private void ValidarPuedeConsultar(Ticket ticket)
+        {
+            if (!ticket.PuedeConsultar(_usuarioActual.IdUsuario, _usuarioActual.Rol))
+                throw new UnauthorizedAccessException("No tiene acceso al conocimiento de este ticket.");
+        }
 
         private async Task<EntradaConocimientoTicket> ObtenerEntradaAsync(
             Guid idTicket,

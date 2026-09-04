@@ -65,7 +65,18 @@ namespace TicketsHex.API.Endpoints
                 await service.DesbloquearAsync(id);
                 return Results.Ok(ApiResponse<bool>.Ok(
                     true,
-                    "Usuario desbloqueado y contraseÃ±a temporal restablecida. Debe cambiarla en el siguiente inicio de sesiÃ³n."));
+                    "Usuario desbloqueado y contraseña temporal restablecida. Debe cambiarla en el siguiente inicio de sesión."));
+            }).RequireAuthorization("PlannerOrLiderTecnico");
+
+            group.MapPost("/{id:long}/transferir-carga", async (
+                long id,
+                TransferirCargaUsuarioRequest request,
+                IUsuarioService service) =>
+            {
+                var total = await service.TransferirCargaAsync(id, request);
+                return Results.Ok(ApiResponse<int>.Ok(
+                    total,
+                    "Carga activa transferida correctamente."));
             }).RequireAuthorization("PlannerOrLiderTecnico");
 
             return app;

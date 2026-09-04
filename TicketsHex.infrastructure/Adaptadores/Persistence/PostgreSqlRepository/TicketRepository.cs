@@ -3,6 +3,7 @@ using TicketsHex.Application.Comun.Paginacion;
 using TicketsHex.Application.DTO_s.Ticket;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Ticket;
+using TicketsHex.Domain.Enums;
 using TicketsHex.Domain.ValueObjects.Ticket;
 using TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.Context;
 
@@ -32,12 +33,22 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
         {
             return await _dbContext.Tickets
                 .Include(t => t.HistoricoEstados)
+                .Include(t => t.HistoricoAsignaciones)
+                .Include(t => t.Responsables)
                 .Where(t => incluirEliminados || t.Activo)
                 .FirstOrDefaultAsync(t => t.IdTicket == id);
         }
 
         public Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(TicketFiltroRequest filtro) =>
             ObtenerPaginaAsync(_dbContext.Tickets.AsNoTracking(), filtro);
+
+        public Task<PaginaResultado<Ticket>> ObtenerPaginaParaQaAsync(TicketFiltroRequest filtro)
+        {
+            var estadosQa = TicketWorkflow.EstadosAccesiblesParaQa.ToArray();
+            return ObtenerPaginaAsync(
+                _dbContext.Tickets.AsNoTracking().Where(ticket => estadosQa.Contains(ticket.IdEstado)),
+                filtro);
+        }
 
         public Task<PaginaResultado<Ticket>> ObtenerPaginaPorAsignacionHistoricaAsync(
             long idUsuario,
@@ -50,6 +61,22 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
                         ticket.HistoricoAsignaciones.Any(
                             asignacion => asignacion.IdUsuarioAsignado == idUsuario)),
                 filtro);
+
+        public async Task<IReadOnlyCollection<Ticket>> ObtenerCargaActivaUsuarioAsync(long idUsuario) =>
+            await _dbContext.Tickets
+                .Include(ticket => ticket.Responsables)
+                .Include(ticket => ticket.HistoricoAsignaciones)
+                .Include(ticket => ticket.HistoricoEstados)
+                .AsSplitQuery()
+                .Where(ticket =>
+                    ticket.Activo &&
+                    ticket.IdEstado != TicketEstado.Finalizado &&
+                    (ticket.IdUsuarioAsignado == idUsuario ||
+                     ticket.Responsables.Any(responsable => responsable.IdUsuario == idUsuario)))
+                .ToListAsync();
+
+        public Task ActualizarRangoAsync(IReadOnlyCollection<Ticket> tickets) =>
+            _dbContext.SaveChangesAsync();
 
         private static async Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(
             IQueryable<Ticket> query,
@@ -76,6 +103,8 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
             var total = await query.CountAsync();
             var tickets = await query
                 .Include(t => t.HistoricoEstados)
+                .Include(t => t.HistoricoAsignaciones)
+                .Include(t => t.Responsables)
                 .AsSplitQuery()
                 .OrderByDescending(t => t.FechaAsignacion)
                 .Skip((filtro.Pagina - 1) * filtro.TamanoPagina)

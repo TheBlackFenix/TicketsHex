@@ -123,17 +123,36 @@ CREATE INDEX ix_historicoestadosticket_idticket ON dbo.historicoestadosticket(id
 CREATE TABLE dbo.historicoasignacionesticket (
     idhistoricoasignacion UNIQUEIDENTIFIER PRIMARY KEY CONSTRAINT df_historicoasignacionesticket_id DEFAULT NEWID(),
     idticket UNIQUEIDENTIFIER NOT NULL,
+    idusuarioanterior BIGINT NULL,
     idusuarioasignado BIGINT NOT NULL,
     idusuarioaccion BIGINT NOT NULL,
+    idestado INT NULL,
+    idtipomovimiento INT NULL,
     comentario VARCHAR(1000) NULL,
     fechaasignacion DATETIMEOFFSET NOT NULL CONSTRAINT df_historicoasignacionesticket_fecha DEFAULT SYSDATETIMEOFFSET(),
     CONSTRAINT fk_historicoasignacionesticket_tickets FOREIGN KEY (idticket) REFERENCES dbo.tickets(idticket) ON DELETE CASCADE,
+    CONSTRAINT fk_historicoasignacionesticket_usuarioanterior FOREIGN KEY (idusuarioanterior) REFERENCES dbo.usuarios(idusuario),
     CONSTRAINT fk_historicoasignacionesticket_usuarioasignado FOREIGN KEY (idusuarioasignado) REFERENCES dbo.usuarios(idusuario),
-    CONSTRAINT fk_historicoasignacionesticket_usuarioaccion FOREIGN KEY (idusuarioaccion) REFERENCES dbo.usuarios(idusuario)
+    CONSTRAINT fk_historicoasignacionesticket_usuarioaccion FOREIGN KEY (idusuarioaccion) REFERENCES dbo.usuarios(idusuario),
+    CONSTRAINT fk_historicoasignacionesticket_estado FOREIGN KEY (idestado) REFERENCES dbo.estadosticket(idestado)
 );
 
 CREATE INDEX ix_historicoasignacionesticket_usuario_ticket
     ON dbo.historicoasignacionesticket(idusuarioasignado, idticket);
+
+CREATE TABLE dbo.responsablesticket (
+    idresponsableticket UNIQUEIDENTIFIER PRIMARY KEY CONSTRAINT df_responsablesticket_id DEFAULT NEWID(),
+    idticket UNIQUEIDENTIFIER NOT NULL,
+    idtiporesponsabilidad INT NOT NULL,
+    idusuario BIGINT NOT NULL,
+    idusuarioasignador BIGINT NOT NULL,
+    CONSTRAINT fk_responsablesticket_tickets FOREIGN KEY (idticket) REFERENCES dbo.tickets(idticket) ON DELETE CASCADE,
+    CONSTRAINT fk_responsablesticket_usuario FOREIGN KEY (idusuario) REFERENCES dbo.usuarios(idusuario),
+    CONSTRAINT fk_responsablesticket_usuarioasignador FOREIGN KEY (idusuarioasignador) REFERENCES dbo.usuarios(idusuario)
+);
+
+CREATE UNIQUE INDEX ux_responsablesticket_ticket_tipo
+    ON dbo.responsablesticket(idticket, idtiporesponsabilidad);
 
 CREATE TABLE dbo.repositorios (
     idrepositorio UNIQUEIDENTIFIER PRIMARY KEY CONSTRAINT df_repositorios_idrepositorio DEFAULT NEWID(),
@@ -319,7 +338,9 @@ INSERT INTO dbo.estadosticket (idestado, estado, descripcion, activo) VALUES
 (12, 'Certificado', 'Caso formalmente certificado para produccion', 1),
 (13, 'DespliegueProduccion', 'El cambio esta siendo liberado en vivo', 1),
 (14, 'BUG', 'Defecto encontrado en revisiones intermedias', 1),
-(15, 'Rollback', 'Reversion aplicada por fallos en despliegue', 1);
+(15, 'Rollback', 'Reversion aplicada por fallos en despliegue', 1),
+(16, 'EnReplicaQA', 'QA replica el escenario en ambiente preproductivo', 1),
+(17, 'Finalizado', 'Flujo cerrado de forma terminal por Planner o Lider Tecnico', 1);
 
 INSERT INTO dbo.origenesticket (idorigen, origen, descripcion, activo) VALUES
 (1, 'SAIA', NULL, 1),

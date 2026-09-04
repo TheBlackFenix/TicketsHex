@@ -6,6 +6,9 @@ namespace TicketsHex.Application.Puertos.Entrada.Ticket
     {
         Task<Guid> CrearTicketAsync(CrearTicketRequest request);
         Task ActualizarTicketAsync(Guid ticketId, ActualizarTicketRequest request);
+        Task AsignarResponsableDesarrolloAsync(Guid ticketId, AsignarResponsableTicketRequest request);
+        Task AsignarResponsableQaAsync(Guid ticketId, AsignarResponsableTicketRequest request);
+        Task CambiarResponsableActualAsync(Guid ticketId, AsignarResponsableTicketRequest request);
         Task EliminarTicketAsync(Guid ticketId, string? comentario);
     }
 }

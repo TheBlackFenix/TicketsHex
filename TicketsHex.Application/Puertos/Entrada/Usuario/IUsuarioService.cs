@@ -11,5 +11,6 @@ namespace TicketsHex.Application.Puertos.Entrada.Usuario
         Task<UsuarioDTO> ActualizarPerfilPropioAsync(ActualizarPerfilPropioRequest request);
         Task DesactivarAsync(long idUsuario);
         Task DesbloquearAsync(long idUsuario);
+        Task<int> TransferirCargaAsync(long idUsuario, TransferirCargaUsuarioRequest request);
     }
 }

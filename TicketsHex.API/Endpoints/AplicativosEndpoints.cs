@@ -57,7 +57,7 @@ namespace TicketsHex.API.Endpoints
                 return Results.Created(
                     $"/api/tickets/{idTicket}/aplicativos/{request.IdAplicativo}",
                     ApiResponse<Guid>.Ok(id, "Aplicativo asociado correctamente."));
-            }).RequireAuthorization("PlannerOrLiderTecnico");
+            });
 
             aplicativosTicket.MapDelete("/{idAplicativo:guid}", async (
                 Guid idTicket,
@@ -66,7 +66,7 @@ namespace TicketsHex.API.Endpoints
             {
                 await service.DesasignarAplicativoAsync(idTicket, idAplicativo);
                 return Results.Ok(ApiResponse<bool>.Ok(true, "Aplicativo desasociado correctamente."));
-            }).RequireAuthorization("PlannerOrLiderTecnico");
+            });
 
             return app;
         }
