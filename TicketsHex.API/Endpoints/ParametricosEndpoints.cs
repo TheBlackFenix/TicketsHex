@@ -19,6 +19,9 @@ namespace TicketsHex.API.Endpoints
             {
                 var resultado = new ParametricosGrupoDTO[]
                 {
+                    new("tiposTicket", await parametros.ObtenerTiposTicketAsync(false)),
+                    new("prioridadesTicket", await parametros.ObtenerPrioridadesTicketAsync(false)),
+                    new("impactosTicket", await parametros.ObtenerImpactosTicketAsync(false)),
                     new("roles", await parametros.ObtenerRolesAsync()),
                     new("estadosTicket", await parametros.ObtenerEstadosTicketAsync(false)),
                     new("origenesTicket", await parametros.ObtenerOrigenesTicketAsync(false)),

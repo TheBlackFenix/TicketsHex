@@ -53,9 +53,25 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
                 request.Descripcion,
                 idDesarrollador,
                 _usuarioActual.IdUsuario,
+                request.Tipo,
+                request.Prioridad,
+                request.Impacto,
                 request.OrigenTicket,
                 request.EsDesarrollo,
                 request.IdQaResponsable);
+
+            if (request.NombreHu is not null ||
+                request.UrlHu is not null ||
+                request.CarpetaMedios is not null)
+            {
+                ticket.ActualizarDatosDesarrollo(
+                    null,
+                    request.NombreHu,
+                    request.UrlHu,
+                    request.CarpetaMedios,
+                    _usuarioActual.IdUsuario,
+                    _usuarioActual.Rol);
+            }
 
             await _ticketRepository.GuardarAsync(ticket);
             if (ticket.EsDesarrollo)
@@ -88,6 +104,17 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
                 ticket.ActualizarDiagnostico(
                     request.CausaRaiz,
                     request.SolucionPropuesta,
+                    _usuarioActual.IdUsuario,
+                    _usuarioActual.Rol);
+                huboCambios = true;
+            }
+
+            if (request.Tipo.HasValue || request.Prioridad.HasValue || request.Impacto.HasValue)
+            {
+                ticket.ActualizarClasificacion(
+                    request.Tipo,
+                    request.Prioridad,
+                    request.Impacto,
                     _usuarioActual.IdUsuario,
                     _usuarioActual.Rol);
                 huboCambios = true;

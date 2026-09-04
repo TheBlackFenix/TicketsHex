@@ -7,7 +7,7 @@ namespace TicketsHex.Application.Mappers
     public static class TicketMappingExtensions
     {
         // Mapea una sola entidad a DTO
-        public static TicketDTO ToDto(this Ticket ticket)
+        public static TicketDTO ToDto(this Ticket ticket, long idUsuarioActual, Rol rolActual)
         {
             if (ticket == null) throw new ArgumentNullException(nameof(ticket));
 
@@ -18,6 +18,9 @@ namespace TicketsHex.Application.Mappers
                 Descripcion: ticket.Descripcion.Value,
                 TicketEstado: ticket.IdEstado,
                 Origen: ticket.IdOrigen,
+                Tipo: ticket.IdTipo,
+                Prioridad: ticket.IdPrioridad,
+                Impacto: ticket.IdImpacto,
                 IdUsuarioAsignado: ticket.IdUsuarioAsignado,
                 IdDesarrolladorResponsable: ticket.ObtenerIdResponsable(TipoResponsabilidadTicket.Desarrollo),
                 IdQaResponsable: ticket.ObtenerIdResponsable(TipoResponsabilidadTicket.QA),
@@ -34,15 +37,27 @@ namespace TicketsHex.Application.Mappers
                 Comentarios: ticket.HistoricoEstados
                     .OrderByDescending(h => h.FechaCambio)
                     .Select(h => h.ToHistoryDto())
+                    .ToArray(),
+                Capacidades: new CapacidadesTicketDTO(
+                    ticket.ObtenerAccionesPermitidas(idUsuarioActual, rolActual),
+                    ticket.ObtenerTransicionesDisponibles(idUsuarioActual, rolActual)
+                        .Select(item => new TransicionDisponibleDTO(
+                            item.EstadoDestino,
+                            item.Tipo,
+                            item.RequiereComentario))
+                        .ToArray())
             );
         }
 
         // Mapea una colección enumerable (ideal para las consultas de listas)
-        public static IEnumerable<TicketDTO> ToDtoList(this IEnumerable<Ticket> tickets)
+        public static IEnumerable<TicketDTO> ToDtoList(
+            this IEnumerable<Ticket> tickets,
+            long idUsuarioActual,
+            Rol rolActual)
         {
             if (tickets == null) throw new ArgumentNullException(nameof(tickets));
 
-            return tickets.Select(ticket => ticket.ToDto());
+            return tickets.Select(ticket => ticket.ToDto(idUsuarioActual, rolActual));
         }
 
         public static TicketHistoryDTO ToHistoryDto(this HistoricoEstadosTicket historico)

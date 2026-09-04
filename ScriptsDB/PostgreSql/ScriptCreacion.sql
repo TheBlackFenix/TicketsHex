@@ -28,6 +28,27 @@ CREATE TABLE areas (
     activo BOOLEAN NOT NULL DEFAULT TRUE
 );
 
+CREATE TABLE tiposticket (
+    idtipo INT PRIMARY KEY,
+    tipo VARCHAR(50) NOT NULL,
+    descripcion VARCHAR(200),
+    activo BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+CREATE TABLE prioridadesticket (
+    idprioridad INT PRIMARY KEY,
+    prioridad VARCHAR(50) NOT NULL,
+    descripcion VARCHAR(200),
+    activo BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+CREATE TABLE impactosticket (
+    idimpacto INT PRIMARY KEY,
+    impacto VARCHAR(50) NOT NULL,
+    descripcion VARCHAR(200),
+    activo BOOLEAN NOT NULL DEFAULT TRUE
+);
+
 CREATE TABLE aplicativos (
     idaplicativo UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     aplicativo VARCHAR(100) NOT NULL,
@@ -78,6 +99,9 @@ CREATE TABLE tickets (
     idusuarioasignado BIGINT REFERENCES usuarios(idusuario),
     idorigen INT REFERENCES origenesticket(idorigen),
     idestado INT NOT NULL REFERENCES estadosticket(idestado),
+    idtipo INT NOT NULL REFERENCES tiposticket(idtipo),
+    idprioridad INT NOT NULL REFERENCES prioridadesticket(idprioridad),
+    idimpacto INT NOT NULL REFERENCES impactosticket(idimpacto),
     carpetamedios VARCHAR(200),
     causaraiz VARCHAR(1000),
     solucionpropuesta VARCHAR(1000),
@@ -277,6 +301,23 @@ INSERT INTO roles (idrol, nombrerol, descripcion, activo) VALUES
 (2, 'QA', 'Analista de calidad y pruebas', TRUE),
 (3, 'LiderTecnico', 'Aprobador tecnico y administrador del flujo', TRUE),
 (4, 'Planner', 'Planeador y certificador de entregas', TRUE);
+
+INSERT INTO tiposticket (idtipo, tipo, descripcion, activo) VALUES
+(1, 'Incidente', 'Falla o comportamiento inesperado', TRUE),
+(2, 'Requerimiento', 'Solicitud funcional o tecnica', TRUE),
+(3, 'Mejora', 'Optimización de una funcionalidad existente', TRUE);
+
+INSERT INTO prioridadesticket (idprioridad, prioridad, descripcion, activo) VALUES
+(1, 'Baja', 'Atencion sin urgencia operativa', TRUE),
+(2, 'Media', 'Atencion dentro del flujo ordinario', TRUE),
+(3, 'Alta', 'Atencion prioritaria', TRUE),
+(4, 'Crítica', 'Atencion inmediata', TRUE);
+
+INSERT INTO impactosticket (idimpacto, impacto, descripcion, activo) VALUES
+(1, 'Bajo', 'Afectacion limitada', TRUE),
+(2, 'Medio', 'Afectacion moderada', TRUE),
+(3, 'Alto', 'Afectacion significativa', TRUE),
+(4, 'Crítico', 'Afectacion general o de operacion critica', TRUE);
 
 INSERT INTO estadosticket (idestado, estado, descripcion, activo) VALUES
 (1, 'EnAnalisis', 'El caso esta siendo revisado inicialmente', TRUE),
