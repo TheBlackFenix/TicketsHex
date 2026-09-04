@@ -42,7 +42,7 @@ namespace TicketsHex.API.Endpoints
                 var tickets = await queries.ObtenerHistoricoMisTicketsAsync(filtro);
                 return Results.Ok(ApiResponse<PaginaResultado<TicketDTO>>.Ok(
                     tickets,
-                    "HistÃ³rico de tickets asignados consultado correctamente."));
+                    "Histórico de tickets asignados consultado correctamente."));
             });
 
             group.MapGet("/{id:guid}", async (Guid id, ITicketQuery queries) =>
@@ -71,6 +71,39 @@ namespace TicketsHex.API.Endpoints
                     true,
                     "Ticket actualizado correctamente."));
             });
+
+            group.MapPut("/{id:guid}/responsables/desarrollo", async (
+                Guid id,
+                AsignarResponsableTicketRequest request,
+                ITicketCommand commands) =>
+            {
+                await commands.AsignarResponsableDesarrolloAsync(id, request);
+                return Results.Ok(ApiResponse<bool>.Ok(
+                    true,
+                    "Responsable de desarrollo actualizado correctamente."));
+            }).RequireAuthorization("PlannerOrLiderTecnico");
+
+            group.MapPut("/{id:guid}/responsables/qa", async (
+                Guid id,
+                AsignarResponsableTicketRequest request,
+                ITicketCommand commands) =>
+            {
+                await commands.AsignarResponsableQaAsync(id, request);
+                return Results.Ok(ApiResponse<bool>.Ok(
+                    true,
+                    "Responsable de QA actualizado correctamente."));
+            }).RequireAuthorization("PlannerOrLiderTecnico");
+
+            group.MapPut("/{id:guid}/responsable-actual", async (
+                Guid id,
+                AsignarResponsableTicketRequest request,
+                ITicketCommand commands) =>
+            {
+                await commands.CambiarResponsableActualAsync(id, request);
+                return Results.Ok(ApiResponse<bool>.Ok(
+                    true,
+                    "Responsable actual actualizado correctamente."));
+            }).RequireAuthorization("PlannerOrLiderTecnico");
 
             group.MapDelete("/{id:guid}", async (
                 Guid id,

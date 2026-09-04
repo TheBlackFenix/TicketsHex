@@ -36,10 +36,20 @@ public class PersistenciaAutenticacionTests
 
         var historico = context.Model.FindEntityType(
             "TicketsHex.Domain.Entidades.Ticket.HistoricoAsignacionTicket");
+        var responsable = context.Model.FindEntityType(
+            "TicketsHex.Domain.Entidades.Ticket.ResponsableTicket");
 
+        Assert.NotNull(historico?.FindProperty("IdUsuarioAnterior"));
         Assert.NotNull(historico?.FindProperty("IdUsuarioAsignado"));
         Assert.NotNull(historico?.FindProperty("IdUsuarioAccion"));
+        Assert.NotNull(historico?.FindProperty("IdTipoMovimiento"));
         Assert.NotNull(historico?.FindProperty("FechaAsignacion"));
+        Assert.NotNull(responsable?.FindProperty("IdTipoResponsabilidad"));
+        Assert.Contains(
+            responsable!.GetIndexes(),
+            indice => indice.IsUnique &&
+                indice.Properties.Select(propiedad => propiedad.Name)
+                    .SequenceEqual(["IdTicket", "IdTipoResponsabilidad"]));
     }
 
     [Fact]

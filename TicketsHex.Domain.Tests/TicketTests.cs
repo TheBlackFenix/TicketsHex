@@ -7,153 +7,205 @@ namespace TicketsHex.Domain.Tests;
 public class TicketTests
 {
     [Fact]
-    public void Bloqueado_permite_pasar_a_cualquier_estado()
-    {
-        var ticket = CrearTicket();
-        ticket.ActualizarEstado(TicketEstado.EnProceso, 2, Rol.Desarrollador, null);
-        ticket.ActualizarEstado(TicketEstado.Bloqueado, 2, Rol.Desarrollador, "Dependencia externa");
-
-        ticket.ActualizarEstado(TicketEstado.Certificado, 2, Rol.QA, "Dependencia resuelta");
-
-        Assert.Equal(TicketEstado.Certificado, ticket.IdEstado);
-    }
-
-    [Fact]
-    public void Bug_permite_pasar_a_cualquier_estado()
-    {
-        var ticket = CrearTicket();
-        ticket.ActualizarEstado(TicketEstado.EnProceso, 2, Rol.Desarrollador, null);
-        ticket.ActualizarEstado(TicketEstado.BUG, 3, Rol.QA, "Prueba fallida");
-
-        ticket.ActualizarEstado(TicketEstado.DespliegueProduccion, 2, Rol.Desarrollador, "Corrección iniciada");
-
-        Assert.Equal(TicketEstado.DespliegueProduccion, ticket.IdEstado);
-    }
-
-    [Fact]
-    public void Rollback_permite_pasar_a_cualquier_estado()
-    {
-        var ticket = CrearTicket();
-        ticket.ActualizarEstado(TicketEstado.Rollback, 1, Rol.QA, "Devolución");
-
-        ticket.ActualizarEstado(
-            TicketEstado.EnRevisionQA,
-            1,
-            Rol.Desarrollador,
-            "Retorno desde rollback");
-
-        Assert.Equal(TicketEstado.EnRevisionQA, ticket.IdEstado);
-    }
-
-    [Fact]
-    public void Flujo_normal_de_estados_es_secuencial_sin_restriccion_de_rol()
-    {
-        var ticket = CrearTicket();
-
-        ticket.ActualizarEstado(TicketEstado.EnProceso, 2, Rol.QA, null);
-        ticket.ActualizarEstado(TicketEstado.Entregado, 2, Rol.Desarrollador, null);
-        ticket.ActualizarEstado(TicketEstado.DespliegueApitesting, 2, Rol.QA, null);
-
-        Assert.Equal(TicketEstado.DespliegueApitesting, ticket.IdEstado);
-    }
-
-    [Fact]
-    public void Bloqueado_no_es_un_paso_obligatorio_del_flujo_normal()
+    public void Flujo_normal_respeta_secuencia_y_roles()
     {
         var ticket = CrearTicket();
 
         ticket.ActualizarEstado(TicketEstado.EnProceso, 2, Rol.Desarrollador, null);
         ticket.ActualizarEstado(TicketEstado.Entregado, 2, Rol.Desarrollador, null);
+        ticket.ActualizarEstado(TicketEstado.DespliegueApitesting, 2, Rol.Desarrollador, null);
+        ticket.ActualizarEstado(TicketEstado.EnRevisionApitesting, 3, Rol.QA, null);
 
-        Assert.Equal(TicketEstado.Entregado, ticket.IdEstado);
+        Assert.Equal(TicketEstado.EnRevisionApitesting, ticket.IdEstado);
+        Assert.Equal(3, ticket.IdUsuarioAsignado);
     }
 
     [Fact]
-    public void No_permite_saltar_estados_en_flujo_normal()
+    public void Desarrollador_no_puede_saltar_estados()
     {
         var ticket = CrearTicket();
 
         Assert.Throws<InvalidOperationException>(() =>
-            ticket.ActualizarEstado(TicketEstado.Entregado, 2, Rol.Planner, "Salto no permitido"));
+            ticket.ActualizarEstado(TicketEstado.Entregado, 2, Rol.Desarrollador, null));
     }
 
     [Fact]
-    public void Desarrollador_solo_modifica_campos_tecnicos()
+    public void Lider_tecnico_puede_hacer_override_con_comentario()
     {
         var ticket = CrearTicket();
 
-        ticket.ActualizarDiagnostico(
-            "Causa raíz",
-            "Solución propuesta",
-            2,
-            Rol.Desarrollador);
+        ticket.ActualizarEstado(
+            TicketEstado.PendienteCertificacion,
+            1,
+            Rol.LiderTecnico,
+            "Flujo ejecutado por un equipo externo");
 
-        Assert.Equal("Causa raíz", ticket.CausaRaiz);
-        Assert.Equal("Solución propuesta", ticket.SolucionPropuesta);
+        Assert.Equal(TicketEstado.PendienteCertificacion, ticket.IdEstado);
+        Assert.Throws<ArgumentException>(() =>
+            CrearTicket().ActualizarEstado(
+                TicketEstado.PendienteCertificacion,
+                1,
+                Rol.LiderTecnico,
+                null));
+    }
+
+    [Fact]
+    public void QA_no_puede_ejecutar_una_transicion_de_desarrollo()
+    {
+        var ticket = CrearTicket();
+
         Assert.Throws<UnauthorizedAccessException>(() =>
-            ticket.ActualizarTitulo("Título modificado", 2, Rol.Desarrollador));
+            ticket.ActualizarEstado(TicketEstado.EnProceso, 3, Rol.QA, null));
     }
 
     [Fact]
-    public void Planner_realiza_eliminacion_logica()
+    public void QA_puede_validar_sin_ser_el_responsable_designado()
     {
         var ticket = CrearTicket();
+        ticket.ActualizarEstado(TicketEstado.EnProceso, 2, Rol.Desarrollador, null);
+        ticket.ActualizarEstado(TicketEstado.Entregado, 2, Rol.Desarrollador, null);
+        ticket.ActualizarEstado(TicketEstado.DespliegueApitesting, 2, Rol.Desarrollador, null);
 
-        ticket.EliminarLogicamente(1, Rol.Planner, "Ticket duplicado");
-
-        Assert.False(ticket.Activo);
-        Assert.Equal(1, ticket.IdUsuarioEliminacion);
-        Assert.NotNull(ticket.FechaEliminacion);
-    }
-
-    [Theory]
-    [InlineData(Rol.Planner)]
-    [InlineData(Rol.LiderTecnico)]
-    public void Planner_y_lider_tecnico_pueden_reasignar_el_ticket(Rol rol)
-    {
-        var ticket = CrearTicket();
-
-        ticket.ReasignarTicket(3, 1, rol, "Cambio de responsable");
+        ticket.ActualizarEstado(TicketEstado.EnRevisionApitesting, 4, Rol.QA, null);
 
         Assert.Equal(3, ticket.IdUsuarioAsignado);
     }
 
     [Fact]
-    public void Ticket_registra_asignacion_inicial_y_reasignaciones()
+    public void Replica_QA_transfiere_custodia_y_regresa_a_desarrollo_con_comentario()
     {
         var ticket = CrearTicket();
 
-        ticket.ReasignarTicket(3, 1, Rol.Planner, "Cambio de responsable");
+        ticket.ActualizarEstado(TicketEstado.EnReplicaQA, 2, Rol.Desarrollador, null);
+        Assert.Equal(3, ticket.IdUsuarioAsignado);
 
-        Assert.Collection(
-            ticket.HistoricoAsignaciones.OrderBy(item => item.FechaAsignacion),
-            asignacionInicial =>
-            {
-                Assert.Equal(2, asignacionInicial.IdUsuarioAsignado);
-                Assert.Equal(1, asignacionInicial.IdUsuarioAccion);
-            },
-            reasignacion =>
-            {
-                Assert.Equal(3, reasignacion.IdUsuarioAsignado);
-                Assert.Equal(1, reasignacion.IdUsuarioAccion);
-                Assert.Equal("Cambio de responsable", reasignacion.Comentario);
-            });
+        ticket.ActualizarEstado(
+            TicketEstado.EnAnalisis,
+            3,
+            Rol.QA,
+            "Escenario replicado y documentado");
+
+        Assert.Equal(2, ticket.IdUsuarioAsignado);
+        Assert.Equal(TicketEstado.EnAnalisis, ticket.IdEstado);
     }
 
     [Fact]
-    public void Ticket_inicia_sin_datos_de_HU_y_como_no_desarrollo_por_defecto()
+    public void Replica_QA_no_permite_saltar_a_otro_estado_ni_con_override()
     {
         var ticket = CrearTicket();
+        ticket.ActualizarEstado(TicketEstado.EnReplicaQA, 2, Rol.Desarrollador, null);
 
-        Assert.False(ticket.EsDesarrollo);
-        Assert.Null(ticket.NombreHu);
-        Assert.Null(ticket.UrlHu);
+        Assert.Throws<InvalidOperationException>(() =>
+            ticket.ActualizarEstado(
+                TicketEstado.EnProceso,
+                1,
+                Rol.LiderTecnico,
+                "Intento de salto"));
     }
 
     [Fact]
-    public void Puede_registrar_la_HU_en_un_ticket_de_desarrollo()
+    public void No_entra_a_etapa_QA_sin_responsable_QA()
+    {
+        var ticket = CrearTicket(incluirQa: false);
+
+        var error = Assert.Throws<InvalidOperationException>(() =>
+            ticket.ActualizarEstado(TicketEstado.EnReplicaQA, 2, Rol.Desarrollador, null));
+
+        Assert.Contains("QA_NO_ASIGNADO", error.Message);
+        Assert.Equal(TicketEstado.EnAnalisis, ticket.IdEstado);
+    }
+
+    [Theory]
+    [InlineData(TicketEstado.Bloqueado)]
+    [InlineData(TicketEstado.BUG)]
+    [InlineData(TicketEstado.Rollback)]
+    public void Estados_excepcionales_permiten_retomar_el_flujo(TicketEstado estadoExcepcional)
     {
         var ticket = CrearTicket();
+        if (estadoExcepcional == TicketEstado.Bloqueado)
+        {
+            ticket.ActualizarEstado(TicketEstado.EnProceso, 2, Rol.Desarrollador, null);
+            ticket.ActualizarEstado(estadoExcepcional, 2, Rol.Desarrollador, "Dependencia externa");
+        }
+        else
+        {
+            var rol = estadoExcepcional == TicketEstado.BUG ? Rol.QA : Rol.LiderTecnico;
+            var usuario = estadoExcepcional == TicketEstado.BUG ? 3 : 1;
+            ticket.ActualizarEstado(estadoExcepcional, usuario, rol, "Incidencia detectada");
+        }
+
+        ticket.ActualizarEstado(TicketEstado.EnProceso, 2, Rol.Desarrollador, null);
+
+        Assert.Equal(TicketEstado.EnProceso, ticket.IdEstado);
+        Assert.Equal(2, ticket.IdUsuarioAsignado);
+    }
+
+    [Fact]
+    public void Solo_planner_o_lider_finalizan_desde_cualquier_estado_y_el_ticket_queda_terminal()
+    {
+        var ticket = CrearTicket();
+        ticket.ActualizarEstado(TicketEstado.EnProceso, 2, Rol.Desarrollador, null);
+
+        Assert.Throws<UnauthorizedAccessException>(() =>
+            ticket.ActualizarEstado(TicketEstado.Finalizado, 2, Rol.Desarrollador, "Error de usuario"));
+
+        ticket.ActualizarEstado(TicketEstado.Finalizado, 1, Rol.Planner, "Error de usuario");
+
+        Assert.Equal(TicketEstado.Finalizado, ticket.IdEstado);
+        Assert.Throws<InvalidOperationException>(() =>
+            ticket.AgregarComentarioLibre("Intento posterior", 1, Rol.Planner));
+    }
+
+    [Fact]
+    public void Antiguo_asignado_no_puede_modificar_el_ticket()
+    {
+        var ticket = CrearTicket();
+        ticket.AsignarResponsable(
+            TipoResponsabilidadTicket.Desarrollo,
+            5,
+            1,
+            Rol.Planner,
+            "Cambio de desarrollador");
+
+        Assert.Throws<UnauthorizedAccessException>(() =>
+            ticket.ActualizarDescripcion(
+                new Domain.ValueObjects.Ticket.DescripcionVO("Descripción actualizada por antiguo asignado"),
+                2,
+                Rol.Desarrollador));
+    }
+
+    [Fact]
+    public void Reasignacion_funcional_actualiza_custodia_e_historial()
+    {
+        var ticket = CrearTicket();
+
+        ticket.AsignarResponsable(
+            TipoResponsabilidadTicket.Desarrollo,
+            5,
+            1,
+            Rol.Planner,
+            "Cambio de equipo");
+
+        Assert.Equal(5, ticket.ObtenerIdResponsable(TipoResponsabilidadTicket.Desarrollo));
+        Assert.Equal(5, ticket.IdUsuarioAsignado);
+        var movimiento = ticket.HistoricoAsignaciones.OrderBy(item => item.FechaAsignacion).Last();
+        Assert.Equal(2, movimiento.IdUsuarioAnterior);
+        Assert.Equal(TipoMovimientoAsignacionTicket.ReasignacionDesarrollo, movimiento.IdTipoMovimiento);
+    }
+
+    [Fact]
+    public void Campos_HU_son_exclusivos_de_planner_y_lider_tecnico()
+    {
+        var ticket = CrearTicket();
+
+        Assert.Throws<UnauthorizedAccessException>(() =>
+            ticket.ActualizarDatosDesarrollo(
+                true,
+                "HU-1234",
+                "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234",
+                null,
+                2,
+                Rol.Desarrollador));
 
         ticket.ActualizarDatosDesarrollo(
             true,
@@ -161,50 +213,43 @@ public class TicketTests
             "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234",
             "medios/caso-001",
             1,
-            Rol.Desarrollador);
+            Rol.Planner);
 
-        Assert.True(ticket.EsDesarrollo);
         Assert.Equal("HU-1234", ticket.NombreHu);
-        Assert.Equal(
-            "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234",
-            ticket.UrlHu);
     }
 
     [Fact]
-    public void No_permite_registrar_HU_si_no_es_desarrollo()
+    public void Desarrollador_asignado_puede_actualizar_datos_tecnicos()
     {
         var ticket = CrearTicket();
 
-        Assert.Throws<InvalidOperationException>(() =>
-            ticket.ActualizarDatosDesarrollo(
-            false,
-            "HU-1234",
-            "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234",
-            null,
-            1,
-            Rol.Planner));
+        ticket.ActualizarDescripcion(
+            new Domain.ValueObjects.Ticket.DescripcionVO("Descripción actualizada por responsable"),
+            2,
+            Rol.Desarrollador);
+        ticket.ActualizarDiagnostico("Causa raíz", "Solución propuesta", 2, Rol.Desarrollador);
+
+        Assert.Equal("Causa raíz", ticket.CausaRaiz);
     }
 
     [Fact]
-    public void Nombre_y_url_de_HU_deben_registrarse_juntos()
+    public void Solo_planner_elimina_ticket()
     {
         var ticket = CrearTicket();
 
-        Assert.Throws<ArgumentException>(() =>
-            ticket.ActualizarDatosDesarrollo(
-            true,
-            "HU-1234",
-            null,
-            null,
-            1,
-            Rol.Planner));
+        Assert.Throws<UnauthorizedAccessException>(() =>
+            ticket.EliminarLogicamente(1, Rol.LiderTecnico, "Duplicado"));
+        ticket.EliminarLogicamente(1, Rol.Planner, "Duplicado");
+
+        Assert.False(ticket.Activo);
     }
 
-    private static Ticket CrearTicket() => new(
+    private static Ticket CrearTicket(bool incluirQa = true) => new(
         "CASO-001",
         "Título válido",
         "Descripción suficientemente larga",
         usuarioAsignado: 2,
         idUsuarioCreador: 1,
-        TicketOrigen.SAIA);
+        TicketOrigen.SAIA,
+        usuarioQa: incluirQa ? 3 : null);
 }

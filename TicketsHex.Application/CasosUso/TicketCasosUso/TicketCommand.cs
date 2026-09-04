@@ -3,6 +3,8 @@ using TicketsHex.Application.DTO_s.Ticket;
 using TicketsHex.Application.Puertos.Entrada.Ticket;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Ticket;
+using TicketsHex.Domain.Entidades.Usuario;
+using TicketsHex.Domain.Enums;
 using TicketsHex.Domain.ValueObjects.Ticket;
 
 namespace TicketsHex.Application.CasosUso.TicketCasosUso
@@ -28,16 +30,32 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
 
         public async Task<Guid> CrearTicketAsync(CrearTicketRequest request)
         {
-            await ValidarUsuarioExisteAsync(request.IdUsuarioAsignado);
+            if (_usuarioActual.Rol == Rol.QA)
+                throw new UnauthorizedAccessException("QA no puede crear tickets.");
+
+            var idDesarrollador = _usuarioActual.Rol == Rol.Desarrollador
+                ? _usuarioActual.IdUsuario
+                : request.IdUsuarioAsignado;
+
+            if (_usuarioActual.Rol == Rol.Desarrollador &&
+                request.IdUsuarioAsignado != _usuarioActual.IdUsuario)
+            {
+                throw new UnauthorizedAccessException("El desarrollador que crea el ticket debe quedar como responsable de desarrollo.");
+            }
+
+            await ValidarUsuarioRolAsync(idDesarrollador, Rol.Desarrollador);
+            if (request.IdQaResponsable.HasValue)
+                await ValidarUsuarioRolAsync(request.IdQaResponsable.Value, Rol.QA);
 
             var ticket = new Ticket(
                 request.CodigoCaso,
                 request.Titulo,
                 request.Descripcion,
-                request.IdUsuarioAsignado,
+                idDesarrollador,
                 _usuarioActual.IdUsuario,
                 request.OrigenTicket,
-                request.EsDesarrollo);
+                request.EsDesarrollo,
+                request.IdQaResponsable);
 
             await _ticketRepository.GuardarAsync(ticket);
             if (ticket.EsDesarrollo)
@@ -62,18 +80,6 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
                     new DescripcionVO(request.Descripcion),
                     _usuarioActual.IdUsuario,
                     _usuarioActual.Rol);
-                huboCambios = true;
-            }
-
-            if (request.IdUsuarioAsignado.HasValue &&
-                request.IdUsuarioAsignado.Value != ticket.IdUsuarioAsignado)
-            {
-                await ValidarUsuarioExisteAsync(request.IdUsuarioAsignado.Value);
-                ticket.ReasignarTicket(
-                    request.IdUsuarioAsignado.Value,
-                    _usuarioActual.IdUsuario,
-                    _usuarioActual.Rol,
-                    request.Comentario);
                 huboCambios = true;
             }
 
@@ -128,6 +134,40 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
             await _notificacionPublisher.PublicarResumenAsync();
         }
 
+        public Task AsignarResponsableDesarrolloAsync(
+            Guid ticketId,
+            AsignarResponsableTicketRequest request) =>
+            AsignarResponsableAsync(
+                ticketId,
+                request,
+                TipoResponsabilidadTicket.Desarrollo,
+                Rol.Desarrollador);
+
+        public Task AsignarResponsableQaAsync(
+            Guid ticketId,
+            AsignarResponsableTicketRequest request) =>
+            AsignarResponsableAsync(
+                ticketId,
+                request,
+                TipoResponsabilidadTicket.QA,
+                Rol.QA);
+
+        public async Task CambiarResponsableActualAsync(
+            Guid ticketId,
+            AsignarResponsableTicketRequest request)
+        {
+            ValidarPlannerOLiderTecnico();
+            await ValidarUsuarioExisteAsync(request.IdUsuario);
+            var ticket = await ObtenerTicketActivoAsync(ticketId);
+            ticket.ReasignarTicket(
+                request.IdUsuario,
+                _usuarioActual.IdUsuario,
+                _usuarioActual.Rol,
+                request.Comentario);
+            await _ticketRepository.ActualizarAsync(ticket);
+            await _notificacionPublisher.PublicarResumenAsync();
+        }
+
         public async Task EliminarTicketAsync(Guid ticketId, string? comentario)
         {
             var ticket = await ObtenerTicketActivoAsync(ticketId);
@@ -146,6 +186,42 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
         {
             if (!await _usuarioRepository.ExisteAsync(idUsuario))
                 throw new RecursoNoEncontradoException($"El usuario {idUsuario} no existe o está inactivo.");
+        }
+
+        private async Task AsignarResponsableAsync(
+            Guid ticketId,
+            AsignarResponsableTicketRequest request,
+            TipoResponsabilidadTicket tipoResponsabilidad,
+            Rol rolEsperado)
+        {
+            ValidarPlannerOLiderTecnico();
+            await ValidarUsuarioRolAsync(request.IdUsuario, rolEsperado);
+            var ticket = await ObtenerTicketActivoAsync(ticketId);
+            ticket.AsignarResponsable(
+                tipoResponsabilidad,
+                request.IdUsuario,
+                _usuarioActual.IdUsuario,
+                _usuarioActual.Rol,
+                request.Comentario);
+            await _ticketRepository.ActualizarAsync(ticket);
+            await _notificacionPublisher.PublicarResumenAsync();
+        }
+
+        private async Task<Usuario> ValidarUsuarioRolAsync(long idUsuario, Rol rolEsperado)
+        {
+            var usuario = await _usuarioRepository.ObtenerPorIdAsync(idUsuario)
+                ?? throw new RecursoNoEncontradoException($"El usuario {idUsuario} no existe.");
+            if (!usuario.Activo)
+                throw new InvalidOperationException($"El usuario {idUsuario} está inactivo.");
+            if (usuario.IdRol != rolEsperado)
+                throw new ArgumentException($"El usuario {idUsuario} debe tener rol {rolEsperado}.");
+            return usuario;
+        }
+
+        private void ValidarPlannerOLiderTecnico()
+        {
+            if (_usuarioActual.Rol is not Rol.Planner and not Rol.LiderTecnico)
+                throw new UnauthorizedAccessException("Solo Planner o Líder Técnico pueden asignar responsables.");
         }
     }
 }

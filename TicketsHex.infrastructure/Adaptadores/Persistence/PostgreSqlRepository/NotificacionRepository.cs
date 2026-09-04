@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TicketsHex.Application.DTO_s.Notificacion;
 using TicketsHex.Application.Puertos.Salida;
+using TicketsHex.Domain.Enums;
 using TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.Context;
 
 namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
@@ -61,6 +62,9 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
         private IQueryable<Domain.Entidades.Ticket.Ticket> TicketsDesarrollo() =>
             _dbContext.Tickets
                 .AsNoTracking()
-                .Where(ticket => ticket.Activo && ticket.EsDesarrollo);
+                .Where(ticket =>
+                    ticket.Activo &&
+                    ticket.EsDesarrollo &&
+                    ticket.IdEstado != TicketEstado.Finalizado);
     }
 }

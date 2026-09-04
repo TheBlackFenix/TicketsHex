@@ -31,7 +31,9 @@ namespace TicketsHex.Application.CasosUso.AplicativoCasosUso
 
         public async Task<IReadOnlyCollection<AplicativoTicketDTO>> ObtenerAplicativosTicketAsync(Guid idTicket)
         {
-            _ = await ObtenerTicketAsync(idTicket);
+            var ticket = await ObtenerTicketAsync(idTicket);
+            if (!ticket.PuedeConsultar(_usuarioActual.IdUsuario, _usuarioActual.Rol))
+                throw new UnauthorizedAccessException("No tiene acceso a los aplicativos de este ticket.");
             var asignaciones = await _repository.ObtenerAsignacionesTicketAsync(idTicket);
             var resultado = new List<AplicativoTicketDTO>(asignaciones.Count);
 
@@ -63,8 +65,8 @@ namespace TicketsHex.Application.CasosUso.AplicativoCasosUso
 
         public async Task<Guid> AsignarAplicativoAsync(Guid idTicket, AsignarAplicativoTicketRequest request)
         {
-            ValidarPlannerOLiderTecnico();
-            _ = await ObtenerTicketAsync(idTicket);
+            var ticket = await ObtenerTicketAsync(idTicket);
+            ValidarPuedeEditarTicket(ticket);
             _ = await _repository.ObtenerAplicativoAsync(request.IdAplicativo)
                 ?? throw new RecursoNoEncontradoException("Aplicativo no encontrado.");
 
@@ -78,7 +80,8 @@ namespace TicketsHex.Application.CasosUso.AplicativoCasosUso
 
         public async Task DesasignarAplicativoAsync(Guid idTicket, Guid idAplicativo)
         {
-            ValidarPlannerOLiderTecnico();
+            var ticket = await ObtenerTicketAsync(idTicket);
+            ValidarPuedeEditarTicket(ticket);
             if (!await _repository.ExisteAsignacionAsync(idTicket, idAplicativo))
                 throw new RecursoNoEncontradoException("El aplicativo no está asociado al ticket.");
 
@@ -93,6 +96,12 @@ namespace TicketsHex.Application.CasosUso.AplicativoCasosUso
         {
             if (_usuarioActual.Rol is not Rol.Planner and not Rol.LiderTecnico)
                 throw new UnauthorizedAccessException("Solo Planner o Lider Tecnico pueden administrar aplicativos.");
+        }
+
+        private void ValidarPuedeEditarTicket(Domain.Entidades.Ticket.Ticket ticket)
+        {
+            if (!ticket.PuedeEditarDatosDeDesarrollo(_usuarioActual.IdUsuario, _usuarioActual.Rol))
+                throw new UnauthorizedAccessException("No puede modificar los aplicativos de este ticket.");
         }
 
         private static AplicativoDTO Mapear(Aplicativo aplicativo) => new(

@@ -18,19 +18,22 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
         private readonly IAutenticacionRepository _autenticacionRepository;
         private readonly IContrasenaHasher _contrasenaHasher;
         private readonly IConfiguration _configuration;
+        private readonly ITicketRepository _ticketRepository;
 
         public UsuarioService(
             IUsuarioRepository repository,
             IUsuarioActual usuarioActual,
             IAutenticacionRepository autenticacionRepository,
             IContrasenaHasher contrasenaHasher,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            ITicketRepository ticketRepository)
         {
             _repository = repository;
             _usuarioActual = usuarioActual;
             _autenticacionRepository = autenticacionRepository;
             _contrasenaHasher = contrasenaHasher;
             _configuration = configuration;
+            _ticketRepository = ticketRepository;
         }
 
         public async Task<IReadOnlyCollection<UsuarioDTO>> ObtenerTodosAsync(bool incluirInactivos)
@@ -78,6 +81,13 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
             if (usuarioMismoNombre is not null && usuarioMismoNombre.IdUsuario != idUsuario)
                 throw new ConflictoException($"El nombre de usuario {request.NombreUsuario} ya existe.");
 
+            if (usuario.IdRol != request.Rol ||
+                usuario.IdArea != request.IdArea ||
+                (usuario.Activo && !request.Activo))
+            {
+                await ValidarUsuarioSinCargaActivaAsync(idUsuario);
+            }
+
             usuario.Actualizar(
                 request.NombreUsuario,
                 request.Nombres,
@@ -117,11 +127,69 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
                 throw new InvalidOperationException("El Planner no puede desactivar su propio usuario.");
 
             var usuario = await ObtenerEntidadAsync(idUsuario);
+            await ValidarUsuarioSinCargaActivaAsync(idUsuario);
             usuario.Desactivar();
             await _autenticacionRepository.RevocarSesionesAsync(
                 idUsuario,
                 DateTimeOffset.UtcNow);
             await _repository.ActualizarAsync(usuario);
+        }
+
+        public async Task<int> TransferirCargaAsync(
+            long idUsuario,
+            TransferirCargaUsuarioRequest request)
+        {
+            ValidarPlannerOLiderTecnico();
+            if (idUsuario == request.IdUsuarioReemplazo)
+                throw new ArgumentException("El usuario de reemplazo debe ser diferente al usuario origen.");
+            if (string.IsNullOrWhiteSpace(request.Comentario))
+                throw new ArgumentException("Debe indicar el motivo de la transferencia.", nameof(request));
+
+            var usuarioOrigen = await ObtenerEntidadAsync(idUsuario);
+            var reemplazo = await ObtenerEntidadAsync(request.IdUsuarioReemplazo);
+            if (!reemplazo.Activo)
+                throw new InvalidOperationException("El usuario de reemplazo está inactivo.");
+            if (reemplazo.IdRol != usuarioOrigen.IdRol || reemplazo.IdArea != usuarioOrigen.IdArea)
+                throw new InvalidOperationException("El reemplazo debe tener el mismo rol y área del usuario origen.");
+
+            var tickets = await _ticketRepository.ObtenerCargaActivaUsuarioAsync(idUsuario);
+            foreach (var ticket in tickets)
+            {
+                if (ticket.EsResponsableFuncional(idUsuario, TipoResponsabilidadTicket.Desarrollo))
+                {
+                    ticket.AsignarResponsable(
+                        TipoResponsabilidadTicket.Desarrollo,
+                        reemplazo.IdUsuario,
+                        _usuarioActual.IdUsuario,
+                        _usuarioActual.Rol,
+                        request.Comentario,
+                        esTransferenciaMasiva: true);
+                }
+
+                if (ticket.EsResponsableFuncional(idUsuario, TipoResponsabilidadTicket.QA))
+                {
+                    ticket.AsignarResponsable(
+                        TipoResponsabilidadTicket.QA,
+                        reemplazo.IdUsuario,
+                        _usuarioActual.IdUsuario,
+                        _usuarioActual.Rol,
+                        request.Comentario,
+                        esTransferenciaMasiva: true);
+                }
+
+                if (ticket.IdUsuarioAsignado == idUsuario)
+                {
+                    ticket.ReasignarTicket(
+                        reemplazo.IdUsuario,
+                        _usuarioActual.IdUsuario,
+                        _usuarioActual.Rol,
+                        request.Comentario,
+                        esTransferenciaMasiva: true);
+                }
+            }
+
+            await _ticketRepository.ActualizarRangoAsync(tickets);
+            return tickets.Count;
         }
 
         public async Task DesbloquearAsync(long idUsuario)
@@ -152,6 +220,14 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
                 ?? throw new RecursoNoEncontradoException("Usuario no encontrado.");
         }
 
+        private async Task ValidarUsuarioSinCargaActivaAsync(long idUsuario)
+        {
+            var carga = await _ticketRepository.ObtenerCargaActivaUsuarioAsync(idUsuario);
+            if (carga.Count > 0)
+                throw new ConflictoException(
+                    "USUARIO_CON_CARGA_ACTIVA: Transfiera los tickets antes de cambiar rol, área o desactivar el usuario.");
+        }
+
         private static UsuarioDTO Mapear(Usuario usuario) => new(
             usuario.IdUsuario,
             usuario.NombreUsuario,
@@ -171,7 +247,7 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
             var contrasenaPorDefecto = _configuration[ContrasenaPorDefectoKey];
             if (string.IsNullOrWhiteSpace(contrasenaPorDefecto))
                 throw new InvalidOperationException(
-                    $"No existe la configuraciÃ³n obligatoria {ContrasenaPorDefectoKey}.");
+                    $"No existe la configuración obligatoria {ContrasenaPorDefectoKey}.");
 
             return contrasenaPorDefecto;
         }

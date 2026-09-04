@@ -90,13 +90,6 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
             var ahora = DateTimeOffset.UtcNow;
             usuario.ReiniciarIntentosFallidos();
 
-            if (usuario.ContrasenaEstaExpirada(ahora))
-            {
-                await _repository.GuardarCambiosAsync();
-                throw new ContrasenaExpiradaException(
-                    "La contraseña expiró. Debe cambiarla antes de iniciar sesión.");
-            }
-
             if (resultado == ResultadoVerificacionContrasena.ExitosaRequiereRehash)
                 usuario.ActualizarHashContrasena(_contrasenaHasher.CrearHash(request.Contrasena));
 
@@ -118,7 +111,7 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
             return new LoginResponse(
                 jwt.Token,
                 jwt.FechaExpiracion,
-                MapearUsuario(usuario));
+                MapearUsuario(usuario, ahora));
         }
 
         public async Task<UsuarioAutenticadoDTO> ValidarSesionAsync(string jti)
@@ -151,14 +144,7 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
                 await _repository.GuardarCambiosAsync();
                 throw new CuentaBloqueadaException("La cuenta está bloqueada.");
             }
-            if (usuario.ContrasenaEstaExpirada(ahora))
-            {
-                sesion.Revocar(ahora);
-                await _repository.GuardarCambiosAsync();
-                throw new ContrasenaExpiradaException("La contraseña expiró.");
-            }
-
-            return MapearUsuario(usuario);
+            return MapearUsuario(usuario, ahora);
         }
 
         public async Task CerrarSesionAsync(string jti)
@@ -208,13 +194,15 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
             await _repository.GuardarCambiosAsync();
         }
 
-        private static UsuarioAutenticadoDTO MapearUsuario(Usuario usuario) => new(
+        private static UsuarioAutenticadoDTO MapearUsuario(
+            Usuario usuario,
+            DateTimeOffset fechaActual) => new(
             usuario.IdUsuario,
             usuario.NombreUsuario,
             usuario.Nombres,
             usuario.IdRol,
             usuario.IdArea,
-            usuario.DebeCambiarContrasena);
+            usuario.RequiereCambioContrasena(fechaActual));
 
         private static UsuarioNoAutenticadoException CredencialesInvalidas() =>
             new("Usuario o contraseña inválidos.");

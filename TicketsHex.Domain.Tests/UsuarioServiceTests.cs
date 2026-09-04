@@ -2,6 +2,10 @@ using Microsoft.Extensions.Configuration;
 using TicketsHex.Application.CasosUso.UsuarioCasosUso;
 using TicketsHex.Application.DTO_s.Usuario;
 using TicketsHex.Application.Puertos.Salida;
+using TicketsHex.Application.Comun.Paginacion;
+using TicketsHex.Application.Comun.Excepciones;
+using TicketsHex.Application.DTO_s.Ticket;
+using TicketsHex.Domain.Entidades.Ticket;
 using TicketsHex.Domain.Entidades.Usuario;
 using TicketsHex.Domain.Enums;
 using Xunit;
@@ -175,6 +179,41 @@ public class UsuarioServiceTests
         Assert.True(usuarios.Actualizado);
     }
 
+    [Fact]
+    public async Task No_permite_cambiar_rol_si_el_usuario_tiene_carga_activa()
+    {
+        var usuario = new Usuario(
+            10,
+            "usuario.dev",
+            "Usuario",
+            "Dev",
+            Rol.Desarrollador,
+            Area.Mantenimiento,
+            "hash");
+        var ticket = new Ticket(
+            "CASO-010",
+            "Ticket con carga",
+            "Descripción suficientemente larga",
+            usuario.IdUsuario,
+            1);
+        var service = CrearServicio(
+            new UsuarioRepositoryFake(usuario),
+            new AutenticacionRepositoryFake(usuario),
+            new ContrasenaHasherFake(),
+            new TicketRepositoryFake([ticket]));
+
+        var error = await Assert.ThrowsAsync<ConflictoException>(() =>
+            service.ActualizarAsync(usuario.IdUsuario, new ActualizarUsuarioRequest(
+                usuario.NombreUsuario,
+                usuario.Nombres,
+                usuario.Apellidos,
+                Rol.QA,
+                usuario.IdArea,
+                true)));
+
+        Assert.Contains("USUARIO_CON_CARGA_ACTIVA", error.Message);
+    }
+
     private static Usuario CrearUsuarioActual() => new(
         1,
         "usuario.actual",
@@ -188,7 +227,8 @@ public class UsuarioServiceTests
     private static UsuarioService CrearServicio(
         UsuarioRepositoryFake usuarios,
         AutenticacionRepositoryFake autenticacion,
-        ContrasenaHasherFake hasher)
+        ContrasenaHasherFake hasher,
+        TicketRepositoryFake? tickets = null)
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -202,7 +242,8 @@ public class UsuarioServiceTests
             new UsuarioActualFake(),
             autenticacion,
             hasher,
-            configuration);
+            configuration,
+            tickets ?? new TicketRepositoryFake());
     }
 
     private sealed class UsuarioActualFake : IUsuarioActual
@@ -276,5 +317,28 @@ public class UsuarioServiceTests
             return Task.CompletedTask;
         }
         public Task GuardarCambiosAsync() => Task.CompletedTask;
+    }
+
+    private sealed class TicketRepositoryFake(IReadOnlyCollection<Ticket>? tickets = null) : ITicketRepository
+    {
+        public Task<Ticket?> ObtenerPorIdAsync(Guid id, bool incluirEliminados = false) =>
+            Task.FromResult<Ticket?>(null);
+        public Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(TicketFiltroRequest filtro) =>
+            Task.FromResult(new PaginaResultado<Ticket>([], 1, 20, 0));
+        public Task<PaginaResultado<Ticket>> ObtenerPaginaParaQaAsync(TicketFiltroRequest filtro) =>
+            Task.FromResult(new PaginaResultado<Ticket>([], 1, 20, 0));
+        public Task<PaginaResultado<Ticket>> ObtenerPaginaPorAsignacionHistoricaAsync(
+            long idUsuario,
+            TicketFiltroRequest filtro) =>
+            Task.FromResult(new PaginaResultado<Ticket>([], 1, 20, 0));
+        public Task<IReadOnlyCollection<Ticket>> ObtenerCargaActivaUsuarioAsync(long idUsuario) =>
+            Task.FromResult<IReadOnlyCollection<Ticket>>((tickets ?? [])
+                .Where(ticket =>
+                    ticket.IdUsuarioAsignado == idUsuario ||
+                    ticket.Responsables.Any(responsable => responsable.IdUsuario == idUsuario))
+                .ToArray());
+        public Task GuardarAsync(Ticket ticket) => Task.CompletedTask;
+        public Task ActualizarAsync(Ticket ticket) => Task.CompletedTask;
+        public Task ActualizarRangoAsync(IReadOnlyCollection<Ticket> tickets) => Task.CompletedTask;
     }
 }

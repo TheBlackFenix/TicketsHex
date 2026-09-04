@@ -153,10 +153,13 @@ try
                         var claimsAdicionales = new List<Claim>
                             {
                                 new Claim(ClaimTypes.Role, identidad.Rol.ToString()),
-                                new Claim(JwtRegisteredClaimNames.Sub, identidad.IdUsuario.ToString())
+                                new Claim(JwtRegisteredClaimNames.Sub, identidad.IdUsuario.ToString()),
+                                new Claim(
+                                    CambioContrasenaObligatorioMiddleware.ClaimName,
+                                    identidad.DebeCambiarContrasena.ToString())
                             };
                         var appIdentity = new ClaimsIdentity(claimsAdicionales);
-                        context.Principal.AddIdentity(appIdentity);
+                        context.Principal!.AddIdentity(appIdentity);
 
                         var usuarioActual = context.HttpContext.RequestServices
                             .GetRequiredService<UsuarioActualTemporal>();
@@ -271,6 +274,7 @@ try
     app.UseResponseCompression();
     app.UseCors("AllowAll");
     app.UseAuthentication();
+    app.UseMiddleware<CambioContrasenaObligatorioMiddleware>();
     app.UseAuthorization();
     app.UseOutputCache();
     app.MapHealthChecks("/health", new HealthCheckOptions())

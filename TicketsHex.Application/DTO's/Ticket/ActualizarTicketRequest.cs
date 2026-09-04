@@ -6,7 +6,6 @@ namespace TicketsHex.Application.DTO_s.Ticket
         string? Titulo,
         string? Descripcion,
         TicketEstado? NuevoEstado,
-        long? IdUsuarioAsignado,
         string? CausaRaiz,
         string? SolucionPropuesta,
         string? Comentario,

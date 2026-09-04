@@ -212,10 +212,15 @@ public sealed class ConocimientoTicketTests
             Task.FromResult<Ticket?>(id == ticket.IdTicket ? ticket : null);
         public Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(TicketFiltroRequest filtro) =>
             Task.FromResult(new PaginaResultado<Ticket>([], 1, 20, 0));
+        public Task<PaginaResultado<Ticket>> ObtenerPaginaParaQaAsync(TicketFiltroRequest filtro) =>
+            Task.FromResult(new PaginaResultado<Ticket>([], 1, 20, 0));
         public Task<PaginaResultado<Ticket>> ObtenerPaginaPorAsignacionHistoricaAsync(long idUsuario, TicketFiltroRequest filtro) =>
             Task.FromResult(new PaginaResultado<Ticket>([], 1, 20, 0));
+        public Task<IReadOnlyCollection<Ticket>> ObtenerCargaActivaUsuarioAsync(long idUsuario) =>
+            Task.FromResult<IReadOnlyCollection<Ticket>>([]);
         public Task GuardarAsync(Ticket ticketGuardado) => Task.CompletedTask;
         public Task ActualizarAsync(Ticket ticketActualizado) => Task.CompletedTask;
+        public Task ActualizarRangoAsync(IReadOnlyCollection<Ticket> tickets) => Task.CompletedTask;
     }
 
     private sealed class ConocimientoRepositoryFake : IConocimientoTicketRepository

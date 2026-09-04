@@ -52,8 +52,7 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
             var ticket = await _ticketRepository.ObtenerPorIdAsync(idTicket)
                 ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
 
-            if (_usuarioActual.Rol is not Rol.Planner and not Rol.LiderTecnico &&
-                ticket.IdUsuarioAsignado != _usuarioActual.IdUsuario)
+            if (!ticket.PuedeConsultar(_usuarioActual.IdUsuario, _usuarioActual.Rol))
             {
                 throw new UnauthorizedAccessException("No tiene acceso a las ramas de este ticket.");
             }
@@ -107,9 +106,9 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
             Guid idTicket,
             AsignarRamaTicketRequest request)
         {
-            ValidarPlannerOLiderTecnico();
             var ticket = await _ticketRepository.ObtenerPorIdAsync(idTicket)
                 ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
+            ValidarPuedeEditarTicket(ticket);
             if (!ticket.EsDesarrollo)
                 throw new InvalidOperationException("Solo se pueden asociar ramas a tickets de desarrollo.");
             _ = await ObtenerRepositorioAsync(request.IdRepositorio);
@@ -130,7 +129,9 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
 
         public async Task DesasignarRamaAsync(Guid idTicket, Guid idRama)
         {
-            ValidarPlannerOLiderTecnico();
+            var ticket = await _ticketRepository.ObtenerPorIdAsync(idTicket)
+                ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
+            ValidarPuedeEditarTicket(ticket);
             if (!await _repository.ExisteAsignacionAsync(idTicket, idRama))
                 throw new RecursoNoEncontradoException(
                     "La rama no está asignada al ticket.");
@@ -150,6 +151,12 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
             if (_usuarioActual.Rol is not Rol.LiderTecnico and not Rol.Planner)
                 throw new UnauthorizedAccessException(
                     "Solo Planner o Lider Tecnico pueden administrar repositorios y ramas.");
+        }
+
+        private void ValidarPuedeEditarTicket(Domain.Entidades.Ticket.Ticket ticket)
+        {
+            if (!ticket.PuedeEditarDatosDeDesarrollo(_usuarioActual.IdUsuario, _usuarioActual.Rol))
+                throw new UnauthorizedAccessException("No puede modificar las ramas de este ticket.");
         }
 
         private static RamaDTO MapearRama(Rama rama) => new(

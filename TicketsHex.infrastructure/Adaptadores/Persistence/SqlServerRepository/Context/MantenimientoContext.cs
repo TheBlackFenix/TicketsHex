@@ -18,6 +18,7 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.
         public DbSet<Ticket> Tickets => Set<Ticket>();
         public DbSet<HistoricoEstadosTicket> HistoricoEstados => Set<HistoricoEstadosTicket>();
         public DbSet<HistoricoAsignacionTicket> HistoricoAsignaciones => Set<HistoricoAsignacionTicket>();
+        public DbSet<ResponsableTicket> ResponsablesTicket => Set<ResponsableTicket>();
         public DbSet<Usuario> Usuarios => Set<Usuario>();
         public DbSet<RolParametro> Roles => Set<RolParametro>();
         public DbSet<EstadoTicketParametro> EstadosTicket => Set<EstadoTicketParametro>();
@@ -84,6 +85,11 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.
                     .HasForeignKey(h => h.IdTicket)
                     .OnDelete(DeleteBehavior.Cascade);
 
+                b.HasMany(t => t.Responsables)
+                    .WithOne()
+                    .HasForeignKey(r => r.IdTicket)
+                    .OnDelete(DeleteBehavior.Cascade);
+
                 b.HasOne<Usuario>()
                     .WithMany()
                     .HasForeignKey(t => t.IdUsuarioAsignado)
@@ -111,6 +117,8 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.
                 b.HasKey(e => e.IdHistoricoAsignacion);
                 b.Property(e => e.IdHistoricoAsignacion).ValueGeneratedNever();
                 b.Property(e => e.Comentario).HasMaxLength(1000);
+                b.Property(e => e.IdEstado).HasConversion<int?>();
+                b.Property(e => e.IdTipoMovimiento).HasConversion<int?>();
                 b.HasIndex(e => new { e.IdUsuarioAsignado, e.IdTicket });
 
                 b.HasOne<Ticket>()
@@ -123,7 +131,33 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.
                     .OnDelete(DeleteBehavior.Restrict);
                 b.HasOne<Usuario>()
                     .WithMany()
+                    .HasForeignKey(e => e.IdUsuarioAnterior)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne<Usuario>()
+                    .WithMany()
                     .HasForeignKey(e => e.IdUsuarioAccion)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<ResponsableTicket>(b =>
+            {
+                b.ToTable("responsablesticket");
+                b.HasKey(e => e.IdResponsableTicket);
+                b.Property(e => e.IdResponsableTicket).ValueGeneratedNever();
+                b.Property(e => e.IdTipoResponsabilidad).HasConversion<int>();
+                b.HasIndex(e => new { e.IdTicket, e.IdTipoResponsabilidad }).IsUnique();
+
+                b.HasOne<Ticket>()
+                    .WithMany(t => t.Responsables)
+                    .HasForeignKey(e => e.IdTicket)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne<Usuario>()
+                    .WithMany()
+                    .HasForeignKey(e => e.IdUsuario)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne<Usuario>()
+                    .WithMany()
+                    .HasForeignKey(e => e.IdUsuarioAsignador)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 

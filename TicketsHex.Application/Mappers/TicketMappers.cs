@@ -1,5 +1,6 @@
 ﻿using TicketsHex.Application.DTO_s.Ticket;
 using TicketsHex.Domain.Entidades.Ticket;
+using TicketsHex.Domain.Enums;
 
 namespace TicketsHex.Application.Mappers
 {
@@ -18,6 +19,8 @@ namespace TicketsHex.Application.Mappers
                 TicketEstado: ticket.IdEstado,
                 Origen: ticket.IdOrigen,
                 IdUsuarioAsignado: ticket.IdUsuarioAsignado,
+                IdDesarrolladorResponsable: ticket.ObtenerIdResponsable(TipoResponsabilidadTicket.Desarrollo),
+                IdQaResponsable: ticket.ObtenerIdResponsable(TipoResponsabilidadTicket.QA),
                 CausaRaiz: ticket.CausaRaiz,
                 SolucionPropuesta: ticket.SolucionPropuesta,
                 EsDesarrollo: ticket.EsDesarrollo,

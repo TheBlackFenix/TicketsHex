@@ -13,10 +13,9 @@ public sealed class TicketCommandTests
 {
     [Theory]
     [InlineData(Rol.Desarrollador)]
-    [InlineData(Rol.QA)]
     [InlineData(Rol.LiderTecnico)]
     [InlineData(Rol.Planner)]
-    public async Task Cualquier_rol_puede_crear_un_ticket(Rol rol)
+    public async Task Desarrollador_lider_y_planner_pueden_crear_un_ticket(Rol rol)
     {
         var tickets = new TicketRepositoryFake();
         var command = CrearCommand(tickets, rol);
@@ -31,6 +30,21 @@ public sealed class TicketCommandTests
         Assert.NotEqual(Guid.Empty, idTicket);
         Assert.NotNull(tickets.TicketGuardado);
         Assert.False(tickets.TicketGuardado.EsDesarrollo);
+        Assert.Equal(2, tickets.TicketGuardado.IdUsuarioAsignado);
+    }
+
+    [Fact]
+    public async Task QA_no_puede_crear_tickets()
+    {
+        var command = CrearCommand(new TicketRepositoryFake(), Rol.QA);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            command.CrearTicketAsync(new CrearTicketRequest(
+                "CASO-001",
+                TicketOrigen.SAIA,
+                "Ticket de prueba",
+                "Descripción suficientemente larga",
+                2)));
     }
 
     [Fact]
@@ -42,13 +56,12 @@ public sealed class TicketCommandTests
         await command.ActualizarTicketAsync(
             tickets.TicketGuardado!.IdTicket,
             new ActualizarTicketRequest(
-                null,
-                null,
-                TicketEstado.EnProceso,
-                tickets.TicketGuardado.IdUsuarioAsignado,
-                null,
-                null,
-                null));
+                Titulo: null,
+                Descripcion: null,
+                NuevoEstado: TicketEstado.EnProceso,
+                CausaRaiz: null,
+                SolucionPropuesta: null,
+                Comentario: null));
 
         Assert.Equal(TicketEstado.EnProceso, tickets.TicketGuardado.IdEstado);
         Assert.Equal(2, tickets.TicketGuardado.IdUsuarioAsignado);
@@ -64,17 +77,16 @@ public sealed class TicketCommandTests
         await command.ActualizarTicketAsync(
             tickets.TicketGuardado!.IdTicket,
             new ActualizarTicketRequest(
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                true,
-                "HU-1234",
-                "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234",
-                "medios/caso-001"));
+                Titulo: null,
+                Descripcion: null,
+                NuevoEstado: null,
+                CausaRaiz: null,
+                SolucionPropuesta: null,
+                Comentario: null,
+                EsDesarrollo: true,
+                NombreHu: "HU-1234",
+                UrlHu: "https://dev.azure.com/equipo/proyecto/_workitems/edit/1234",
+                CarpetaMedios: "medios/caso-001"));
 
         Assert.True(tickets.TicketGuardado.EsDesarrollo);
         Assert.Equal("HU-1234", tickets.TicketGuardado.NombreHu);
@@ -84,8 +96,15 @@ public sealed class TicketCommandTests
         Assert.True(tickets.FueActualizado);
     }
 
-    private static TicketCommand CrearCommand(TicketRepositoryFake tickets, Rol rol) =>
-        new(tickets, new UsuarioRepositoryFake(), new UsuarioActualFake(1, rol), new NotificacionPublisherFake());
+    private static TicketCommand CrearCommand(TicketRepositoryFake tickets, Rol rol)
+    {
+        var idUsuario = rol == Rol.Desarrollador ? 2 : 1;
+        return new(
+            tickets,
+            new UsuarioRepositoryFake(rol),
+            new UsuarioActualFake(idUsuario, rol),
+            new NotificacionPublisherFake());
+    }
 
     private static Ticket CrearTicket() => new(
         "CASO-001",
@@ -93,7 +112,8 @@ public sealed class TicketCommandTests
         "Descripción suficientemente larga",
         2,
         1,
-        TicketOrigen.SAIA);
+        TicketOrigen.SAIA,
+        usuarioQa: 3);
 
     private sealed class UsuarioActualFake(long idUsuario, Rol rol) : IUsuarioActual
     {
@@ -101,10 +121,26 @@ public sealed class TicketCommandTests
         public Rol Rol { get; } = rol;
     }
 
-    private sealed class UsuarioRepositoryFake : IUsuarioRepository
+    private sealed class UsuarioRepositoryFake(Rol rolActual) : IUsuarioRepository
     {
         public Task<bool> ExisteAsync(long idUsuario) => Task.FromResult(idUsuario > 0);
-        public Task<Usuario?> ObtenerPorIdAsync(long idUsuario) => Task.FromResult<Usuario?>(null);
+        public Task<Usuario?> ObtenerPorIdAsync(long idUsuario)
+        {
+            var rol = idUsuario switch
+            {
+                2 => Rol.Desarrollador,
+                3 => Rol.QA,
+                _ => rolActual
+            };
+            return Task.FromResult<Usuario?>(new Usuario(
+                idUsuario,
+                $"usuario{idUsuario}",
+                "Usuario",
+                null,
+                rol,
+                Area.Mantenimiento,
+                "hash"));
+        }
         public Task<IReadOnlyCollection<Usuario>> ObtenerTodosAsync(bool incluirInactivos) =>
             Task.FromResult<IReadOnlyCollection<Usuario>>([]);
         public Task GuardarAsync(Usuario usuario) => Task.CompletedTask;
@@ -122,10 +158,16 @@ public sealed class TicketCommandTests
         public Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(TicketFiltroRequest filtro) =>
             Task.FromResult(new PaginaResultado<Ticket>([], 1, 20, 0));
 
+        public Task<PaginaResultado<Ticket>> ObtenerPaginaParaQaAsync(TicketFiltroRequest filtro) =>
+            Task.FromResult(new PaginaResultado<Ticket>([], 1, 20, 0));
+
         public Task<PaginaResultado<Ticket>> ObtenerPaginaPorAsignacionHistoricaAsync(
             long idUsuario,
             TicketFiltroRequest filtro) =>
             Task.FromResult(new PaginaResultado<Ticket>([], 1, 20, 0));
+
+        public Task<IReadOnlyCollection<Ticket>> ObtenerCargaActivaUsuarioAsync(long idUsuario) =>
+            Task.FromResult<IReadOnlyCollection<Ticket>>([]);
 
         public Task GuardarAsync(Ticket ticketGuardado)
         {
@@ -139,6 +181,8 @@ public sealed class TicketCommandTests
             FueActualizado = true;
             return Task.CompletedTask;
         }
+
+        public Task ActualizarRangoAsync(IReadOnlyCollection<Ticket> tickets) => Task.CompletedTask;
     }
 
     private sealed class NotificacionPublisherFake : INotificacionPublisher
