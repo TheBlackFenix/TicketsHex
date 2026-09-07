@@ -14,6 +14,7 @@ namespace TicketsHex.Domain.Entidades.Ticket
         [
             new(TicketEstado.EnAnalisis, TicketEstado.EnProceso, [Rol.Desarrollador, Rol.LiderTecnico, Rol.Planner]),
             new(TicketEstado.EnAnalisis, TicketEstado.EnReplicaQA, [Rol.Desarrollador, Rol.QA, Rol.LiderTecnico, Rol.Planner]),
+            new(TicketEstado.EnProceso, TicketEstado.EnReplicaQA, [Rol.Desarrollador, Rol.QA, Rol.LiderTecnico, Rol.Planner]),
             new(TicketEstado.EnReplicaQA, TicketEstado.EnAnalisis, [Rol.QA, Rol.LiderTecnico, Rol.Planner], true),
             new(TicketEstado.EnProceso, TicketEstado.Bloqueado, Enum.GetValues<Rol>(), true),
             new(TicketEstado.EnProceso, TicketEstado.Entregado, [Rol.Desarrollador, Rol.LiderTecnico, Rol.Planner]),
@@ -111,6 +112,21 @@ namespace TicketsHex.Domain.Entidades.Ticket
 
         public static bool EsEstadoAccesibleParaQa(TicketEstado estado) =>
             EstadosQa.Contains(estado);
+
+        public static bool PermiteConocimientoTecnico(TicketEstado estado) =>
+            estado is TicketEstado.EnAnalisis or
+                TicketEstado.EnProceso or
+                TicketEstado.Bloqueado or
+                TicketEstado.BUG or
+                TicketEstado.Rollback;
+
+        public static bool PermiteValidacionQa(TicketEstado estado) =>
+            estado is TicketEstado.DespliegueApitesting or
+                TicketEstado.EnReplicaQA or
+                TicketEstado.EnRevisionApitesting or
+                TicketEstado.DespligueQA or
+                TicketEstado.EnRevisionQA or
+                TicketEstado.BUG;
 
         public static TipoTransicionDisponible ObtenerTipoTransicion(
             TicketEstado estadoActual,

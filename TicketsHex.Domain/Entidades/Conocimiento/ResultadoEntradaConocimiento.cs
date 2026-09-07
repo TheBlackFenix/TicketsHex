@@ -22,5 +22,16 @@ namespace TicketsHex.Domain.Entidades.Conocimiento
             TipoEntradaConocimiento.ValidacionQa => idResultado is >= 8 and <= 10,
             _ => false
         };
+
+        public static bool EsElegibleComoResumen(
+            TipoEntradaConocimiento tipo,
+            int idResultado) => tipo switch
+        {
+            TipoEntradaConocimiento.Diagnostico =>
+                idResultado == DiagnosticoConfirmado,
+            TipoEntradaConocimiento.Solucion =>
+                idResultado is SolucionExitosa or SolucionParcial or SolucionNoImplementada,
+            _ => false
+        };
     }
 }

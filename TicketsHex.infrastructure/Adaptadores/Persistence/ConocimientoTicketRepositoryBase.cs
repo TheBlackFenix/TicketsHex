@@ -5,6 +5,7 @@ using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Aplicativos;
 using TicketsHex.Domain.Entidades.Conocimiento;
 using TicketsHex.Domain.Entidades.Parametros;
+using TicketsHex.Domain.Entidades.Ticket;
 using TicketsHex.Domain.Enums;
 
 namespace TicketsHex.infrastructure.Adaptadores.Persistence
@@ -118,22 +119,37 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence
                 item.IdAmbiente == idAmbiente && item.Activo);
 
         public async Task GuardarEntradaAsync(
+            Ticket ticket,
             EntradaConocimientoTicket entrada,
             IReadOnlyCollection<string>? tags,
             IReadOnlyCollection<Guid>? idsAplicativos)
         {
+            ValidarUnidadDeTrabajo(ticket, entrada.IdTicket);
             await DbContext.Set<EntradaConocimientoTicket>().AddAsync(entrada);
             await SincronizarContextoTicketAsync(entrada.IdTicket, tags, idsAplicativos);
             await DbContext.SaveChangesAsync();
         }
 
         public async Task ActualizarEntradaAsync(
+            Ticket ticket,
             EntradaConocimientoTicket entrada,
             IReadOnlyCollection<string>? tags,
             IReadOnlyCollection<Guid>? idsAplicativos)
         {
+            ValidarUnidadDeTrabajo(ticket, entrada.IdTicket);
             await SincronizarContextoTicketAsync(entrada.IdTicket, tags, idsAplicativos);
             await DbContext.SaveChangesAsync();
+        }
+
+        private void ValidarUnidadDeTrabajo(Ticket ticket, Guid idTicketEntrada)
+        {
+            if (ticket.IdTicket != idTicketEntrada)
+                throw new InvalidOperationException("La entrada no pertenece al ticket indicado.");
+            if (DbContext.Entry(ticket).State == EntityState.Detached)
+            {
+                throw new InvalidOperationException(
+                    "El ticket y su conocimiento deben persistirse en la misma unidad de trabajo.");
+            }
         }
 
         private async Task SincronizarContextoTicketAsync(

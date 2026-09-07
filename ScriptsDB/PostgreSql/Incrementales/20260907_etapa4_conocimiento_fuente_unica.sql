@@ -1,0 +1,9 @@
+BEGIN;
+
+ALTER TABLE tickets
+    ALTER COLUMN causaraiz TYPE VARCHAR(2000);
+
+ALTER TABLE tickets
+    ALTER COLUMN solucionpropuesta TYPE VARCHAR(2000);
+
+COMMIT;

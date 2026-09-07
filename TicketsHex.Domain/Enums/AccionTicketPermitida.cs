@@ -7,7 +7,7 @@ namespace TicketsHex.Domain.Enums
         EditarClasificacion = 3,
         EditarDatosDesarrollo = 4,
         EditarHu = 5,
-        EditarDiagnostico = 6,
+        GestionarDiagnosticos = 6,
         GestionarAplicativos = 7,
         GestionarRamas = 8,
         Comentar = 9,
@@ -15,6 +15,8 @@ namespace TicketsHex.Domain.Enums
         ReasignarQA = 11,
         CambiarCustodia = 12,
         Eliminar = 13,
-        Finalizar = 14
+        Finalizar = 14,
+        GestionarSoluciones = 15,
+        GestionarValidacionesQA = 16
     }
 }

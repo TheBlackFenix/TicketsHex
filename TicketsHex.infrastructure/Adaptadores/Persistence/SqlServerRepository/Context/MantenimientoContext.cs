@@ -73,8 +73,8 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.
                 b.Property(t => t.IdTipo).HasConversion<int?>();
                 b.Property(t => t.IdPrioridad).HasConversion<int?>();
                 b.Property(t => t.IdImpacto).HasConversion<int?>();
-                b.Property(t => t.CausaRaiz).HasMaxLength(1000);
-                b.Property(t => t.SolucionPropuesta).HasMaxLength(1000);
+                b.Property(t => t.CausaRaiz).HasMaxLength(2000);
+                b.Property(t => t.SolucionPropuesta).HasMaxLength(2000);
                 b.Property(t => t.EsDesarrollo)
                     .HasDefaultValue(false)
                     .IsRequired();

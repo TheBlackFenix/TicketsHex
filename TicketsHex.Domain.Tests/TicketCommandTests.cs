@@ -74,6 +74,31 @@ public sealed class TicketCommandTests
         Assert.True(tickets.FueActualizado);
     }
 
+    [Theory]
+    [InlineData("Causa manual", null)]
+    [InlineData(null, "Solución manual")]
+    public async Task Patch_rechaza_modificar_resumenes_fuera_de_conocimiento(
+        string? causaRaiz,
+        string? solucionPropuesta)
+    {
+        var tickets = new TicketRepositoryFake(CrearTicket());
+        var command = CrearCommand(tickets, Rol.Planner);
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            command.ActualizarTicketAsync(
+                tickets.TicketGuardado!.IdTicket,
+                new ActualizarTicketRequest(
+                    Titulo: null,
+                    Descripcion: null,
+                    NuevoEstado: null,
+                    CausaRaiz: causaRaiz,
+                    SolucionPropuesta: solucionPropuesta,
+                    Comentario: null)));
+
+        Assert.Contains("KNOWLEDGE_SOURCE_REQUIRED", error.Message);
+        Assert.False(tickets.FueActualizado);
+    }
+
     [Fact]
     public async Task Planner_actualiza_datos_de_desarrollo_y_HU()
     {
