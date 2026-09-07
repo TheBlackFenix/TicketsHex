@@ -118,7 +118,9 @@ public sealed class RepositorioRamaServiceTests
         public Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(TicketFiltroRequest filtro) =>
             Task.FromResult(new PaginaResultado<Ticket>([Ticket], 1, 20, 1));
 
-        public Task<PaginaResultado<Ticket>> ObtenerPaginaParaQaAsync(TicketFiltroRequest filtro) =>
+        public Task<PaginaResultado<Ticket>> ObtenerPaginaParaQaAsync(
+            long idUsuario,
+            TicketFiltroRequest filtro) =>
             Task.FromResult(new PaginaResultado<Ticket>([Ticket], 1, 20, 1));
 
         public Task<PaginaResultado<Ticket>> ObtenerPaginaPorAsignacionHistoricaAsync(

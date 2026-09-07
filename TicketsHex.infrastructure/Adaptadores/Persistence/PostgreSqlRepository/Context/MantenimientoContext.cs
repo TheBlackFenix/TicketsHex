@@ -138,6 +138,7 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
                 b.Property(e => e.IdEstado).HasConversion<int?>();
                 b.Property(e => e.IdTipoMovimiento).HasConversion<int?>();
                 b.HasIndex(e => new { e.IdUsuarioAsignado, e.IdTicket });
+                b.HasIndex(e => new { e.IdTicket, e.FechaAsignacion });
 
                 b.HasOne<Ticket>()
                     .WithMany(t => t.HistoricoAsignaciones)
@@ -164,6 +165,7 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
                 b.Property(e => e.IdResponsableTicket).ValueGeneratedNever();
                 b.Property(e => e.IdTipoResponsabilidad).HasConversion<int>();
                 b.HasIndex(e => new { e.IdTicket, e.IdTipoResponsabilidad }).IsUnique();
+                b.HasIndex(e => new { e.IdUsuario, e.IdTicket });
 
                 b.HasOne<Ticket>()
                     .WithMany(t => t.Responsables)

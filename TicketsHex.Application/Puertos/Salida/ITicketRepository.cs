@@ -8,7 +8,9 @@ namespace TicketsHex.Application.Puertos.Salida
     {
         Task<Ticket?> ObtenerPorIdAsync(Guid id, bool incluirEliminados = false);
         Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(TicketFiltroRequest filtro);
-        Task<PaginaResultado<Ticket>> ObtenerPaginaParaQaAsync(TicketFiltroRequest filtro);
+        Task<PaginaResultado<Ticket>> ObtenerPaginaParaQaAsync(
+            long idUsuario,
+            TicketFiltroRequest filtro);
         Task<PaginaResultado<Ticket>> ObtenerPaginaPorAsignacionHistoricaAsync(
             long idUsuario,
             TicketFiltroRequest filtro);

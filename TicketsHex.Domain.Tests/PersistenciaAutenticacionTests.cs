@@ -93,6 +93,25 @@ public class PersistenciaAutenticacionTests
     }
 
     [Fact]
+    public void Modelos_ef_indexan_historial_de_asignaciones_por_ticket_y_fecha()
+    {
+        var sqlServerOptions = new DbContextOptionsBuilder<MantenimientoContext>()
+            .UseSqlServer("Server=localhost,1433;Database=tickets;User Id=test;Password=test;TrustServerCertificate=True")
+            .Options;
+        using var sqlServerContext = new MantenimientoContext(sqlServerOptions);
+
+        var postgreSqlOptions = new DbContextOptionsBuilder<PostgreSqlContext>()
+            .UseNpgsql("Host=localhost;Database=tickets;Username=test;Password=test")
+            .Options;
+        using var postgreSqlContext = new PostgreSqlContext(postgreSqlOptions);
+
+        ValidarIndiceHistorialAsignaciones(sqlServerContext.Model);
+        ValidarIndiceHistorialAsignaciones(postgreSqlContext.Model);
+        ValidarIndiceResponsables(sqlServerContext.Model);
+        ValidarIndiceResponsables(postgreSqlContext.Model);
+    }
+
+    [Fact]
     public void Modelos_ef_respetan_nombres_fisicos_de_columnas_de_conocimiento()
     {
         var sqlServerOptions = new DbContextOptionsBuilder<MantenimientoContext>()
@@ -150,5 +169,27 @@ public class PersistenciaAutenticacionTests
         Assert.NotNull(model.FindEntityType(typeof(TipoTicketParametro)));
         Assert.NotNull(model.FindEntityType(typeof(PrioridadTicketParametro)));
         Assert.NotNull(model.FindEntityType(typeof(ImpactoTicketParametro)));
+    }
+
+    private static void ValidarIndiceHistorialAsignaciones(IModel model)
+    {
+        var historico = model.FindEntityType(typeof(HistoricoAsignacionTicket))!;
+        Assert.Contains(
+            historico.GetIndexes(),
+            indice => indice.Properties.Select(propiedad => propiedad.Name)
+                .SequenceEqual([
+                    nameof(HistoricoAsignacionTicket.IdTicket),
+                    nameof(HistoricoAsignacionTicket.FechaAsignacion)]));
+    }
+
+    private static void ValidarIndiceResponsables(IModel model)
+    {
+        var responsable = model.FindEntityType(typeof(ResponsableTicket))!;
+        Assert.Contains(
+            responsable.GetIndexes(),
+            indice => indice.Properties.Select(propiedad => propiedad.Name)
+                .SequenceEqual([
+                    nameof(ResponsableTicket.IdUsuario),
+                    nameof(ResponsableTicket.IdTicket)]));
     }
 }

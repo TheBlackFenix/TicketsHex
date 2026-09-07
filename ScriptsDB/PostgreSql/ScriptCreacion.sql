@@ -145,6 +145,9 @@ CREATE TABLE historicoasignacionesticket (
 CREATE INDEX ix_historicoasignacionesticket_usuario_ticket
     ON historicoasignacionesticket(idusuarioasignado, idticket);
 
+CREATE INDEX ix_historicoasignacionesticket_ticket_fecha
+    ON historicoasignacionesticket(idticket, fechaasignacion DESC);
+
 CREATE TABLE responsablesticket (
     idresponsableticket UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     idticket UUID NOT NULL REFERENCES tickets(idticket) ON DELETE CASCADE,
@@ -155,6 +158,9 @@ CREATE TABLE responsablesticket (
 
 CREATE UNIQUE INDEX ux_responsablesticket_ticket_tipo
     ON responsablesticket(idticket, idtiporesponsabilidad);
+
+CREATE INDEX ix_responsablesticket_usuario_ticket
+    ON responsablesticket(idusuario, idticket);
 
 CREATE TABLE repositorios (
     idrepositorio UUID PRIMARY KEY DEFAULT gen_random_uuid(),
