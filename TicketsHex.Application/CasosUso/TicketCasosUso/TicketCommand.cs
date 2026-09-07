@@ -84,6 +84,12 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
             var ticket = await ObtenerTicketActivoAsync(ticketId);
             var huboCambios = false;
 
+            if (request.CausaRaiz is not null || request.SolucionPropuesta is not null)
+            {
+                throw new InvalidOperationException(
+                    "KNOWLEDGE_SOURCE_REQUIRED: La causa raíz y la solución solo se modifican mediante los endpoints de conocimiento del ticket.");
+            }
+
             if (request.Titulo is not null)
             {
                 ticket.ActualizarTitulo(request.Titulo, _usuarioActual.IdUsuario, _usuarioActual.Rol);
@@ -94,16 +100,6 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
             {
                 ticket.ActualizarDescripcion(
                     new DescripcionVO(request.Descripcion),
-                    _usuarioActual.IdUsuario,
-                    _usuarioActual.Rol);
-                huboCambios = true;
-            }
-
-            if (request.CausaRaiz is not null || request.SolucionPropuesta is not null)
-            {
-                ticket.ActualizarDiagnostico(
-                    request.CausaRaiz,
-                    request.SolucionPropuesta,
                     _usuarioActual.IdUsuario,
                     _usuarioActual.Rol);
                 huboCambios = true;

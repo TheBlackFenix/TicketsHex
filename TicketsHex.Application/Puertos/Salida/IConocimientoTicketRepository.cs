@@ -1,6 +1,7 @@
 using TicketsHex.Application.Comun.Paginacion;
 using TicketsHex.Application.DTO_s.Conocimiento;
 using TicketsHex.Domain.Entidades.Conocimiento;
+using TicketsHex.Domain.Entidades.Ticket;
 using TicketsHex.Domain.Enums;
 
 namespace TicketsHex.Application.Puertos.Salida
@@ -15,10 +16,12 @@ namespace TicketsHex.Application.Puertos.Salida
         Task<bool> ExisteResultadoActivoAsync(TipoEntradaConocimiento tipo, int idResultado);
         Task<bool> ExisteAmbienteActivoAsync(int idAmbiente);
         Task GuardarEntradaAsync(
+            Ticket ticket,
             EntradaConocimientoTicket entrada,
             IReadOnlyCollection<string>? tags,
             IReadOnlyCollection<Guid>? idsAplicativos);
         Task ActualizarEntradaAsync(
+            Ticket ticket,
             EntradaConocimientoTicket entrada,
             IReadOnlyCollection<string>? tags,
             IReadOnlyCollection<Guid>? idsAplicativos);

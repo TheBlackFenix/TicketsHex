@@ -11,25 +11,6 @@ namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
 {
     public sealed class ConocimientoTicketService : IConocimientoTicketService
     {
-        private static readonly TicketEstado[] EstadosDesarrollador =
-        [
-            TicketEstado.EnAnalisis,
-            TicketEstado.EnProceso,
-            TicketEstado.Bloqueado,
-            TicketEstado.BUG,
-            TicketEstado.Rollback
-        ];
-
-        private static readonly TicketEstado[] EstadosValidacionQa =
-        [
-            TicketEstado.DespliegueApitesting,
-            TicketEstado.EnReplicaQA,
-            TicketEstado.EnRevisionApitesting,
-            TicketEstado.DespligueQA,
-            TicketEstado.EnRevisionQA,
-            TicketEstado.BUG
-        ];
-
         private readonly IConocimientoTicketRepository _repository;
         private readonly ITicketRepository _ticketRepository;
         private readonly IAplicativoRepository _aplicativoRepository;
@@ -151,6 +132,8 @@ namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
             var entrada = await ObtenerEntradaAsync(idTicket, idEntrada);
             ValidarPuedeEscribir(ticket, entrada.IdTipoEntrada, entrada.IdUsuarioAutor);
             await ValidarParametrosAsync(entrada.IdTipoEntrada, request.IdResultado, request.IdAmbiente);
+            var entradasTicket = await _repository.ObtenerEntradasTicketAsync(idTicket);
+            var resultadoAnterior = entrada.IdResultado;
 
             IReadOnlyCollection<string>? tags = null;
             IReadOnlyCollection<Guid>? aplicativos = null;
@@ -175,7 +158,18 @@ namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
                 _usuarioActual.Rol,
                 ticket.IdEstado);
 
-            await _repository.ActualizarEntradaAsync(entrada, tags, aplicativos);
+            if (DebeRecalcularResumen(
+                    entrada.IdTipoEntrada,
+                    resultadoAnterior,
+                    entrada.IdResultado))
+            {
+                var entradasActualizadas = entradasTicket
+                    .Where(item => item.IdEntrada != entrada.IdEntrada)
+                    .Append(entrada);
+                SincronizarResumenVigente(ticket, entrada.IdTipoEntrada, entradasActualizadas);
+            }
+
+            await _repository.ActualizarEntradaAsync(ticket, entrada, tags, aplicativos);
         }
 
         private async Task<Guid> CrearEntradaAsync(
@@ -213,7 +207,10 @@ namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
                 _usuarioActual.Rol,
                 MapearReferencias(referencias));
 
-            await _repository.GuardarEntradaAsync(entrada, tags, idsAplicativos);
+            if (ResultadoEntradaConocimiento.EsElegibleComoResumen(tipo, idResultado))
+                ticket.SincronizarResumenConocimiento(tipo, entrada.Resumen);
+
+            await _repository.GuardarEntradaAsync(ticket, entrada, tags, idsAplicativos);
             return entrada.IdEntrada;
         }
 
@@ -229,7 +226,7 @@ namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
                     throw new UnauthorizedAccessException(
                         "Solo el desarrollador asignado, Planner o Líder Técnico pueden registrar diagnóstico o solución.");
                 }
-                if (!EstadosDesarrollador.Contains(ticket.IdEstado))
+                if (!TicketWorkflow.PermiteConocimientoTecnico(ticket.IdEstado))
                     throw new InvalidOperationException(
                         $"No se puede registrar conocimiento técnico en el estado {ticket.IdEstado}.");
                 return;
@@ -239,7 +236,7 @@ namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
                 throw new UnauthorizedAccessException("Solo QA puede registrar validaciones QA.");
             if (idAutorEntrada.HasValue && idAutorEntrada.Value != _usuarioActual.IdUsuario)
                 throw new UnauthorizedAccessException("QA solo puede editar sus propias validaciones.");
-            if (!EstadosValidacionQa.Contains(ticket.IdEstado))
+            if (!TicketWorkflow.PermiteValidacionQa(ticket.IdEstado))
                 throw new InvalidOperationException(
                     $"No se puede registrar una validación QA en el estado {ticket.IdEstado}.");
         }
@@ -296,6 +293,31 @@ namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
         private static IEnumerable<(TipoReferenciaConocimiento Tipo, string Url, string? Descripcion)>?
             MapearReferencias(IReadOnlyCollection<ReferenciaConocimientoRequest>? referencias) =>
             referencias?.Select(item => (item.Tipo, item.Url, item.Descripcion));
+
+        private static bool DebeRecalcularResumen(
+            TipoEntradaConocimiento tipo,
+            int resultadoAnterior,
+            int resultadoActual) =>
+            ResultadoEntradaConocimiento.EsElegibleComoResumen(tipo, resultadoAnterior) ||
+            ResultadoEntradaConocimiento.EsElegibleComoResumen(tipo, resultadoActual);
+
+        private static void SincronizarResumenVigente(
+            Ticket ticket,
+            TipoEntradaConocimiento tipo,
+            IEnumerable<EntradaConocimientoTicket> entradas)
+        {
+            var resumen = entradas
+                .Where(item =>
+                    item.Activo &&
+                    item.IdTipoEntrada == tipo &&
+                    ResultadoEntradaConocimiento.EsElegibleComoResumen(tipo, item.IdResultado))
+                .OrderByDescending(item => item.FechaUltimaActualizacion ?? item.FechaCreacion)
+                .ThenByDescending(item => item.IdEntrada)
+                .Select(item => item.Resumen)
+                .FirstOrDefault();
+
+            ticket.SincronizarResumenConocimiento(tipo, resumen);
+        }
 
         private static EntradaConocimientoDTO Mapear(EntradaConocimientoTicket entrada) => new(
             entrada.IdEntrada,

@@ -75,6 +75,89 @@ public sealed class ConocimientoTicketTests
             "Segunda hipótesis"));
 
         Assert.Equal(2, repository.Entradas.Count);
+        Assert.Equal("Segunda hipótesis", ticket.CausaRaiz);
+        Assert.Same(ticket, repository.TicketUltimaPersistencia);
+    }
+
+    [Fact]
+    public async Task Diagnostico_no_confirmado_no_reemplaza_resumen_heredado()
+    {
+        var ticket = CrearTicket();
+        ticket.SincronizarResumenConocimiento(
+            TipoEntradaConocimiento.Diagnostico,
+            "Causa heredada");
+        var service = CrearService(ticket, new ConocimientoRepositoryFake(), 2, Rol.Desarrollador);
+
+        await service.CrearDiagnosticoAsync(ticket.IdTicket, new CrearDiagnosticoRequest(
+            ResultadoEntradaConocimiento.DiagnosticoInconcluso,
+            "Hipótesis todavía inconclusa"));
+
+        Assert.Equal("Causa heredada", ticket.CausaRaiz);
+    }
+
+    [Fact]
+    public async Task Al_descartar_diagnostico_vigente_recupera_el_confirmado_anterior()
+    {
+        var ticket = CrearTicket();
+        var repository = new ConocimientoRepositoryFake();
+        var service = CrearService(ticket, repository, 2, Rol.Desarrollador);
+        await service.CrearDiagnosticoAsync(ticket.IdTicket, new CrearDiagnosticoRequest(
+            ResultadoEntradaConocimiento.DiagnosticoConfirmado,
+            "Causa anterior"));
+        var idVigente = await service.CrearDiagnosticoAsync(
+            ticket.IdTicket,
+            new CrearDiagnosticoRequest(
+                ResultadoEntradaConocimiento.DiagnosticoConfirmado,
+                "Causa más reciente"));
+
+        await service.ActualizarEntradaAsync(
+            ticket.IdTicket,
+            idVigente,
+            new ActualizarEntradaConocimientoRequest(
+                ResultadoEntradaConocimiento.DiagnosticoDescartado,
+                "Hipótesis descartada"));
+
+        Assert.Equal("Causa anterior", ticket.CausaRaiz);
+        Assert.Same(ticket, repository.TicketUltimaPersistencia);
+    }
+
+    [Fact]
+    public async Task Al_descartar_el_unico_diagnostico_confirmado_limpia_el_resumen()
+    {
+        var ticket = CrearTicket();
+        var repository = new ConocimientoRepositoryFake();
+        var service = CrearService(ticket, repository, 2, Rol.Desarrollador);
+        var idDiagnostico = await service.CrearDiagnosticoAsync(
+            ticket.IdTicket,
+            new CrearDiagnosticoRequest(
+                ResultadoEntradaConocimiento.DiagnosticoConfirmado,
+                "Única causa confirmada"));
+
+        await service.ActualizarEntradaAsync(
+            ticket.IdTicket,
+            idDiagnostico,
+            new ActualizarEntradaConocimientoRequest(
+                ResultadoEntradaConocimiento.DiagnosticoDescartado,
+                "Hipótesis descartada"));
+
+        Assert.Null(ticket.CausaRaiz);
+    }
+
+    [Fact]
+    public async Task Solucion_fallida_no_reemplaza_ultima_solucion_viable()
+    {
+        var ticket = CrearTicket();
+        var repository = new ConocimientoRepositoryFake();
+        var service = CrearService(ticket, repository, 2, Rol.Desarrollador);
+        await service.CrearSolucionAsync(ticket.IdTicket, new CrearSolucionRequest(
+            ResultadoEntradaConocimiento.SolucionParcial,
+            "Mitigación viable"));
+
+        await service.CrearSolucionAsync(ticket.IdTicket, new CrearSolucionRequest(
+            ResultadoEntradaConocimiento.SolucionFallida,
+            "Intento fallido"));
+
+        Assert.Equal("Mitigación viable", ticket.SolucionPropuesta);
     }
 
     [Fact]
@@ -231,6 +314,7 @@ public sealed class ConocimientoTicketTests
     private sealed class ConocimientoRepositoryFake : IConocimientoTicketRepository
     {
         public List<EntradaConocimientoTicket> Entradas { get; } = [];
+        public Ticket? TicketUltimaPersistencia { get; private set; }
 
         public Task<IReadOnlyCollection<EntradaConocimientoTicket>> ObtenerEntradasTicketAsync(Guid idTicket) =>
             Task.FromResult<IReadOnlyCollection<EntradaConocimientoTicket>>(
@@ -248,13 +332,17 @@ public sealed class ConocimientoTicketTests
             Task.FromResult(ResultadoEntradaConocimiento.PerteneceA(tipo, idResultado));
         public Task<bool> ExisteAmbienteActivoAsync(int idAmbiente) =>
             Task.FromResult(idAmbiente is >= 1 and <= 5);
-        public Task GuardarEntradaAsync(EntradaConocimientoTicket entrada, IReadOnlyCollection<string>? tags, IReadOnlyCollection<Guid>? idsAplicativos)
+        public Task GuardarEntradaAsync(Ticket ticket, EntradaConocimientoTicket entrada, IReadOnlyCollection<string>? tags, IReadOnlyCollection<Guid>? idsAplicativos)
         {
+            TicketUltimaPersistencia = ticket;
             Entradas.Add(entrada);
             return Task.CompletedTask;
         }
-        public Task ActualizarEntradaAsync(EntradaConocimientoTicket entrada, IReadOnlyCollection<string>? tags, IReadOnlyCollection<Guid>? idsAplicativos) =>
-            Task.CompletedTask;
+        public Task ActualizarEntradaAsync(Ticket ticket, EntradaConocimientoTicket entrada, IReadOnlyCollection<string>? tags, IReadOnlyCollection<Guid>? idsAplicativos)
+        {
+            TicketUltimaPersistencia = ticket;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class AplicativoRepositoryFake : IAplicativoRepository

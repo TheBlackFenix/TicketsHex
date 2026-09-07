@@ -130,6 +130,18 @@ public class TicketTests
     }
 
     [Fact]
+    public void En_proceso_puede_pasar_a_replica_QA_y_transfiere_custodia()
+    {
+        var ticket = CrearTicket();
+        ticket.ActualizarEstado(TicketEstado.EnProceso, 2, Rol.Desarrollador, null);
+
+        ticket.ActualizarEstado(TicketEstado.EnReplicaQA, 2, Rol.Desarrollador, null);
+
+        Assert.Equal(TicketEstado.EnReplicaQA, ticket.IdEstado);
+        Assert.Equal(3, ticket.IdUsuarioAsignado);
+    }
+
+    [Fact]
     public void Replica_QA_no_permite_saltar_a_otro_estado_ni_con_override()
     {
         var ticket = CrearTicket();
@@ -259,17 +271,19 @@ public class TicketTests
     }
 
     [Fact]
-    public void Desarrollador_asignado_puede_actualizar_datos_tecnicos()
+    public void Resumenes_del_ticket_solo_se_sincronizan_desde_conocimiento()
     {
         var ticket = CrearTicket();
 
-        ticket.ActualizarDescripcion(
-            new Domain.ValueObjects.Ticket.DescripcionVO("Descripción actualizada por responsable"),
-            2,
-            Rol.Desarrollador);
-        ticket.ActualizarDiagnostico("Causa raíz", "Solución propuesta", 2, Rol.Desarrollador);
+        ticket.SincronizarResumenConocimiento(
+            TipoEntradaConocimiento.Diagnostico,
+            "Causa raíz");
+        ticket.SincronizarResumenConocimiento(
+            TipoEntradaConocimiento.Solucion,
+            "Solución propuesta");
 
         Assert.Equal("Causa raíz", ticket.CausaRaiz);
+        Assert.Equal("Solución propuesta", ticket.SolucionPropuesta);
     }
 
     [Fact]
@@ -338,12 +352,27 @@ public class TicketTests
 
         Assert.Contains(AccionTicketPermitida.EditarDescripcion, acciones);
         Assert.Contains(AccionTicketPermitida.GestionarAplicativos, acciones);
+        Assert.Contains(AccionTicketPermitida.GestionarDiagnosticos, acciones);
+        Assert.Contains(AccionTicketPermitida.GestionarSoluciones, acciones);
         Assert.DoesNotContain(AccionTicketPermitida.EditarClasificacion, acciones);
         Assert.Contains(transiciones, item =>
             item.EstadoDestino == TicketEstado.EnProceso &&
             item.Tipo == TipoTransicionDisponible.Normal &&
             !item.RequiereComentario);
         Assert.DoesNotContain(transiciones, item => item.EstadoDestino == TicketEstado.Finalizado);
+    }
+
+    [Fact]
+    public void QA_en_estado_colaborativo_recibe_capacidad_de_validacion()
+    {
+        var ticket = CrearTicket();
+        ticket.IdEstado = TicketEstado.EnRevisionQA;
+
+        var acciones = ticket.ObtenerAccionesPermitidas(50, Rol.QA);
+
+        Assert.Contains(AccionTicketPermitida.GestionarValidacionesQA, acciones);
+        Assert.DoesNotContain(AccionTicketPermitida.GestionarDiagnosticos, acciones);
+        Assert.DoesNotContain(AccionTicketPermitida.GestionarSoluciones, acciones);
     }
 
     [Fact]

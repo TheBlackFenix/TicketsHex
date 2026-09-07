@@ -19,8 +19,8 @@ namespace TicketsHex.Domain.Entidades.Ticket
         public TicketPrioridad? IdPrioridad { get; set; }
         public TicketImpacto? IdImpacto { get; set; }
         public string? CarpetaMedios { get; set; }
-        public string? CausaRaiz { get; set; }
-        public string? SolucionPropuesta { get; set; }
+        public string? CausaRaiz { get; private set; }
+        public string? SolucionPropuesta { get; private set; }
         public bool EsDesarrollo { get; set; }
         public string? NombreHu { get; set; }
         public string? UrlHu { get; set; }
@@ -271,34 +271,24 @@ namespace TicketsHex.Domain.Entidades.Ticket
             RegistrarAuditoria(idUsuarioActualizacion, "Clasificación del ticket actualizada.");
         }
 
-        public void ActualizarDiagnostico(
-            string? causaRaiz,
-            string? solucionPropuesta,
-            long idUsuarioActualizacion,
-            Rol rolActualiza)
+        public void SincronizarResumenConocimiento(
+            TipoEntradaConocimiento tipo,
+            string? resumen)
         {
             ValidarModificable();
+            if (tipo is not TipoEntradaConocimiento.Diagnostico and
+                not TipoEntradaConocimiento.Solucion)
+                throw new ArgumentException("Solo diagnóstico o solución generan resúmenes del ticket.", nameof(tipo));
+            if (resumen?.Trim().Length > 2000)
+                throw new ArgumentException("El resumen no puede superar 2000 caracteres.", nameof(resumen));
 
-            ValidarDesarrolladorAsignadoOSupervisor(idUsuarioActualizacion, rolActualiza);
+            var valor = NormalizarTextoOpcional(resumen ?? string.Empty);
+            if (tipo == TipoEntradaConocimiento.Diagnostico)
+                CausaRaiz = valor;
+            else
+                SolucionPropuesta = valor;
 
-            if (causaRaiz is null && solucionPropuesta is null)
-                throw new ArgumentException("Debe indicar la causa raíz o la solución propuesta.");
-
-            if (causaRaiz is not null)
-            {
-                if (causaRaiz.Length > 1000)
-                    throw new ArgumentException("La causa raíz no puede superar 1000 caracteres.", nameof(causaRaiz));
-                CausaRaiz = causaRaiz;
-            }
-
-            if (solucionPropuesta is not null)
-            {
-                if (solucionPropuesta.Length > 1000)
-                    throw new ArgumentException("La solución propuesta no puede superar 1000 caracteres.", nameof(solucionPropuesta));
-                SolucionPropuesta = solucionPropuesta;
-            }
-
-            RegistrarAuditoria(idUsuarioActualizacion, "Diagnóstico técnico actualizado.");
+            FechaUltimaActualizacion = DateTimeOffset.UtcNow;
         }
 
         public void ActualizarDatosDesarrollo(
@@ -434,11 +424,20 @@ namespace TicketsHex.Domain.Entidades.Ticket
             {
                 acciones.Add(AccionTicketPermitida.EditarDescripcion);
                 acciones.Add(AccionTicketPermitida.EditarDatosDesarrollo);
-                acciones.Add(AccionTicketPermitida.EditarDiagnostico);
                 acciones.Add(AccionTicketPermitida.GestionarAplicativos);
                 if (EsDesarrollo)
                     acciones.Add(AccionTicketPermitida.GestionarRamas);
+                if (TicketWorkflow.PermiteConocimientoTecnico(IdEstado))
+                {
+                    acciones.Add(AccionTicketPermitida.GestionarDiagnosticos);
+                    acciones.Add(AccionTicketPermitida.GestionarSoluciones);
+                }
             }
+
+            if (rol == Rol.QA &&
+                TicketWorkflow.PermiteValidacionQa(IdEstado) &&
+                PuedeConsultar(idUsuario, rol))
+                acciones.Add(AccionTicketPermitida.GestionarValidacionesQA);
 
             if (PuedeComentar(idUsuario, rol))
                 acciones.Add(AccionTicketPermitida.Comentar);
