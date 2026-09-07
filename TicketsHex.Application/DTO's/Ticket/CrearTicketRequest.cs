@@ -13,7 +13,13 @@ namespace TicketsHex.Application.DTO_s.Ticket
         string Titulo,
         string Descripcion,
         long IdUsuarioAsignado,
+        TicketTipo Tipo,
+        TicketPrioridad Prioridad,
+        TicketImpacto Impacto,
         bool EsDesarrollo = false,
-        long? IdQaResponsable = null
+        long? IdQaResponsable = null,
+        string? NombreHu = null,
+        string? UrlHu = null,
+        string? CarpetaMedios = null
     );
 }

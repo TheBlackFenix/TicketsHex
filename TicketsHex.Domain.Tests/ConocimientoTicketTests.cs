@@ -188,6 +188,9 @@ public sealed class ConocimientoTicketTests
         "Descripción suficientemente larga",
         2,
         1,
+        TicketTipo.Incidente,
+        TicketPrioridad.Media,
+        TicketImpacto.Medio,
         TicketOrigen.SAIA);
 
     private static ConocimientoTicketService CrearService(

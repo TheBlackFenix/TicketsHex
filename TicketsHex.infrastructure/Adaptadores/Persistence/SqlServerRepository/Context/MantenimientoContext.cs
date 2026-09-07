@@ -39,6 +39,9 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.
         public DbSet<TipoEntradaConocimientoParametro> TiposEntradaConocimiento => Set<TipoEntradaConocimientoParametro>();
         public DbSet<ResultadoEntradaConocimientoParametro> ResultadosEntradaConocimiento => Set<ResultadoEntradaConocimientoParametro>();
         public DbSet<AmbienteTicketParametro> AmbientesTicket => Set<AmbienteTicketParametro>();
+        public DbSet<TipoTicketParametro> TiposTicket => Set<TipoTicketParametro>();
+        public DbSet<PrioridadTicketParametro> PrioridadesTicket => Set<PrioridadTicketParametro>();
+        public DbSet<ImpactoTicketParametro> ImpactosTicket => Set<ImpactoTicketParametro>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -67,6 +70,9 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.
 
                 b.Property(t => t.IdOrigen).HasConversion<int>();
                 b.Property(t => t.IdEstado).HasConversion<int>();
+                b.Property(t => t.IdTipo).HasConversion<int?>();
+                b.Property(t => t.IdPrioridad).HasConversion<int?>();
+                b.Property(t => t.IdImpacto).HasConversion<int?>();
                 b.Property(t => t.CausaRaiz).HasMaxLength(1000);
                 b.Property(t => t.SolucionPropuesta).HasMaxLength(1000);
                 b.Property(t => t.EsDesarrollo)
@@ -93,6 +99,18 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.
                 b.HasOne<Usuario>()
                     .WithMany()
                     .HasForeignKey(t => t.IdUsuarioAsignado)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne<TipoTicketParametro>()
+                    .WithMany()
+                    .HasForeignKey(t => t.IdTipo)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne<PrioridadTicketParametro>()
+                    .WithMany()
+                    .HasForeignKey(t => t.IdPrioridad)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne<ImpactoTicketParametro>()
+                    .WithMany()
+                    .HasForeignKey(t => t.IdImpacto)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
@@ -221,6 +239,33 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.
                 b.ToTable("areas");
                 b.HasKey(item => item.IdArea);
                 b.Property(item => item.Area).IsRequired();
+                b.Property(item => item.Descripcion).HasMaxLength(200);
+            });
+
+            modelBuilder.Entity<TipoTicketParametro>(b =>
+            {
+                b.ToTable("tiposticket");
+                b.HasKey(item => item.IdTipo);
+                b.Property(item => item.IdTipo).HasConversion<int>();
+                b.Property(item => item.Tipo).HasMaxLength(50).IsRequired();
+                b.Property(item => item.Descripcion).HasMaxLength(200);
+            });
+
+            modelBuilder.Entity<PrioridadTicketParametro>(b =>
+            {
+                b.ToTable("prioridadesticket");
+                b.HasKey(item => item.IdPrioridad);
+                b.Property(item => item.IdPrioridad).HasConversion<int>();
+                b.Property(item => item.Prioridad).HasMaxLength(50).IsRequired();
+                b.Property(item => item.Descripcion).HasMaxLength(200);
+            });
+
+            modelBuilder.Entity<ImpactoTicketParametro>(b =>
+            {
+                b.ToTable("impactosticket");
+                b.HasKey(item => item.IdImpacto);
+                b.Property(item => item.IdImpacto).HasConversion<int>();
+                b.Property(item => item.Impacto).HasMaxLength(50).IsRequired();
                 b.Property(item => item.Descripcion).HasMaxLength(200);
             });
 

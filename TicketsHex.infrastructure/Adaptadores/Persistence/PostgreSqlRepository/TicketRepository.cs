@@ -88,6 +88,12 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
                 query = query.Where(t => t.IdEstado == filtro.Estado.Value);
             if (filtro.Origen.HasValue)
                 query = query.Where(t => t.IdOrigen == filtro.Origen.Value);
+            if (filtro.Tipo.HasValue)
+                query = query.Where(t => t.IdTipo == filtro.Tipo.Value);
+            if (filtro.Prioridad.HasValue)
+                query = query.Where(t => t.IdPrioridad == filtro.Prioridad.Value);
+            if (filtro.Impacto.HasValue)
+                query = query.Where(t => t.IdImpacto == filtro.Impacto.Value);
             if (filtro.IdUsuarioAsignado.HasValue)
                 query = query.Where(t => t.IdUsuarioAsignado == filtro.IdUsuarioAsignado.Value);
             if (!string.IsNullOrWhiteSpace(filtro.CodigoCaso))

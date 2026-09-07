@@ -244,12 +244,140 @@ public class TicketTests
         Assert.False(ticket.Activo);
     }
 
+    [Fact]
+    public void Creacion_exige_una_clasificacion_valida()
+    {
+        var ticket = CrearTicket();
+
+        Assert.Equal(TicketTipo.Incidente, ticket.IdTipo);
+        Assert.Equal(TicketPrioridad.Media, ticket.IdPrioridad);
+        Assert.Equal(TicketImpacto.Medio, ticket.IdImpacto);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new Ticket(
+            "CASO-INVALIDO",
+            "Título válido",
+            "Descripción suficientemente larga",
+            2,
+            1,
+            (TicketTipo)0,
+            TicketPrioridad.Media,
+            TicketImpacto.Medio));
+    }
+
+    [Fact]
+    public void Solo_planner_o_lider_pueden_modificar_la_clasificacion()
+    {
+        var ticket = CrearTicket();
+
+        Assert.Throws<UnauthorizedAccessException>(() =>
+            ticket.ActualizarClasificacion(
+                TicketTipo.Mejora,
+                TicketPrioridad.Alta,
+                TicketImpacto.Alto,
+                2,
+                Rol.Desarrollador));
+
+        ticket.ActualizarClasificacion(
+            TicketTipo.Mejora,
+            TicketPrioridad.Alta,
+            TicketImpacto.Alto,
+            1,
+            Rol.LiderTecnico);
+
+        Assert.Equal(TicketTipo.Mejora, ticket.IdTipo);
+        Assert.Equal(TicketPrioridad.Alta, ticket.IdPrioridad);
+        Assert.Equal(TicketImpacto.Alto, ticket.IdImpacto);
+    }
+
+    [Fact]
+    public void Capacidades_del_desarrollador_asignado_reflejan_acciones_y_flujo_normal()
+    {
+        var ticket = CrearTicket();
+
+        var acciones = ticket.ObtenerAccionesPermitidas(2, Rol.Desarrollador);
+        var transiciones = ticket.ObtenerTransicionesDisponibles(2, Rol.Desarrollador);
+
+        Assert.Contains(AccionTicketPermitida.EditarDescripcion, acciones);
+        Assert.Contains(AccionTicketPermitida.GestionarAplicativos, acciones);
+        Assert.DoesNotContain(AccionTicketPermitida.EditarClasificacion, acciones);
+        Assert.Contains(transiciones, item =>
+            item.EstadoDestino == TicketEstado.EnProceso &&
+            item.Tipo == TipoTransicionDisponible.Normal &&
+            !item.RequiereComentario);
+        Assert.DoesNotContain(transiciones, item => item.EstadoDestino == TicketEstado.Finalizado);
+    }
+
+    [Fact]
+    public void Antiguo_asignado_recibe_capacidades_de_solo_lectura()
+    {
+        var ticket = CrearTicket();
+        ticket.AsignarResponsable(
+            TipoResponsabilidadTicket.Desarrollo,
+            5,
+            1,
+            Rol.Planner,
+            "Cambio de desarrollador");
+
+        Assert.Empty(ticket.ObtenerAccionesPermitidas(2, Rol.Desarrollador));
+        Assert.Empty(ticket.ObtenerTransicionesDisponibles(2, Rol.Desarrollador));
+    }
+
+    [Fact]
+    public void Planner_recibe_transiciones_normales_excepcionales_y_override()
+    {
+        var ticket = CrearTicket();
+
+        Assert.DoesNotContain(
+            AccionTicketPermitida.EditarHu,
+            ticket.ObtenerAccionesPermitidas(1, Rol.Planner));
+        var transiciones = ticket.ObtenerTransicionesDisponibles(1, Rol.Planner);
+
+        Assert.Contains(transiciones, item =>
+            item.EstadoDestino == TicketEstado.EnProceso &&
+            item.Tipo == TipoTransicionDisponible.Normal &&
+            !item.RequiereComentario);
+        Assert.Contains(transiciones, item =>
+            item.EstadoDestino == TicketEstado.PendienteCertificacion &&
+            item.Tipo == TipoTransicionDisponible.Override &&
+            item.RequiereComentario);
+        Assert.Contains(transiciones, item =>
+            item.EstadoDestino == TicketEstado.BUG &&
+            item.Tipo == TipoTransicionDisponible.Excepcion &&
+            item.RequiereComentario);
+        Assert.Contains(transiciones, item =>
+            item.EstadoDestino == TicketEstado.Finalizado &&
+            item.RequiereComentario);
+    }
+
+    [Fact]
+    public void Capacidades_omiten_transiciones_que_requieren_un_QA_no_asignado()
+    {
+        var ticket = CrearTicket(incluirQa: false);
+
+        var transiciones = ticket.ObtenerTransicionesDisponibles(1, Rol.Planner);
+
+        Assert.DoesNotContain(transiciones, item => item.EstadoDestino == TicketEstado.EnReplicaQA);
+        Assert.DoesNotContain(transiciones, item => item.EstadoDestino == TicketEstado.EnRevisionQA);
+    }
+
+    [Fact]
+    public void Ticket_finalizado_no_expone_acciones_ni_transiciones()
+    {
+        var ticket = CrearTicket();
+        ticket.ActualizarEstado(TicketEstado.Finalizado, 1, Rol.Planner, "Caso resuelto externamente");
+
+        Assert.Empty(ticket.ObtenerAccionesPermitidas(1, Rol.Planner));
+        Assert.Empty(ticket.ObtenerTransicionesDisponibles(1, Rol.Planner));
+    }
+
     private static Ticket CrearTicket(bool incluirQa = true) => new(
         "CASO-001",
         "Título válido",
         "Descripción suficientemente larga",
         usuarioAsignado: 2,
         idUsuarioCreador: 1,
+        tipo: TicketTipo.Incidente,
+        prioridad: TicketPrioridad.Media,
+        impacto: TicketImpacto.Medio,
         TicketOrigen.SAIA,
         usuarioQa: incluirQa ? 3 : null);
 }

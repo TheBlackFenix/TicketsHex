@@ -74,7 +74,7 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
             if (!puedeConsultarTodos && !ticket.PuedeConsultar(_usuarioActual.IdUsuario, _usuarioActual.Rol))
                 throw new UnauthorizedAccessException("No tiene acceso a este ticket.");
 
-            return ticket.ToDto();
+            return ticket.ToDto(_usuarioActual.IdUsuario, _usuarioActual.Rol);
         }
 
         private async Task<PaginaResultado<TicketDTO>> ObtenerPaginaAsync(TicketFiltroRequest filtro)
@@ -83,11 +83,13 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
             return MapearPagina(pagina);
         }
 
-        private static PaginaResultado<TicketDTO> MapearPagina(
+        private PaginaResultado<TicketDTO> MapearPagina(
             PaginaResultado<TicketsHex.Domain.Entidades.Ticket.Ticket> pagina)
         {
             return new PaginaResultado<TicketDTO>(
-                pagina.Elementos.Select(ticket => ticket.ToDto()).ToArray(),
+                pagina.Elementos
+                    .Select(ticket => ticket.ToDto(_usuarioActual.IdUsuario, _usuarioActual.Rol))
+                    .ToArray(),
                 pagina.Pagina,
                 pagina.TamanoPagina,
                 pagina.TotalElementos);

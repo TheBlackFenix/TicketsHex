@@ -195,7 +195,10 @@ public class UsuarioServiceTests
             "Ticket con carga",
             "Descripción suficientemente larga",
             usuario.IdUsuario,
-            1);
+            1,
+            TicketTipo.Incidente,
+            TicketPrioridad.Media,
+            TicketImpacto.Medio);
         var service = CrearServicio(
             new UsuarioRepositoryFake(usuario),
             new AutenticacionRepositoryFake(usuario),

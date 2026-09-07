@@ -78,12 +78,33 @@ public sealed class TicketQueryTests
         Assert.Equal(ticket.IdTicket, resultado.Elementos.Single().IdTicket);
     }
 
+    [Fact]
+    public async Task DTO_incluye_clasificacion_y_capacidades_del_usuario_actual()
+    {
+        var ticket = CrearTicket();
+        var query = new TicketQuery(
+            new TicketRepositoryFake(ticket),
+            new UsuarioActualFake(2, Rol.Desarrollador));
+
+        var resultado = await query.ObtenerTicketPorIdAsync(ticket.IdTicket);
+
+        Assert.Equal(TicketTipo.Incidente, resultado.Tipo);
+        Assert.Equal(TicketPrioridad.Media, resultado.Prioridad);
+        Assert.Equal(TicketImpacto.Medio, resultado.Impacto);
+        Assert.Contains(AccionTicketPermitida.EditarDescripcion, resultado.Capacidades.AccionesPermitidas);
+        Assert.Contains(resultado.Capacidades.TransicionesDisponibles, item =>
+            item.EstadoDestino == TicketEstado.EnProceso);
+    }
+
     private static Ticket CrearTicket() => new(
         "CASO-001",
         "Ticket de prueba",
         "DescripciÃ³n suficientemente larga",
         2,
         1,
+        TicketTipo.Incidente,
+        TicketPrioridad.Media,
+        TicketImpacto.Medio,
         TicketOrigen.SAIA);
 
     private sealed class UsuarioActualFake(long idUsuario, Rol rol) : IUsuarioActual

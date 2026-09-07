@@ -112,6 +112,39 @@ namespace TicketsHex.Domain.Entidades.Ticket
         public static bool EsEstadoAccesibleParaQa(TicketEstado estado) =>
             EstadosQa.Contains(estado);
 
+        public static TipoTransicionDisponible ObtenerTipoTransicion(
+            TicketEstado estadoActual,
+            TicketEstado estadoDestino)
+        {
+            if (estadoDestino is TicketEstado.BUG or TicketEstado.Rollback or TicketEstado.Finalizado ||
+                EstadosConSalidaLibre.Contains(estadoActual))
+            {
+                return TipoTransicionDisponible.Excepcion;
+            }
+
+            return ReglasDeTransicion.Any(item =>
+                item.EstadoOrigen == estadoActual && item.EstadoDestino == estadoDestino)
+                ? TipoTransicionDisponible.Normal
+                : TipoTransicionDisponible.Override;
+        }
+
+        public static bool RequiereComentario(
+            TicketEstado estadoActual,
+            TicketEstado estadoDestino,
+            Rol rol)
+        {
+            if (estadoDestino is TicketEstado.BUG or TicketEstado.Rollback or TicketEstado.Finalizado)
+                return true;
+
+            var regla = ReglasDeTransicion.FirstOrDefault(item =>
+                item.EstadoOrigen == estadoActual && item.EstadoDestino == estadoDestino);
+            if (regla is not null)
+                return regla.RequiereComentario;
+
+            return rol is Rol.Planner or Rol.LiderTecnico &&
+                !EstadosConSalidaLibre.Contains(estadoActual);
+        }
+
         private static Rol[] ObtenerRolesPorDestino(TicketEstado estado) => estado switch
         {
             TicketEstado.EnProceso or

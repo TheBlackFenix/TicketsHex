@@ -25,7 +25,10 @@ public sealed class TicketCommandTests
             TicketOrigen.SAIA,
             "Ticket de prueba",
             "Descripción suficientemente larga",
-            2));
+            2,
+            TicketTipo.Incidente,
+            TicketPrioridad.Media,
+            TicketImpacto.Medio));
 
         Assert.NotEqual(Guid.Empty, idTicket);
         Assert.NotNull(tickets.TicketGuardado);
@@ -44,7 +47,10 @@ public sealed class TicketCommandTests
                 TicketOrigen.SAIA,
                 "Ticket de prueba",
                 "Descripción suficientemente larga",
-                2)));
+                2,
+                TicketTipo.Incidente,
+                TicketPrioridad.Media,
+                TicketImpacto.Medio)));
     }
 
     [Fact]
@@ -96,6 +102,93 @@ public sealed class TicketCommandTests
         Assert.True(tickets.FueActualizado);
     }
 
+    [Fact]
+    public async Task Planner_crea_ticket_con_HU_y_carpeta_en_una_sola_persistencia()
+    {
+        var tickets = new TicketRepositoryFake();
+        var command = CrearCommand(tickets, Rol.Planner);
+
+        await command.CrearTicketAsync(new CrearTicketRequest(
+            "CASO-002",
+            TicketOrigen.SAIA,
+            "Ticket de desarrollo",
+            "Descripción suficientemente larga",
+            2,
+            TicketTipo.Requerimiento,
+            TicketPrioridad.Alta,
+            TicketImpacto.Alto,
+            EsDesarrollo: true,
+            IdQaResponsable: 3,
+            NombreHu: "HU-200",
+            UrlHu: "https://dev.azure.com/equipo/proyecto/_workitems/edit/200",
+            CarpetaMedios: "medios/caso-002"));
+
+        Assert.Equal(1, tickets.CantidadGuardados);
+        Assert.False(tickets.FueActualizado);
+        Assert.Equal(TicketTipo.Requerimiento, tickets.TicketGuardado!.IdTipo);
+        Assert.Equal("HU-200", tickets.TicketGuardado.NombreHu);
+        Assert.Equal("medios/caso-002", tickets.TicketGuardado.CarpetaMedios);
+    }
+
+    [Fact]
+    public async Task Desarrollador_puede_incluir_carpeta_pero_no_HU_en_la_creacion()
+    {
+        var tickets = new TicketRepositoryFake();
+        var command = CrearCommand(tickets, Rol.Desarrollador);
+
+        await command.CrearTicketAsync(new CrearTicketRequest(
+            "CASO-003",
+            TicketOrigen.SAIA,
+            "Ticket de desarrollo",
+            "Descripción suficientemente larga",
+            2,
+            TicketTipo.Incidente,
+            TicketPrioridad.Media,
+            TicketImpacto.Medio,
+            EsDesarrollo: true,
+            CarpetaMedios: "medios/caso-003"));
+
+        Assert.Equal("medios/caso-003", tickets.TicketGuardado!.CarpetaMedios);
+
+        var otroRepositorio = new TicketRepositoryFake();
+        var otroCommand = CrearCommand(otroRepositorio, Rol.Desarrollador);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            otroCommand.CrearTicketAsync(new CrearTicketRequest(
+                "CASO-004",
+                TicketOrigen.SAIA,
+                "Ticket de desarrollo",
+                "Descripción suficientemente larga",
+                2,
+                TicketTipo.Incidente,
+                TicketPrioridad.Media,
+                TicketImpacto.Medio,
+                EsDesarrollo: true,
+                NombreHu: "HU-201",
+                UrlHu: "https://dev.azure.com/equipo/proyecto/_workitems/edit/201")));
+        Assert.Equal(0, otroRepositorio.CantidadGuardados);
+    }
+
+    [Fact]
+    public async Task No_persiste_si_se_envian_datos_tecnicos_sin_ser_desarrollo()
+    {
+        var tickets = new TicketRepositoryFake();
+        var command = CrearCommand(tickets, Rol.Planner);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            command.CrearTicketAsync(new CrearTicketRequest(
+                "CASO-005",
+                TicketOrigen.SAIA,
+                "Ticket no desarrollo",
+                "Descripción suficientemente larga",
+                2,
+                TicketTipo.Incidente,
+                TicketPrioridad.Baja,
+                TicketImpacto.Bajo,
+                CarpetaMedios: "medios/no-valido")));
+
+        Assert.Equal(0, tickets.CantidadGuardados);
+    }
+
     private static TicketCommand CrearCommand(TicketRepositoryFake tickets, Rol rol)
     {
         var idUsuario = rol == Rol.Desarrollador ? 2 : 1;
@@ -112,6 +205,9 @@ public sealed class TicketCommandTests
         "Descripción suficientemente larga",
         2,
         1,
+        TicketTipo.Incidente,
+        TicketPrioridad.Media,
+        TicketImpacto.Medio,
         TicketOrigen.SAIA,
         usuarioQa: 3);
 
@@ -151,6 +247,7 @@ public sealed class TicketCommandTests
     {
         public Ticket? TicketGuardado { get; private set; } = ticket;
         public bool FueActualizado { get; private set; }
+        public int CantidadGuardados { get; private set; }
 
         public Task<Ticket?> ObtenerPorIdAsync(Guid id, bool incluirEliminados = false) =>
             Task.FromResult(TicketGuardado?.IdTicket == id ? TicketGuardado : null);
@@ -172,6 +269,7 @@ public sealed class TicketCommandTests
         public Task GuardarAsync(Ticket ticketGuardado)
         {
             TicketGuardado = ticketGuardado;
+            CantidadGuardados++;
             return Task.CompletedTask;
         }
 

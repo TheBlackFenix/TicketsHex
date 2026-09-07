@@ -101,6 +101,9 @@ public sealed class RepositorioRamaServiceTests
                 "Descripción del ticket de prueba",
                 3,
                 1,
+                TicketTipo.Incidente,
+                TicketPrioridad.Media,
+                TicketImpacto.Medio,
                 TicketOrigen.SAIA,
                 esDesarrollo: true);
         }

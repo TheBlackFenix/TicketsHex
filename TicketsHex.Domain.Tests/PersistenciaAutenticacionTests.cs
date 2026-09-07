@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using TicketsHex.Domain.Entidades.Conocimiento;
+using TicketsHex.Domain.Entidades.Parametros;
+using TicketsHex.Domain.Entidades.Ticket;
 using TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.Context;
 using Xunit;
 using PostgreSqlContext = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.Context.MantenimientoContext;
@@ -74,6 +76,23 @@ public class PersistenciaAutenticacionTests
     }
 
     [Fact]
+    public void Modelos_ef_incluyen_clasificacion_y_catalogos_de_ticket()
+    {
+        var sqlServerOptions = new DbContextOptionsBuilder<MantenimientoContext>()
+            .UseSqlServer("Server=localhost,1433;Database=tickets;User Id=test;Password=test;TrustServerCertificate=True")
+            .Options;
+        using var sqlServerContext = new MantenimientoContext(sqlServerOptions);
+
+        var postgreSqlOptions = new DbContextOptionsBuilder<PostgreSqlContext>()
+            .UseNpgsql("Host=localhost;Database=tickets;Username=test;Password=test")
+            .Options;
+        using var postgreSqlContext = new PostgreSqlContext(postgreSqlOptions);
+
+        ValidarClasificacion(sqlServerContext.Model);
+        ValidarClasificacion(postgreSqlContext.Model);
+    }
+
+    [Fact]
     public void Modelos_ef_respetan_nombres_fisicos_de_columnas_de_conocimiento()
     {
         var sqlServerOptions = new DbContextOptionsBuilder<MantenimientoContext>()
@@ -120,5 +139,16 @@ public class PersistenciaAutenticacionTests
             "idestadoticket",
             revision.FindProperty(nameof(RevisionEntradaConocimiento.IdEstadoTicket))!
                 .GetColumnName(tablaRevision));
+    }
+
+    private static void ValidarClasificacion(IModel model)
+    {
+        var ticket = model.FindEntityType(typeof(Ticket))!;
+        Assert.NotNull(ticket.FindProperty(nameof(Ticket.IdTipo)));
+        Assert.NotNull(ticket.FindProperty(nameof(Ticket.IdPrioridad)));
+        Assert.NotNull(ticket.FindProperty(nameof(Ticket.IdImpacto)));
+        Assert.NotNull(model.FindEntityType(typeof(TipoTicketParametro)));
+        Assert.NotNull(model.FindEntityType(typeof(PrioridadTicketParametro)));
+        Assert.NotNull(model.FindEntityType(typeof(ImpactoTicketParametro)));
     }
 }

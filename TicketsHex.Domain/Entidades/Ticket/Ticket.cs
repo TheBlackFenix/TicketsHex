@@ -15,6 +15,9 @@ namespace TicketsHex.Domain.Entidades.Ticket
         public long? IdUsuarioAsignado { get; set; }
         public TicketOrigen IdOrigen { get; set; }
         public TicketEstado IdEstado { get; set; }
+        public TicketTipo? IdTipo { get; set; }
+        public TicketPrioridad? IdPrioridad { get; set; }
+        public TicketImpacto? IdImpacto { get; set; }
         public string? CarpetaMedios { get; set; }
         public string? CausaRaiz { get; set; }
         public string? SolucionPropuesta { get; set; }
@@ -42,6 +45,9 @@ namespace TicketsHex.Domain.Entidades.Ticket
             string descripcion,
             long? usuarioAsignado,
             long idUsuarioCreador,
+            TicketTipo tipo,
+            TicketPrioridad prioridad,
+            TicketImpacto impacto,
             TicketOrigen origenTicket = TicketOrigen.SAIA,
             bool esDesarrollo = false,
             long? usuarioQa = null)
@@ -52,6 +58,12 @@ namespace TicketsHex.Domain.Entidades.Ticket
                 throw new ArgumentException("El ID del usuario creador debe ser positivo.", nameof(idUsuarioCreador));
             if (usuarioQa is not null && usuarioQa <= 0)
                 throw new ArgumentException("El ID del QA debe ser positivo.", nameof(usuarioQa));
+            if (!Enum.IsDefined(tipo))
+                throw new ArgumentOutOfRangeException(nameof(tipo), tipo, "El tipo de ticket no es válido.");
+            if (!Enum.IsDefined(prioridad))
+                throw new ArgumentOutOfRangeException(nameof(prioridad), prioridad, "La prioridad no es válida.");
+            if (!Enum.IsDefined(impacto))
+                throw new ArgumentOutOfRangeException(nameof(impacto), impacto, "El impacto no es válido.");
 
             IdTicket = Guid.NewGuid();
             CodigoCaso = new CodigoCasoVO(codigoCaso); // Mapeado a VARCHAR(20) en tu script
@@ -62,6 +74,9 @@ namespace TicketsHex.Domain.Entidades.Ticket
             IdUsuarioAsignado = usuarioAsignado;
             IdOrigen = origenTicket;
             IdEstado = TicketEstado.EnAnalisis;
+            IdTipo = tipo;
+            IdPrioridad = prioridad;
+            IdImpacto = impacto;
             EsDesarrollo = esDesarrollo;
             Activo = true;
 
@@ -231,6 +246,31 @@ namespace TicketsHex.Domain.Entidades.Ticket
             RegistrarAuditoria(idUsuarioActualizacion, "Título actualizado.");
         }
 
+        public void ActualizarClasificacion(
+            TicketTipo? tipo,
+            TicketPrioridad? prioridad,
+            TicketImpacto? impacto,
+            long idUsuarioActualizacion,
+            Rol rolActualiza)
+        {
+            ValidarModificable();
+            if (!EsSupervisor(rolActualiza))
+                throw new UnauthorizedAccessException("Solo Planner o Líder Técnico pueden actualizar la clasificación.");
+            if (!tipo.HasValue && !prioridad.HasValue && !impacto.HasValue)
+                throw new ArgumentException("Debe indicar al menos un campo de clasificación.");
+            if (tipo.HasValue && !Enum.IsDefined(tipo.Value))
+                throw new ArgumentOutOfRangeException(nameof(tipo), tipo, "El tipo de ticket no es válido.");
+            if (prioridad.HasValue && !Enum.IsDefined(prioridad.Value))
+                throw new ArgumentOutOfRangeException(nameof(prioridad), prioridad, "La prioridad no es válida.");
+            if (impacto.HasValue && !Enum.IsDefined(impacto.Value))
+                throw new ArgumentOutOfRangeException(nameof(impacto), impacto, "El impacto no es válido.");
+
+            IdTipo = tipo ?? IdTipo;
+            IdPrioridad = prioridad ?? IdPrioridad;
+            IdImpacto = impacto ?? IdImpacto;
+            RegistrarAuditoria(idUsuarioActualizacion, "Clasificación del ticket actualizada.");
+        }
+
         public void ActualizarDiagnostico(
             string? causaRaiz,
             string? solucionPropuesta,
@@ -368,6 +408,81 @@ namespace TicketsHex.Domain.Entidades.Ticket
              (rol == Rol.Desarrollador &&
               IdUsuarioAsignado == idUsuario &&
               EsResponsableFuncional(idUsuario, TipoResponsabilidadTicket.Desarrollo)));
+
+        public IReadOnlyCollection<AccionTicketPermitida> ObtenerAccionesPermitidas(long idUsuario, Rol rol)
+        {
+            if (!Activo || IdEstado == TicketEstado.Finalizado)
+                return [];
+
+            var acciones = new HashSet<AccionTicketPermitida>();
+            var esSupervisor = EsSupervisor(rol);
+            var puedeEditarDesarrollo = PuedeEditarDatosDeDesarrollo(idUsuario, rol);
+
+            if (esSupervisor)
+            {
+                acciones.Add(AccionTicketPermitida.EditarTitulo);
+                acciones.Add(AccionTicketPermitida.EditarClasificacion);
+                if (EsDesarrollo)
+                    acciones.Add(AccionTicketPermitida.EditarHu);
+                acciones.Add(AccionTicketPermitida.ReasignarDesarrollo);
+                acciones.Add(AccionTicketPermitida.ReasignarQA);
+                acciones.Add(AccionTicketPermitida.CambiarCustodia);
+                acciones.Add(AccionTicketPermitida.Finalizar);
+            }
+
+            if (puedeEditarDesarrollo)
+            {
+                acciones.Add(AccionTicketPermitida.EditarDescripcion);
+                acciones.Add(AccionTicketPermitida.EditarDatosDesarrollo);
+                acciones.Add(AccionTicketPermitida.EditarDiagnostico);
+                acciones.Add(AccionTicketPermitida.GestionarAplicativos);
+                if (EsDesarrollo)
+                    acciones.Add(AccionTicketPermitida.GestionarRamas);
+            }
+
+            if (PuedeComentar(idUsuario, rol))
+                acciones.Add(AccionTicketPermitida.Comentar);
+            if (rol == Rol.Planner)
+                acciones.Add(AccionTicketPermitida.Eliminar);
+
+            return acciones.OrderBy(item => item).ToArray();
+        }
+
+        public IReadOnlyCollection<TransicionTicketDisponible> ObtenerTransicionesDisponibles(
+            long idUsuario,
+            Rol rol)
+        {
+            if (!Activo || IdEstado == TicketEstado.Finalizado)
+                return [];
+
+            var resultado = new List<TransicionTicketDisponible>();
+            foreach (var destino in Enum.GetValues<TicketEstado>().Where(item => item != IdEstado))
+            {
+                try
+                {
+                    ValidarAutorizacionTransicion(destino, idUsuario, rol);
+                    TicketWorkflow.ValidarTransicion(
+                        IdEstado,
+                        destino,
+                        rol,
+                        "Validación de capacidades");
+                    ValidarResponsableRequerido(destino);
+                    resultado.Add(new TransicionTicketDisponible(
+                        destino,
+                        TicketWorkflow.ObtenerTipoTransicion(IdEstado, destino),
+                        TicketWorkflow.RequiereComentario(IdEstado, destino, rol)));
+                }
+                catch (Exception exception) when (
+                    exception is InvalidOperationException or
+                        UnauthorizedAccessException or
+                        ArgumentException)
+                {
+                    // Una transición no disponible no forma parte del contrato de capacidades.
+                }
+            }
+
+            return resultado.OrderBy(item => item.EstadoDestino).ToArray();
+        }
 
         public void AsignarResponsable(
             TipoResponsabilidadTicket tipoResponsabilidad,

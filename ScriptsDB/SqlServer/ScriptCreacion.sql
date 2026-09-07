@@ -31,6 +31,27 @@ CREATE TABLE dbo.areas (
     activo BIT NOT NULL CONSTRAINT df_areas_activo DEFAULT (1)
 );
 
+CREATE TABLE dbo.tiposticket (
+    idtipo INT PRIMARY KEY,
+    tipo VARCHAR(50) NOT NULL,
+    descripcion VARCHAR(200) NULL,
+    activo BIT NOT NULL CONSTRAINT df_tiposticket_activo DEFAULT (1)
+);
+
+CREATE TABLE dbo.prioridadesticket (
+    idprioridad INT PRIMARY KEY,
+    prioridad VARCHAR(50) NOT NULL,
+    descripcion VARCHAR(200) NULL,
+    activo BIT NOT NULL CONSTRAINT df_prioridadesticket_activo DEFAULT (1)
+);
+
+CREATE TABLE dbo.impactosticket (
+    idimpacto INT PRIMARY KEY,
+    impacto VARCHAR(50) NOT NULL,
+    descripcion VARCHAR(200) NULL,
+    activo BIT NOT NULL CONSTRAINT df_impactosticket_activo DEFAULT (1)
+);
+
 CREATE TABLE dbo.aplicativos (
     idaplicativo UNIQUEIDENTIFIER PRIMARY KEY CONSTRAINT df_aplicativos_idaplicativo DEFAULT NEWID(),
     aplicativo VARCHAR(100) NOT NULL,
@@ -84,6 +105,9 @@ CREATE TABLE dbo.tickets (
     idusuarioasignado BIGINT NULL,
     idorigen INT NULL,
     idestado INT NOT NULL,
+    idtipo INT NOT NULL,
+    idprioridad INT NOT NULL,
+    idimpacto INT NOT NULL,
     carpetamedios VARCHAR(200) NULL,
     causaraiz VARCHAR(1000) NULL,
     solucionpropuesta VARCHAR(1000) NULL,
@@ -96,6 +120,9 @@ CREATE TABLE dbo.tickets (
     CONSTRAINT fk_tickets_usuarios_asignado FOREIGN KEY (idusuarioasignado) REFERENCES dbo.usuarios(idusuario),
     CONSTRAINT fk_tickets_origenesticket FOREIGN KEY (idorigen) REFERENCES dbo.origenesticket(idorigen),
     CONSTRAINT fk_tickets_estadosticket FOREIGN KEY (idestado) REFERENCES dbo.estadosticket(idestado),
+    CONSTRAINT fk_tickets_tiposticket FOREIGN KEY (idtipo) REFERENCES dbo.tiposticket(idtipo),
+    CONSTRAINT fk_tickets_prioridadesticket FOREIGN KEY (idprioridad) REFERENCES dbo.prioridadesticket(idprioridad),
+    CONSTRAINT fk_tickets_impactosticket FOREIGN KEY (idimpacto) REFERENCES dbo.impactosticket(idimpacto),
     CONSTRAINT fk_tickets_usuarios_eliminacion FOREIGN KEY (idusuarioeliminacion) REFERENCES dbo.usuarios(idusuario)
 );
 
@@ -322,6 +349,23 @@ INSERT INTO dbo.roles (idrol, nombrerol, descripcion, activo) VALUES
 (2, 'QA', 'Analista de calidad y pruebas', 1),
 (3, 'LiderTecnico', 'Aprobador tecnico y administrador del flujo', 1),
 (4, 'Planner', 'Planeador y certificador de entregas', 1);
+
+INSERT INTO dbo.tiposticket (idtipo, tipo, descripcion, activo) VALUES
+(1, 'Incidente', 'Falla o comportamiento inesperado', 1),
+(2, 'Requerimiento', 'Solicitud funcional o tecnica', 1),
+(3, 'Mejora', 'Optimización de una funcionalidad existente', 1);
+
+INSERT INTO dbo.prioridadesticket (idprioridad, prioridad, descripcion, activo) VALUES
+(1, 'Baja', 'Atencion sin urgencia operativa', 1),
+(2, 'Media', 'Atencion dentro del flujo ordinario', 1),
+(3, 'Alta', 'Atencion prioritaria', 1),
+(4, 'Crítica', 'Atencion inmediata', 1);
+
+INSERT INTO dbo.impactosticket (idimpacto, impacto, descripcion, activo) VALUES
+(1, 'Bajo', 'Afectacion limitada', 1),
+(2, 'Medio', 'Afectacion moderada', 1),
+(3, 'Alto', 'Afectacion significativa', 1),
+(4, 'Crítico', 'Afectacion general o de operacion critica', 1);
 
 INSERT INTO dbo.estadosticket (idestado, estado, descripcion, activo) VALUES
 (1, 'EnAnalisis', 'El caso esta siendo revisado inicialmente', 1),
