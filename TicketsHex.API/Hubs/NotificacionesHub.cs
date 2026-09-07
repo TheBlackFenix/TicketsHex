@@ -15,6 +15,8 @@ namespace TicketsHex.API.Hubs
         public const string GrupoPlanner = "notificaciones-planner";
         public const string GrupoLiderTecnico = "notificaciones-lider-tecnico";
         public const string EventoResumenActualizado = "notificacionesActualizadas";
+        public const string EventoNotificacionRecibida = "notificacionRecibida";
+        public const string EventoConteoNoLeidasActualizado = "conteoNotificacionesNoLeidasActualizado";
 
         private readonly INotificacionQuery _query;
         // 1. Declaramos la variable privada para el estado temporal
@@ -40,11 +42,32 @@ namespace TicketsHex.API.Hubs
                 await Groups.AddToGroupAsync(Context.ConnectionId, GrupoPlanner);
             if (Context.User?.IsInRole("LiderTecnico") == true)
                 await Groups.AddToGroupAsync(Context.ConnectionId, GrupoLiderTecnico);
+            await Groups.AddToGroupAsync(
+                Context.ConnectionId,
+                GrupoUsuario(_usuarioActual.IdUsuario));
 
-            // Ahora esta línea funcionará perfectamente porque el usuario ya está establecido
             await Clients.Caller.SendAsync(EventoResumenActualizado, await _query.ObtenerResumenAsync());
+            await Clients.Caller.SendAsync(
+                EventoConteoNoLeidasActualizado,
+                await _query.ObtenerConteoNoLeidasAsync());
             await base.OnConnectedAsync();
         }
+
+        public async Task ObtenerConteoNoLeidas()
+        {
+            if (!EstablecerUsuarioActual())
+            {
+                Context.Abort();
+                return;
+            }
+
+            await Clients.Caller.SendAsync(
+                EventoConteoNoLeidasActualizado,
+                await _query.ObtenerConteoNoLeidasAsync());
+        }
+
+        public static string GrupoUsuario(long idUsuario) =>
+            $"notificaciones-usuario-{idUsuario}";
 
         public async Task ObtenerResumen()
         {

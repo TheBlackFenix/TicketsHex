@@ -6,6 +6,7 @@ using TicketsHex.Domain.Entidades.Ticket;
 using TicketsHex.Domain.Entidades.Usuario;
 using TicketsHex.Domain.ValueObjects.Ticket;
 using TicketsHex.Domain.Entidades.Conocimiento;
+using TicketsHex.Domain.Entidades.Notificacion;
 using TicketsHex.infrastructure.Adaptadores.Persistence;
 
 namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.Context
@@ -42,11 +43,13 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.
         public DbSet<TipoTicketParametro> TiposTicket => Set<TipoTicketParametro>();
         public DbSet<PrioridadTicketParametro> PrioridadesTicket => Set<PrioridadTicketParametro>();
         public DbSet<ImpactoTicketParametro> ImpactosTicket => Set<ImpactoTicketParametro>();
+        public DbSet<NotificacionUsuario> NotificacionesUsuario => Set<NotificacionUsuario>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.HasDefaultSchema("dbo");
             modelBuilder.ConfigurarConocimiento(esSqlServer: true);
+            modelBuilder.ConfigurarNotificaciones();
 
             modelBuilder.Entity<Ticket>(b =>
             {
