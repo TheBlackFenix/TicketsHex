@@ -167,6 +167,9 @@ CREATE TABLE dbo.historicoasignacionesticket (
 CREATE INDEX ix_historicoasignacionesticket_usuario_ticket
     ON dbo.historicoasignacionesticket(idusuarioasignado, idticket);
 
+CREATE INDEX ix_historicoasignacionesticket_ticket_fecha
+    ON dbo.historicoasignacionesticket(idticket, fechaasignacion DESC);
+
 CREATE TABLE dbo.responsablesticket (
     idresponsableticket UNIQUEIDENTIFIER PRIMARY KEY CONSTRAINT df_responsablesticket_id DEFAULT NEWID(),
     idticket UNIQUEIDENTIFIER NOT NULL,
@@ -180,6 +183,9 @@ CREATE TABLE dbo.responsablesticket (
 
 CREATE UNIQUE INDEX ux_responsablesticket_ticket_tipo
     ON dbo.responsablesticket(idticket, idtiporesponsabilidad);
+
+CREATE INDEX ix_responsablesticket_usuario_ticket
+    ON dbo.responsablesticket(idusuario, idticket);
 
 CREATE TABLE dbo.repositorios (
     idrepositorio UNIQUEIDENTIFIER PRIMARY KEY CONSTRAINT df_repositorios_idrepositorio DEFAULT NEWID(),

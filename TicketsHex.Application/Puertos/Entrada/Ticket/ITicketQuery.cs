@@ -9,5 +9,8 @@ namespace TicketsHex.Application.Puertos.Entrada.Ticket
         Task<PaginaResultado<TicketDTO>> ObtenerListaTicketsAsync(TicketFiltroRequest filtro);
         Task<PaginaResultado<TicketDTO>> ObtenerMisTicketsAsync(TicketFiltroRequest filtro);
         Task<PaginaResultado<TicketDTO>> ObtenerHistoricoMisTicketsAsync(TicketFiltroRequest filtro);
+        Task<PaginaResultado<HistorialAsignacionTicketDTO>> ObtenerHistorialAsignacionesAsync(
+            Guid idTicket,
+            HistorialAsignacionTicketFiltroRequest filtro);
     }
 }

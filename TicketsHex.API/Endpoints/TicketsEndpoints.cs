@@ -53,6 +53,17 @@ namespace TicketsHex.API.Endpoints
                     "Ticket consultado correctamente."));
             });
 
+            group.MapGet("/{id:guid}/historial-asignaciones", async (
+                Guid id,
+                [AsParameters] HistorialAsignacionTicketFiltroRequest filtro,
+                ITicketQuery queries) =>
+            {
+                var historial = await queries.ObtenerHistorialAsignacionesAsync(id, filtro);
+                return Results.Ok(ApiResponse<PaginaResultado<HistorialAsignacionTicketDTO>>.Ok(
+                    historial,
+                    "Historial de asignaciones consultado correctamente."));
+            });
+
             group.MapPost("/", async (CrearTicketRequest request, ITicketCommand commands) =>
             {
                 var id = await commands.CrearTicketAsync(request);

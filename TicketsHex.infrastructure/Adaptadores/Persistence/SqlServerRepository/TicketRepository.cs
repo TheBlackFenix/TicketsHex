@@ -42,11 +42,18 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository
         public Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(TicketFiltroRequest filtro) =>
             ObtenerPaginaAsync(_dbContext.Tickets.AsNoTracking(), filtro);
 
-        public Task<PaginaResultado<Ticket>> ObtenerPaginaParaQaAsync(TicketFiltroRequest filtro)
+        public Task<PaginaResultado<Ticket>> ObtenerPaginaParaQaAsync(
+            long idUsuario,
+            TicketFiltroRequest filtro)
         {
             var estadosQa = TicketWorkflow.EstadosAccesiblesParaQa.ToArray();
             return ObtenerPaginaAsync(
-                _dbContext.Tickets.AsNoTracking().Where(ticket => estadosQa.Contains(ticket.IdEstado)),
+                _dbContext.Tickets.AsNoTracking().Where(ticket =>
+                    estadosQa.Contains(ticket.IdEstado) ||
+                    ticket.IdUsuarioAsignado == idUsuario ||
+                    ticket.Responsables.Any(responsable => responsable.IdUsuario == idUsuario) ||
+                    ticket.HistoricoAsignaciones.Any(
+                        asignacion => asignacion.IdUsuarioAsignado == idUsuario)),
                 filtro);
         }
 

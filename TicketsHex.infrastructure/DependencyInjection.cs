@@ -16,6 +16,7 @@ using SqlServerRepositorioRamaRepository = TicketsHex.infrastructure.Adaptadores
 using SqlServerTicketRepository = TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.TicketRepository;
 using SqlServerUsuarioRepository = TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.UsuarioRepository;
 using SqlServerNotificacionRepository = TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.NotificacionRepository;
+using SqlServerHistorialAsignacionTicketRepository = TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.HistorialAsignacionTicketRepository;
 using PostgreSqlContext = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.Context.MantenimientoContext;
 using PostgreSqlAplicativoRepository = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.AplicativoRepository;
 using PostgreSqlAutenticacionRepository = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.AutenticacionRepository;
@@ -24,6 +25,7 @@ using PostgreSqlRepositorioRamaRepository = TicketsHex.infrastructure.Adaptadore
 using PostgreSqlTicketRepository = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.TicketRepository;
 using PostgreSqlUsuarioRepository = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.UsuarioRepository;
 using PostgreSqlNotificacionRepository = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.NotificacionRepository;
+using PostgreSqlHistorialAsignacionTicketRepository = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.HistorialAsignacionTicketRepository;
 using SqlServerConocimientoTicketRepository = TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.ConocimientoTicketRepository;
 using PostgreSqlConocimientoTicketRepository = TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.ConocimientoTicketRepository;
 
@@ -52,6 +54,7 @@ namespace TicketsHex.infrastructure
                 options.UseSqlServer(connectionString));
 
             services.AddScoped<ITicketRepository, SqlServerTicketRepository>();
+            services.AddScoped<IHistorialAsignacionTicketRepository, SqlServerHistorialAsignacionTicketRepository>();
             services.AddScoped<IUsuarioRepository, SqlServerUsuarioRepository>();
             services.AddScoped<IParametroRepository, SqlServerParametroRepository>();
             services.AddScoped<IAutenticacionRepository, SqlServerAutenticacionRepository>();
@@ -67,6 +70,7 @@ namespace TicketsHex.infrastructure
                 options.UseNpgsql(connectionString));
 
             services.AddScoped<ITicketRepository, PostgreSqlTicketRepository>();
+            services.AddScoped<IHistorialAsignacionTicketRepository, PostgreSqlHistorialAsignacionTicketRepository>();
             services.AddScoped<IUsuarioRepository, PostgreSqlUsuarioRepository>();
             services.AddScoped<IParametroRepository, PostgreSqlParametroRepository>();
             services.AddScoped<IAutenticacionRepository, PostgreSqlAutenticacionRepository>();

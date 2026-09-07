@@ -11,11 +11,16 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
     public class TicketQuery : ITicketQuery
     {
         private readonly ITicketRepository _ticketRepository;
+        private readonly IHistorialAsignacionTicketRepository _historialAsignacionesRepository;
         private readonly IUsuarioActual _usuarioActual;
 
-        public TicketQuery(ITicketRepository ticketRepository, IUsuarioActual usuarioActual)
+        public TicketQuery(
+            ITicketRepository ticketRepository,
+            IHistorialAsignacionTicketRepository historialAsignacionesRepository,
+            IUsuarioActual usuarioActual)
         {
             _ticketRepository = ticketRepository;
+            _historialAsignacionesRepository = historialAsignacionesRepository;
             _usuarioActual = usuarioActual;
         }
 
@@ -25,7 +30,9 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
             if (_usuarioActual.Rol == Rol.QA)
             {
                 filtroNormalizado = filtroNormalizado with { IncluirEliminados = false };
-                var paginaQa = await _ticketRepository.ObtenerPaginaParaQaAsync(filtroNormalizado);
+                var paginaQa = await _ticketRepository.ObtenerPaginaParaQaAsync(
+                    _usuarioActual.IdUsuario,
+                    filtroNormalizado);
                 return MapearPagina(paginaQa);
             }
 
@@ -75,6 +82,31 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
                 throw new UnauthorizedAccessException("No tiene acceso a este ticket.");
 
             return ticket.ToDto(_usuarioActual.IdUsuario, _usuarioActual.Rol);
+        }
+
+        public async Task<PaginaResultado<HistorialAsignacionTicketDTO>> ObtenerHistorialAsignacionesAsync(
+            Guid idTicket,
+            HistorialAsignacionTicketFiltroRequest filtro)
+        {
+            var filtroNormalizado = filtro.Normalizar();
+            var puedeConsultarTodos = PuedeConsultarTodosLosTickets();
+            var puedeConsultarEliminados = _usuarioActual.Rol == Rol.Planner;
+            var ticket = await _historialAsignacionesRepository.ObtenerTicketParaValidarAccesoAsync(
+                idTicket,
+                _usuarioActual.IdUsuario,
+                puedeConsultarEliminados)
+                ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
+
+            if (!puedeConsultarTodos &&
+                !ticket.PuedeConsultar(_usuarioActual.IdUsuario, _usuarioActual.Rol))
+            {
+                throw new UnauthorizedAccessException(
+                    "No tiene acceso al historial de asignaciones de este ticket.");
+            }
+
+            return await _historialAsignacionesRepository.ObtenerPaginaAsync(
+                idTicket,
+                filtroNormalizado);
         }
 
         private async Task<PaginaResultado<TicketDTO>> ObtenerPaginaAsync(TicketFiltroRequest filtro)

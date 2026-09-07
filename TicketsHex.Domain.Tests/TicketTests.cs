@@ -71,6 +71,46 @@ public class TicketTests
         Assert.Equal(3, ticket.IdUsuarioAsignado);
     }
 
+    [Theory]
+    [InlineData(TicketEstado.EnReplicaQA)]
+    [InlineData(TicketEstado.DespliegueApitesting)]
+    [InlineData(TicketEstado.EnRevisionApitesting)]
+    [InlineData(TicketEstado.AprobadoApitesting)]
+    [InlineData(TicketEstado.DespligueQA)]
+    [InlineData(TicketEstado.EnRevisionQA)]
+    [InlineData(TicketEstado.AprobadoQA)]
+    [InlineData(TicketEstado.PendienteCertificacion)]
+    [InlineData(TicketEstado.Certificado)]
+    [InlineData(TicketEstado.BUG)]
+    public void Cualquier_QA_puede_consultar_y_comentar_en_estados_colaborativos(
+        TicketEstado estado)
+    {
+        var ticket = CrearTicket();
+        ticket.IdEstado = estado;
+
+        Assert.True(ticket.PuedeConsultar(50, Rol.QA));
+        Assert.True(ticket.PuedeComentar(50, Rol.QA));
+    }
+
+    [Fact]
+    public void QA_no_designado_no_tiene_acceso_global_a_rollback()
+    {
+        var ticket = CrearTicket();
+        ticket.IdEstado = TicketEstado.Rollback;
+
+        Assert.False(ticket.PuedeConsultar(50, Rol.QA));
+        Assert.False(ticket.PuedeComentar(50, Rol.QA));
+    }
+
+    [Fact]
+    public void QA_responsable_puede_consultar_ticket_en_etapa_de_desarrollo()
+    {
+        var ticket = CrearTicket();
+
+        Assert.True(ticket.PuedeConsultar(3, Rol.QA));
+        Assert.False(ticket.PuedeComentar(3, Rol.QA));
+    }
+
     [Fact]
     public void Replica_QA_transfiere_custodia_y_regresa_a_desarrollo_con_comentario()
     {

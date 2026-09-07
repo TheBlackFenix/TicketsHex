@@ -215,7 +215,9 @@ public sealed class ConocimientoTicketTests
             Task.FromResult<Ticket?>(id == ticket.IdTicket ? ticket : null);
         public Task<PaginaResultado<Ticket>> ObtenerPaginaAsync(TicketFiltroRequest filtro) =>
             Task.FromResult(new PaginaResultado<Ticket>([], 1, 20, 0));
-        public Task<PaginaResultado<Ticket>> ObtenerPaginaParaQaAsync(TicketFiltroRequest filtro) =>
+        public Task<PaginaResultado<Ticket>> ObtenerPaginaParaQaAsync(
+            long idUsuario,
+            TicketFiltroRequest filtro) =>
             Task.FromResult(new PaginaResultado<Ticket>([], 1, 20, 0));
         public Task<PaginaResultado<Ticket>> ObtenerPaginaPorAsignacionHistoricaAsync(long idUsuario, TicketFiltroRequest filtro) =>
             Task.FromResult(new PaginaResultado<Ticket>([], 1, 20, 0));
