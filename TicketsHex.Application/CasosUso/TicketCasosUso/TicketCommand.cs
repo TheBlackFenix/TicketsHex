@@ -1,5 +1,6 @@
 using TicketsHex.Application.Comun.Excepciones;
 using TicketsHex.Application.DTO_s.Ticket;
+using TicketsHex.Application.Puertos.Entrada.Notificacion;
 using TicketsHex.Application.Puertos.Entrada.Ticket;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Ticket;
@@ -14,18 +15,18 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
         private readonly ITicketRepository _ticketRepository;
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IUsuarioActual _usuarioActual;
-        private readonly INotificacionPublisher _notificacionPublisher;
+        private readonly INotificacionTicketService _notificacionService;
 
         public TicketCommand(
             ITicketRepository ticketRepository,
             IUsuarioRepository usuarioRepository,
             IUsuarioActual usuarioActual,
-            INotificacionPublisher notificacionPublisher)
+            INotificacionTicketService notificacionService)
         {
             _ticketRepository = ticketRepository;
             _usuarioRepository = usuarioRepository;
             _usuarioActual = usuarioActual;
-            _notificacionPublisher = notificacionPublisher;
+            _notificacionService = notificacionService;
         }
 
         public async Task<Guid> CrearTicketAsync(CrearTicketRequest request)
@@ -73,9 +74,12 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
                     _usuarioActual.Rol);
             }
 
+            var notificaciones = await _notificacionService.PrepararCreacionAsync(ticket);
             await _ticketRepository.GuardarAsync(ticket);
-            if (ticket.EsDesarrollo)
-                await _notificacionPublisher.PublicarResumenAsync();
+            await _notificacionService.PublicarAsync(
+                ticket,
+                notificaciones,
+                publicarResumen: ticket.EsDesarrollo);
             return ticket.IdTicket;
         }
 
@@ -83,6 +87,7 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
         {
             var ticket = await ObtenerTicketActivoAsync(ticketId);
             var huboCambios = false;
+            var contextoNotificaciones = _notificacionService.CapturarContexto(ticket);
 
             if (request.CausaRaiz is not null || request.SolucionPropuesta is not null)
             {
@@ -153,8 +158,11 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
             if (!huboCambios)
                 throw new ArgumentException("Debe indicar al menos un campo para actualizar.");
 
+            var notificaciones = await _notificacionService.PrepararActualizacionAsync(
+                ticket,
+                contextoNotificaciones);
             await _ticketRepository.ActualizarAsync(ticket);
-            await _notificacionPublisher.PublicarResumenAsync();
+            await _notificacionService.PublicarAsync(ticket, notificaciones);
         }
 
         public Task AsignarResponsableDesarrolloAsync(
@@ -187,16 +195,21 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
                 _usuarioActual.IdUsuario,
                 _usuarioActual.Rol,
                 request.Comentario);
+            var notificaciones = await _notificacionService.PrepararAsignacionAsync(
+                ticket,
+                request.IdUsuario,
+                "Se te asignó la responsabilidad actual del ticket.");
             await _ticketRepository.ActualizarAsync(ticket);
-            await _notificacionPublisher.PublicarResumenAsync();
+            await _notificacionService.PublicarAsync(ticket, notificaciones);
         }
 
         public async Task EliminarTicketAsync(Guid ticketId, string? comentario)
         {
             var ticket = await ObtenerTicketActivoAsync(ticketId);
             ticket.EliminarLogicamente(_usuarioActual.IdUsuario, _usuarioActual.Rol, comentario);
+            var notificaciones = await _notificacionService.PrepararEliminacionAsync(ticket);
             await _ticketRepository.ActualizarAsync(ticket);
-            await _notificacionPublisher.PublicarResumenAsync();
+            await _notificacionService.PublicarAsync(ticket, notificaciones);
         }
 
         private async Task<Ticket> ObtenerTicketActivoAsync(Guid ticketId)
@@ -226,8 +239,15 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
                 _usuarioActual.IdUsuario,
                 _usuarioActual.Rol,
                 request.Comentario);
+            var mensaje = tipoResponsabilidad == TipoResponsabilidadTicket.Desarrollo
+                ? "Se te asignó como responsable de desarrollo del ticket."
+                : "Se te asignó como responsable de QA del ticket.";
+            var notificaciones = await _notificacionService.PrepararAsignacionAsync(
+                ticket,
+                request.IdUsuario,
+                mensaje);
             await _ticketRepository.ActualizarAsync(ticket);
-            await _notificacionPublisher.PublicarResumenAsync();
+            await _notificacionService.PublicarAsync(ticket, notificaciones);
         }
 
         private async Task<Usuario> ValidarUsuarioRolAsync(long idUsuario, Rol rolEsperado)

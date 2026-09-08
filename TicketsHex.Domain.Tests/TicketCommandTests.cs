@@ -1,8 +1,11 @@
 using TicketsHex.Application.CasosUso.TicketCasosUso;
+using TicketsHex.Application.CasosUso.NotificacionCasosUso;
 using TicketsHex.Application.Comun.Paginacion;
 using TicketsHex.Application.DTO_s.Ticket;
+using TicketsHex.Application.DTO_s.Notificacion;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Ticket;
+using TicketsHex.Domain.Entidades.Notificacion;
 using TicketsHex.Domain.Entidades.Usuario;
 using TicketsHex.Domain.Enums;
 using Xunit;
@@ -214,14 +217,266 @@ public sealed class TicketCommandTests
         Assert.Equal(0, tickets.CantidadGuardados);
     }
 
-    private static TicketCommand CrearCommand(TicketRepositoryFake tickets, Rol rol)
+    [Fact]
+    public async Task Creacion_notifica_a_responsables_iniciales_excepto_al_autor()
+    {
+        var tickets = new TicketRepositoryFake();
+        var notificaciones = new NotificacionRepositoryFake();
+        var publisher = new NotificacionPublisherFake();
+        var command = CrearCommand(tickets, Rol.Planner, notificaciones, publisher);
+
+        await command.CrearTicketAsync(new CrearTicketRequest(
+            "CASO-NOT-001",
+            TicketOrigen.SAIA,
+            "Ticket con responsables",
+            "Descripción suficientemente larga",
+            2,
+            TicketTipo.Incidente,
+            TicketPrioridad.Media,
+            TicketImpacto.Medio,
+            IdQaResponsable: 3));
+
+        Assert.Equal([2L, 3L], notificaciones.Notificaciones
+            .Select(item => item.IdUsuarioDestinatario)
+            .OrderBy(item => item));
+        Assert.Equal(2, publisher.Eventos.Count);
+    }
+
+    [Fact]
+    public async Task Desarrollador_que_crea_ticket_no_se_notifica_a_si_mismo()
+    {
+        var tickets = new TicketRepositoryFake();
+        var notificaciones = new NotificacionRepositoryFake();
+        var command = CrearCommand(tickets, Rol.Desarrollador, notificaciones);
+
+        await command.CrearTicketAsync(new CrearTicketRequest(
+            "CASO-NOT-002",
+            TicketOrigen.SAIA,
+            "Ticket creado por desarrollo",
+            "Descripción suficientemente larga",
+            2,
+            TicketTipo.Incidente,
+            TicketPrioridad.Media,
+            TicketImpacto.Medio));
+
+        Assert.Empty(notificaciones.Notificaciones);
+    }
+
+    [Fact]
+    public async Task Bloqueo_notifica_a_planners_y_lideres_activos()
+    {
+        var ticket = CrearTicket();
+        ticket.IdEstado = TicketEstado.EnProceso;
+        var notificaciones = new NotificacionRepositoryFake();
+        var command = CrearCommand(
+            new TicketRepositoryFake(ticket),
+            Rol.Desarrollador,
+            notificaciones);
+
+        await command.ActualizarTicketAsync(
+            ticket.IdTicket,
+            new ActualizarTicketRequest(
+                null,
+                null,
+                TicketEstado.Bloqueado,
+                null,
+                null,
+                "Dependencia externa"));
+
+        Assert.Equal([1L, 10L], notificaciones.Notificaciones
+            .Select(item => item.IdUsuarioDestinatario)
+            .OrderBy(item => item));
+        Assert.All(notificaciones.Notificaciones, item =>
+            Assert.Equal(TipoNotificacion.Bloqueo, item.IdTipoNotificacion));
+    }
+
+    [Theory]
+    [InlineData(TicketEstado.BUG, TipoNotificacion.Bug)]
+    [InlineData(TicketEstado.Rollback, TipoNotificacion.Rollback)]
+    public async Task Bug_y_rollback_notifican_a_dev_y_qa(
+        TicketEstado estado,
+        TipoNotificacion tipo)
+    {
+        var ticket = CrearTicket();
+        ticket.IdEstado = TicketEstado.EnRevisionQA;
+        var notificaciones = new NotificacionRepositoryFake();
+        var command = CrearCommand(
+            new TicketRepositoryFake(ticket),
+            Rol.Planner,
+            notificaciones);
+
+        await command.ActualizarTicketAsync(
+            ticket.IdTicket,
+            new ActualizarTicketRequest(
+                null,
+                null,
+                estado,
+                null,
+                null,
+                "Incidencia detectada"));
+
+        Assert.Equal([2L, 3L], notificaciones.Notificaciones
+            .Select(item => item.IdUsuarioDestinatario)
+            .OrderBy(item => item));
+        Assert.All(notificaciones.Notificaciones, item =>
+            Assert.Equal(tipo, item.IdTipoNotificacion));
+    }
+
+    [Fact]
+    public async Task Entrada_a_revision_QA_notifica_al_responsable_QA()
+    {
+        var ticket = CrearTicket();
+        ticket.IdEstado = TicketEstado.DespliegueApitesting;
+        var notificaciones = new NotificacionRepositoryFake();
+        var command = CrearCommand(
+            new TicketRepositoryFake(ticket),
+            Rol.Planner,
+            notificaciones);
+
+        await command.ActualizarTicketAsync(
+            ticket.IdTicket,
+            new ActualizarTicketRequest(
+                null,
+                null,
+                TicketEstado.EnRevisionApitesting,
+                null,
+                null,
+                null));
+
+        var notificacion = Assert.Single(notificaciones.Notificaciones);
+        Assert.Equal(3, notificacion.IdUsuarioDestinatario);
+        Assert.Equal(TipoNotificacion.SolicitudQa, notificacion.IdTipoNotificacion);
+    }
+
+    [Fact]
+    public async Task Devolucion_desde_replica_notifica_a_dev_y_qa()
+    {
+        var ticket = CrearTicket();
+        ticket.IdEstado = TicketEstado.EnReplicaQA;
+        ticket.IdUsuarioAsignado = 3;
+        var notificaciones = new NotificacionRepositoryFake();
+        var command = CrearCommand(
+            new TicketRepositoryFake(ticket),
+            Rol.Planner,
+            notificaciones);
+
+        await command.ActualizarTicketAsync(
+            ticket.IdTicket,
+            new ActualizarTicketRequest(
+                null,
+                null,
+                TicketEstado.EnAnalisis,
+                null,
+                null,
+                "Escenario aclarado"));
+
+        Assert.Equal([2L, 3L], notificaciones.Notificaciones
+            .Select(item => item.IdUsuarioDestinatario)
+            .OrderBy(item => item));
+        Assert.All(notificaciones.Notificaciones, item =>
+            Assert.Equal(TipoNotificacion.DevolucionQa, item.IdTipoNotificacion));
+    }
+
+    [Fact]
+    public async Task Reasignacion_notifica_solo_al_nuevo_responsable()
+    {
+        var ticket = CrearTicket();
+        var notificaciones = new NotificacionRepositoryFake();
+        var command = CrearCommand(
+            new TicketRepositoryFake(ticket),
+            Rol.Planner,
+            notificaciones);
+
+        await command.AsignarResponsableDesarrolloAsync(
+            ticket.IdTicket,
+            new AsignarResponsableTicketRequest(5, "Cambio de equipo"));
+
+        var notificacion = Assert.Single(notificaciones.Notificaciones);
+        Assert.Equal(5, notificacion.IdUsuarioDestinatario);
+        Assert.DoesNotContain(notificaciones.Notificaciones, item =>
+            item.IdUsuarioDestinatario == 2);
+    }
+
+    [Fact]
+    public async Task Hu_y_carpeta_generan_una_sola_notificacion_al_ser_agregadas()
+    {
+        var ticket = CrearTicket();
+        var notificaciones = new NotificacionRepositoryFake();
+        var command = CrearCommand(
+            new TicketRepositoryFake(ticket),
+            Rol.Planner,
+            notificaciones);
+        var request = new ActualizarTicketRequest(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            EsDesarrollo: true,
+            NombreHu: "HU-500",
+            UrlHu: "https://dev.azure.com/equipo/proyecto/_workitems/edit/500",
+            CarpetaMedios: "medios/caso-500");
+
+        await command.ActualizarTicketAsync(ticket.IdTicket, request);
+        await command.ActualizarTicketAsync(ticket.IdTicket, request);
+
+        var notificacion = Assert.Single(notificaciones.Notificaciones);
+        Assert.Equal(2, notificacion.IdUsuarioDestinatario);
+        Assert.Equal(TipoNotificacion.DatosDesarrolloDisponibles, notificacion.IdTipoNotificacion);
+        Assert.Contains("HU y carpeta", notificacion.Mensaje);
+    }
+
+    [Fact]
+    public async Task Finalizar_elimina_notificaciones_existentes_sin_crear_otra()
+    {
+        var ticket = CrearTicket();
+        var notificaciones = new NotificacionRepositoryFake();
+        notificaciones.Notificaciones.Add(new NotificacionUsuario(
+            2,
+            ticket.IdTicket,
+            TipoNotificacion.Asignacion,
+            "Notificación existente"));
+        var publisher = new NotificacionPublisherFake();
+        var command = CrearCommand(
+            new TicketRepositoryFake(ticket),
+            Rol.Planner,
+            notificaciones,
+            publisher);
+
+        await command.ActualizarTicketAsync(
+            ticket.IdTicket,
+            new ActualizarTicketRequest(
+                null,
+                null,
+                TicketEstado.Finalizado,
+                null,
+                null,
+                "Caso resuelto"));
+
+        Assert.Empty(notificaciones.Notificaciones);
+        Assert.Empty(publisher.Eventos);
+        Assert.Contains(2, publisher.UsuariosConConteoActualizado);
+    }
+
+    private static TicketCommand CrearCommand(
+        TicketRepositoryFake tickets,
+        Rol rol,
+        NotificacionRepositoryFake? notificaciones = null,
+        NotificacionPublisherFake? publisher = null)
     {
         var idUsuario = rol == Rol.Desarrollador ? 2 : 1;
+        var usuarioActual = new UsuarioActualFake(idUsuario, rol);
+        var repository = notificaciones ?? new NotificacionRepositoryFake();
+        var notificacionPublisher = publisher ?? new NotificacionPublisherFake();
         return new(
             tickets,
             new UsuarioRepositoryFake(rol),
-            new UsuarioActualFake(idUsuario, rol),
-            new NotificacionPublisherFake());
+            usuarioActual,
+            new NotificacionTicketService(
+                repository,
+                notificacionPublisher,
+                usuarioActual));
     }
 
     private static Ticket CrearTicket() => new(
@@ -250,6 +505,7 @@ public sealed class TicketCommandTests
             var rol = idUsuario switch
             {
                 2 => Rol.Desarrollador,
+                5 => Rol.Desarrollador,
                 3 => Rol.QA,
                 _ => rolActual
             };
@@ -312,6 +568,63 @@ public sealed class TicketCommandTests
 
     private sealed class NotificacionPublisherFake : INotificacionPublisher
     {
+        public List<NotificacionEventoDTO> Eventos { get; } = [];
+        public List<long> UsuariosConConteoActualizado { get; } = [];
+
         public Task PublicarResumenAsync() => Task.CompletedTask;
+        public Task PublicarNotificacionesAsync(IReadOnlyCollection<NotificacionEventoDTO> notificaciones)
+        {
+            Eventos.AddRange(notificaciones);
+            return Task.CompletedTask;
+        }
+        public Task PublicarConteosNoLeidasAsync(IReadOnlyCollection<long> idsUsuarios)
+        {
+            UsuariosConConteoActualizado.AddRange(idsUsuarios);
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class NotificacionRepositoryFake
+        : INotificacionRepository, INotificacionUsuarioRepository
+    {
+        public List<NotificacionUsuario> Notificaciones { get; } = [];
+
+        public Task<IReadOnlyCollection<TicketNotificacionDTO>> ObtenerTicketsDesarrolloSinHuAsync() =>
+            Task.FromResult<IReadOnlyCollection<TicketNotificacionDTO>>([]);
+        public Task<IReadOnlyCollection<TicketNotificacionDTO>> ObtenerTicketsDesarrolloSinCarpetaMediosAsync() =>
+            Task.FromResult<IReadOnlyCollection<TicketNotificacionDTO>>([]);
+        public Task<IReadOnlyCollection<TicketNotificacionDTO>> ObtenerTicketsDesarrolloSinRamasAsync() =>
+            Task.FromResult<IReadOnlyCollection<TicketNotificacionDTO>>([]);
+        public Task<IReadOnlyCollection<TicketNotificacionDTO>> ObtenerTicketsDesarrolloSinCarpetaMediosORamasAsync() =>
+            Task.FromResult<IReadOnlyCollection<TicketNotificacionDTO>>([]);
+        public Task PrepararNotificacionesAsync(IReadOnlyCollection<NotificacionUsuario> notificaciones)
+        {
+            Notificaciones.AddRange(notificaciones);
+            return Task.CompletedTask;
+        }
+        public Task<PaginaResultado<NotificacionUsuarioDTO>> ObtenerPaginaUsuarioAsync(long idUsuario, NotificacionFiltroRequest filtro) =>
+            Task.FromResult(new PaginaResultado<NotificacionUsuarioDTO>([], 1, 20, 0));
+        public Task<int> ObtenerCantidadNoLeidasAsync(long idUsuario) => Task.FromResult(0);
+        public Task<NotificacionUsuario?> ObtenerPorIdUsuarioAsync(Guid idNotificacion, long idUsuario) =>
+            Task.FromResult(Notificaciones.SingleOrDefault(item =>
+                item.IdNotificacion == idNotificacion && item.IdUsuarioDestinatario == idUsuario));
+        public Task<IReadOnlyCollection<NotificacionUsuario>> ObtenerNoLeidasUsuarioAsync(long idUsuario) =>
+            Task.FromResult<IReadOnlyCollection<NotificacionUsuario>>(
+                Notificaciones.Where(item => item.IdUsuarioDestinatario == idUsuario && !item.Leida).ToArray());
+        public Task<IReadOnlyCollection<long>> ObtenerIdsUsuariosActivosPorRolesAsync(IReadOnlyCollection<Rol> roles) =>
+            Task.FromResult<IReadOnlyCollection<long>>([1, 10]);
+        public Task<IReadOnlyCollection<long>> PrepararEliminacionPorTicketAsync(Guid idTicket)
+        {
+            var ids = Notificaciones
+                .Where(item => item.IdTicket == idTicket && !item.Leida)
+                .Select(item => item.IdUsuarioDestinatario)
+                .Distinct()
+                .ToArray();
+            Notificaciones.RemoveAll(item => item.IdTicket == idTicket);
+            return Task.FromResult<IReadOnlyCollection<long>>(ids);
+        }
+        public Task<IReadOnlyCollection<long>> EliminarExpiradasOFinalizadasAsync(DateTimeOffset fechaActual) =>
+            Task.FromResult<IReadOnlyCollection<long>>([]);
+        public Task GuardarCambiosAsync() => Task.CompletedTask;
     }
 }

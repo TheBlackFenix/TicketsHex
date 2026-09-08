@@ -209,6 +209,7 @@ try
         .AddApplication()
         .AddInfrastructure(builder.Configuration);
     builder.Services.AddScoped<INotificacionPublisher, SignalRNotificacionPublisher>();
+    builder.Services.AddHostedService<NotificacionesCleanupService>();
 
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(options =>

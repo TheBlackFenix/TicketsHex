@@ -61,6 +61,7 @@ namespace TicketsHex.infrastructure
             services.AddScoped<IRepositorioRamaRepository, SqlServerRepositorioRamaRepository>();
             services.AddScoped<IAplicativoRepository, SqlServerAplicativoRepository>();
             services.AddScoped<INotificacionRepository, SqlServerNotificacionRepository>();
+            services.AddScoped<INotificacionUsuarioRepository, SqlServerNotificacionRepository>();
             services.AddScoped<IConocimientoTicketRepository, SqlServerConocimientoTicketRepository>();
         }
 
@@ -77,6 +78,7 @@ namespace TicketsHex.infrastructure
             services.AddScoped<IRepositorioRamaRepository, PostgreSqlRepositorioRamaRepository>();
             services.AddScoped<IAplicativoRepository, PostgreSqlAplicativoRepository>();
             services.AddScoped<INotificacionRepository, PostgreSqlNotificacionRepository>();
+            services.AddScoped<INotificacionUsuarioRepository, PostgreSqlNotificacionRepository>();
             services.AddScoped<IConocimientoTicketRepository, PostgreSqlConocimientoTicketRepository>();
         }
     }

@@ -37,6 +37,8 @@ namespace TicketsHex.Application
             services.AddScoped<IRepositorioRamaService, RepositorioRamaService>();
             services.AddScoped<IAplicativoService, AplicativoService>();
             services.AddScoped<INotificacionQuery, NotificacionQuery>();
+            services.AddScoped<INotificacionCommand, NotificacionCommand>();
+            services.AddScoped<INotificacionTicketService, NotificacionTicketService>();
             services.AddScoped<IConocimientoTicketService, ConocimientoTicketService>();
             services.AddScoped<UsuarioActualTemporal>();
             services.AddScoped<IUsuarioActual>(provider =>
