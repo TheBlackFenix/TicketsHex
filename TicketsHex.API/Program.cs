@@ -47,7 +47,12 @@ try
     }
 
     builder.Configuration
-    .AddJsonFile("ErrorMessages.json", optional: false, reloadOnChange: true);
+        .AddJsonFile("ErrorMessages.json", optional: false, reloadOnChange: true)
+        .AddJsonFile(
+            $"ErrorMessages.{builder.Environment.EnvironmentName}.json",
+            optional: true,
+            reloadOnChange: true)
+        .AddEnvironmentVariables();
 
     ConfiguracionAplicacion.Registrar(builder.Services, builder.Configuration);
 
@@ -325,3 +330,5 @@ finally
     Log.Information("Terminando el servicio");
     await Log.CloseAndFlushAsync();
 }
+
+public partial class Program;

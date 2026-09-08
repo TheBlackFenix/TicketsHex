@@ -100,11 +100,14 @@ public class AutenticacionServiceTests
         var contexto = CrearContexto();
         var hashActual = contexto.Usuario.ContrasenaHash;
 
-        await Assert.ThrowsAsync<UsuarioNoAutenticadoException>(() =>
+        var error = await Assert.ThrowsAsync<UsuarioNoAutenticadoException>(() =>
             contexto.Service.CambiarContrasenaAsync(
                 contexto.Usuario.IdUsuario,
                 new CambiarContrasenaRequest("Incorrecta#2026", "Nueva#2026")));
 
+        Assert.Equal(
+            TicketsHex.Domain.Comun.Errores.CodigosError.ContrasenaActualInvalida,
+            TicketsHex.Domain.Comun.Errores.CodigosError.ObtenerCodigo(error));
         Assert.Equal(hashActual, contexto.Usuario.ContrasenaHash);
         Assert.Equal(1, contexto.Usuario.IntentosFallidos);
     }

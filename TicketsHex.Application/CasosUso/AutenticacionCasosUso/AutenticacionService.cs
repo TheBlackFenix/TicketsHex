@@ -189,7 +189,9 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
                 await _repository.RegistrarIntentoFallidoAsync(
                     usuario.IdUsuario,
                     DateTimeOffset.UtcNow);
-                throw CredencialesInvalidas();
+                throw new UsuarioNoAutenticadoException(
+                    "La contraseña actual no es correcta.",
+                    CodigosError.ContrasenaActualInvalida);
             }
 
             ValidadorContrasena.Validar(request.NuevaContrasena);
