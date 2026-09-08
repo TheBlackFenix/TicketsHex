@@ -160,7 +160,7 @@ public class UsuarioServiceTests
             Rol.Desarrollador,
             Area.Mantenimiento,
             "hash-anterior");
-        for (var intento = 0; intento < Usuario.MaximoIntentosFallidos; intento++)
+        for (var intento = 0; intento < Usuario.MaximoIntentosFallidosPredeterminado; intento++)
             usuario.RegistrarIntentoFallido(DateTimeOffset.UtcNow);
 
         var usuarios = new UsuarioRepositoryFake(usuario);
@@ -233,19 +233,15 @@ public class UsuarioServiceTests
         ContrasenaHasherFake hasher,
         TicketRepositoryFake? tickets = null)
     {
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Usuarios:ContrasenaPorDefecto"] = "Cambiar#2026"
-            })
-            .Build();
-
         return new UsuarioService(
             usuarios,
             new UsuarioActualFake(),
             autenticacion,
             hasher,
-            configuration,
+            new TicketsHex.Application.Comun.Configuracion.UsuariosOptions
+            {
+                ContrasenaPorDefecto = "Cambiar#2026"
+            },
             tickets ?? new TicketRepositoryFake());
     }
 

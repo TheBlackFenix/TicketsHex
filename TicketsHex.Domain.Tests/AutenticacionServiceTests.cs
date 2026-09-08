@@ -58,6 +58,7 @@ public class AutenticacionServiceTests
 
         Assert.NotEmpty(login.Token);
         Assert.True(login.Usuario.DebeCambiarContrasena);
+        Assert.True(contexto.GeneradorJwt.UltimoSoloCambioContrasena);
         var sesion = await contexto.Service.ValidarSesionAsync(ObtenerJti(login.Token));
         Assert.True(sesion.DebeCambiarContrasena);
     }
@@ -120,12 +121,13 @@ public class AutenticacionServiceTests
             Area.Mantenimiento,
             hasher.CrearHash("Valida#2026"));
         var repository = new AutenticacionRepositoryFake(usuario);
+        var generadorJwt = new GeneradorJwtFake();
         var service = new AutenticacionService(
             repository,
             hasher,
-            new GeneradorJwtFake());
+            generadorJwt);
 
-        return new ContextoPrueba(service, hasher, usuario);
+        return new ContextoPrueba(service, hasher, usuario, generadorJwt);
     }
 
     private static string ObtenerJti(string token) => token.Split('.')[1];
@@ -133,7 +135,8 @@ public class AutenticacionServiceTests
     private sealed record ContextoPrueba(
         AutenticacionService Service,
         ContrasenaHasher Hasher,
-        Usuario Usuario);
+        Usuario Usuario,
+        GeneradorJwtFake GeneradorJwt);
 
     private sealed class AutenticacionRepositoryFake : IAutenticacionRepository
     {
@@ -202,12 +205,20 @@ public class AutenticacionServiceTests
 
     private sealed class GeneradorJwtFake : IGeneradorJwtSesion
     {
+        public bool UltimoSoloCambioContrasena { get; private set; }
+
         public TokenJwtGenerado Generar(
             long idUsuario,
             string nombreUsuario,
             Rol rol,
             string jti,
-            DateTimeOffset fechaCreacion) =>
-            new($"jwt.{jti}.firmado", fechaCreacion.AddMinutes(15));
+            DateTimeOffset fechaCreacion,
+            bool soloCambioContrasena)
+        {
+            UltimoSoloCambioContrasena = soloCambioContrasena;
+            return new(
+                $"jwt.{jti}.firmado",
+                fechaCreacion.AddMinutes(soloCambioContrasena ? 10 : 15));
+        }
     }
 }

@@ -26,6 +26,20 @@ Railway requiere estas variables en el servicio:
 - `Jwt__PrivateKeyBase64`
 - `Jwt__PublicKeyBase64`
 
+Los valores operativos pueden sobrescribirse por ambiente sin recompilar:
+
+- `Jwt__AccessTokenMinutes`
+- `Jwt__PasswordChangeTokenMinutes`
+- `Jwt__ClockSkewSeconds`
+- `Usuarios__MaximoIntentosFallidos`
+- `Usuarios__DiasVigenciaContrasena`
+- `Notificaciones__DiasRetencion`
+- `Notificaciones__HorasIntervaloLimpieza`
+- `Parametricos__HorasCache`
+
+La contraseña temporal se configura mediante `Usuarios__ContrasenaPorDefecto`
+y debe administrarse como secreto del ambiente.
+
 Las claves se convierten a Base64 con:
 
 ```bash

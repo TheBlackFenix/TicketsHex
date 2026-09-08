@@ -69,7 +69,8 @@ public class JwtTests
                 "developer",
                 Rol.Desarrollador,
                 jti,
-                ahora);
+                ahora,
+                soloCambioContrasena: false);
 
             using var publicRsa = RSA.Create();
             publicRsa.ImportFromPem(File.ReadAllText(publicPath));
@@ -106,6 +107,17 @@ public class JwtTests
                 resultado.FechaExpiracion,
                 ahora.AddMinutes(14),
                 ahora.AddMinutes(16));
+
+            var resultadoCambioContrasena = generator.Generar(
+                7,
+                "developer",
+                Rol.Desarrollador,
+                "fedcba9876543210fedcba9876543210",
+                ahora,
+                soloCambioContrasena: true);
+            Assert.Equal(
+                ahora.AddMinutes(options.PasswordChangeTokenMinutes),
+                resultadoCambioContrasena.FechaExpiracion);
         }
         finally
         {

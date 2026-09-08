@@ -8,7 +8,7 @@ namespace TicketsHex.API.Endpoints
 {
     public static class ParametricosEndpoints
     {
-        public const string CachePolicyName = "Parametricos12Horas";
+        public const string CachePolicyName = "ParametricosConfigurado";
         public const string CacheTag = "parametricos";
 
         public static IEndpointRouteBuilder MapParametricosEndpoints(this IEndpointRouteBuilder app)

@@ -20,6 +20,7 @@ using TicketsHex.Application.Puertos.Entrada.Autenticacion;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.infrastructure;
 using TicketsHex.Domain.Comun.Errores;
+using TicketsHex.Application.Comun.Configuracion;
 
 
 
@@ -47,6 +48,8 @@ try
 
     builder.Configuration
     .AddJsonFile("ErrorMessages.json", optional: false, reloadOnChange: true);
+
+    ConfiguracionAplicacion.Registrar(builder.Services, builder.Configuration);
 
     builder.Services.Configure<ExceptionHandlingOptions>(
         builder.Configuration.GetSection("ExceptionHandling"));
@@ -199,13 +202,16 @@ try
         options.AddPolicy("PlannerOrLiderTecnico", policy =>
             policy.RequireRole("Planner", "LiderTecnico"));
     });
-    builder.Services.AddOutputCache(options =>
-    {
-        options.AddPolicy(ParametricosEndpoints.CachePolicyName, policy =>
-            policy
-                .Expire(TimeSpan.FromHours(12))
-                .Tag(ParametricosEndpoints.CacheTag));
-    });
+    builder.Services.AddOutputCache();
+    builder.Services
+        .AddOptions<OutputCacheOptions>()
+        .Configure<ParametricosOptions>((options, parametricos) =>
+        {
+            options.AddPolicy(ParametricosEndpoints.CachePolicyName, policy =>
+                policy
+                    .Expire(TimeSpan.FromHours(parametricos.HorasCache))
+                    .Tag(ParametricosEndpoints.CacheTag));
+        });
     builder.Services.AddHealthChecks();
     builder.Services.AddSignalR();
     builder.Services.AddCors(options =>

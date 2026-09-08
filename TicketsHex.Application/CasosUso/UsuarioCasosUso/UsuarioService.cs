@@ -5,7 +5,7 @@ using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Usuario;
 using TicketsHex.Domain.Enums;
 using TicketsHex.Domain.Servicios;
-using Microsoft.Extensions.Configuration;
+using TicketsHex.Application.Comun.Configuracion;
 
 using TicketsHex.Domain.Comun.Errores;
 
@@ -13,13 +13,11 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
 {
     public sealed class UsuarioService : IUsuarioService
     {
-        private const string ContrasenaPorDefectoKey = "Usuarios:ContrasenaPorDefecto";
-
         private readonly IUsuarioRepository _repository;
         private readonly IUsuarioActual _usuarioActual;
         private readonly IAutenticacionRepository _autenticacionRepository;
         private readonly IContrasenaHasher _contrasenaHasher;
-        private readonly IConfiguration _configuration;
+        private readonly UsuariosOptions _options;
         private readonly ITicketRepository _ticketRepository;
 
         public UsuarioService(
@@ -27,14 +25,14 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
             IUsuarioActual usuarioActual,
             IAutenticacionRepository autenticacionRepository,
             IContrasenaHasher contrasenaHasher,
-            IConfiguration configuration,
+            UsuariosOptions options,
             ITicketRepository ticketRepository)
         {
             _repository = repository;
             _usuarioActual = usuarioActual;
             _autenticacionRepository = autenticacionRepository;
             _contrasenaHasher = contrasenaHasher;
-            _configuration = configuration;
+            _options = options;
             _ticketRepository = ticketRepository;
         }
 
@@ -238,7 +236,7 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
                     "USUARIO_CON_CARGA_ACTIVA: Transfiera los tickets antes de cambiar rol, área o desactivar el usuario.");
         }
 
-        private static UsuarioDTO Mapear(Usuario usuario) => new(
+        private UsuarioDTO Mapear(Usuario usuario) => new(
             usuario.IdUsuario,
             usuario.NombreUsuario,
             usuario.Nombres,
@@ -250,14 +248,14 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
             usuario.Bloqueado,
             usuario.IntentosFallidos,
             usuario.FechaBloqueo,
-            usuario.ContrasenaExpiraEn);
+            usuario.ObtenerFechaExpiracionContrasena(_options.DiasVigenciaContrasena));
 
         private string ObtenerContrasenaPorDefecto()
         {
-            var contrasenaPorDefecto = _configuration[ContrasenaPorDefectoKey];
+            var contrasenaPorDefecto = _options.ContrasenaPorDefecto;
             if (string.IsNullOrWhiteSpace(contrasenaPorDefecto))
                 throw new InvalidOperationException(
-                    $"No existe la configuración obligatoria {ContrasenaPorDefectoKey}.");
+                    $"No existe la configuración obligatoria {UsuariosOptions.SectionName}:ContrasenaPorDefecto.");
 
             return contrasenaPorDefecto;
         }

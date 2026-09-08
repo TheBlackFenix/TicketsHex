@@ -7,6 +7,7 @@ using TicketsHex.Domain.Enums;
 using TicketsHex.Domain.Servicios;
 
 using TicketsHex.Domain.Comun.Errores;
+using TicketsHex.Application.Comun.Configuracion;
 
 namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
 {
@@ -15,15 +16,18 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
         private readonly IAutenticacionRepository _repository;
         private readonly IContrasenaHasher _contrasenaHasher;
         private readonly IGeneradorJwtSesion _jwtGenerator;
+        private readonly UsuariosOptions _usuariosOptions;
 
         public AutenticacionService(
             IAutenticacionRepository repository,
             IContrasenaHasher contrasenaHasher,
-            IGeneradorJwtSesion jwtGenerator)
+            IGeneradorJwtSesion jwtGenerator,
+            UsuariosOptions? usuariosOptions = null)
         {
             _repository = repository;
             _contrasenaHasher = contrasenaHasher;
             _jwtGenerator = jwtGenerator;
+            _usuariosOptions = usuariosOptions ?? new UsuariosOptions();
         }
 
         public async Task InicializarAsync(InicializarAutenticacionRequest request)
@@ -96,12 +100,16 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
                 usuario.ActualizarHashContrasena(_contrasenaHasher.CrearHash(request.Contrasena));
 
             var jti = Guid.NewGuid().ToString("N");
+            var debeCambiarContrasena = usuario.RequiereCambioContrasena(
+                ahora,
+                _usuariosOptions.DiasVigenciaContrasena);
             var jwt = _jwtGenerator.Generar(
                 usuario.IdUsuario,
                 usuario.NombreUsuario,
                 usuario.IdRol,
                 jti,
-                ahora);
+                ahora,
+                debeCambiarContrasena);
             var sesion = new SesionUsuario(
                 usuario.IdUsuario,
                 jti,
@@ -198,7 +206,7 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
             await _repository.GuardarCambiosAsync();
         }
 
-        private static UsuarioAutenticadoDTO MapearUsuario(
+        private UsuarioAutenticadoDTO MapearUsuario(
             Usuario usuario,
             DateTimeOffset fechaActual) => new(
             usuario.IdUsuario,
@@ -206,7 +214,9 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
             usuario.Nombres,
             usuario.IdRol,
             usuario.IdArea,
-            usuario.RequiereCambioContrasena(fechaActual));
+            usuario.RequiereCambioContrasena(
+                fechaActual,
+                _usuariosOptions.DiasVigenciaContrasena));
 
         private static UsuarioNoAutenticadoException CredencialesInvalidas() =>
             new("Usuario o contraseña inválidos.");

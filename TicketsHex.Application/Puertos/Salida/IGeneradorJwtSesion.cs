@@ -9,7 +9,8 @@ namespace TicketsHex.Application.Puertos.Salida
             string nombreUsuario,
             Rol rol,
             string jti,
-            DateTimeOffset fechaCreacion);
+            DateTimeOffset fechaCreacion,
+            bool soloCambioContrasena);
     }
 
     public sealed record TokenJwtGenerado(

@@ -36,9 +36,13 @@ namespace TicketsHex.API.Servicios
             string nombreUsuario,
             Rol rol,
             string jti,
-            DateTimeOffset fechaCreacion)
+            DateTimeOffset fechaCreacion,
+            bool soloCambioContrasena)
         {
-            var expiracion = fechaCreacion.AddMinutes(_options.AccessTokenMinutes);
+            var minutosExpiracion = soloCambioContrasena
+                ? _options.PasswordChangeTokenMinutes
+                : _options.AccessTokenMinutes;
+            var expiracion = fechaCreacion.AddMinutes(minutosExpiracion);
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, idUsuario.ToString()),

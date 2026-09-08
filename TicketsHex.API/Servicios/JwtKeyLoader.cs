@@ -78,6 +78,9 @@ namespace TicketsHex.API.Servicios
             if (options.AccessTokenMinutes is < 1 or > 60)
                 throw new InvalidOperationException(
                     "Jwt:AccessTokenMinutes debe estar entre 1 y 60.");
+            if (options.PasswordChangeTokenMinutes is < 1 or > 60)
+                throw new InvalidOperationException(
+                    "Jwt:PasswordChangeTokenMinutes debe estar entre 1 y 60.");
             if (options.ClockSkewSeconds is < 0 or > 60)
                 throw new InvalidOperationException(
                     "Jwt:ClockSkewSeconds debe estar entre 0 y 60.");

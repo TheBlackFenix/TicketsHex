@@ -4,7 +4,7 @@ namespace TicketsHex.Domain.Entidades.Notificacion
 {
     public sealed class NotificacionUsuario
     {
-        public const int DiasRetencion = 14;
+        public const int DiasRetencionPredeterminada = 14;
 
         public Guid IdNotificacion { get; private set; }
         public long IdUsuarioDestinatario { get; private set; }
@@ -22,7 +22,8 @@ namespace TicketsHex.Domain.Entidades.Notificacion
             Guid idTicket,
             TipoNotificacion tipo,
             string mensaje,
-            DateTimeOffset? fechaCreacion = null)
+            DateTimeOffset? fechaCreacion = null,
+            int diasRetencion = DiasRetencionPredeterminada)
         {
             if (idUsuarioDestinatario <= 0)
                 throw new ArgumentException("El destinatario debe ser válido.", nameof(idUsuarioDestinatario));
@@ -34,6 +35,8 @@ namespace TicketsHex.Domain.Entidades.Notificacion
                 throw new ArgumentException("El mensaje es obligatorio.", nameof(mensaje));
             if (mensaje.Trim().Length > 250)
                 throw new ArgumentException("El mensaje no puede superar 250 caracteres.", nameof(mensaje));
+            if (diasRetencion <= 0)
+                throw new ArgumentOutOfRangeException(nameof(diasRetencion));
 
             IdNotificacion = Guid.NewGuid();
             IdUsuarioDestinatario = idUsuarioDestinatario;
@@ -41,7 +44,7 @@ namespace TicketsHex.Domain.Entidades.Notificacion
             IdTipoNotificacion = tipo;
             Mensaje = mensaje.Trim();
             FechaCreacion = fechaCreacion ?? DateTimeOffset.UtcNow;
-            FechaExpiracion = FechaCreacion.AddDays(DiasRetencion);
+            FechaExpiracion = FechaCreacion.AddDays(diasRetencion);
         }
 
         public bool Leida => FechaLectura.HasValue;
