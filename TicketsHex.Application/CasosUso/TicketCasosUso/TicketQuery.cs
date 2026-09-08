@@ -6,6 +6,8 @@ using TicketsHex.Application.Puertos.Entrada.Ticket;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Enums;
 
+using TicketsHex.Domain.Comun.Errores;
+
 namespace TicketsHex.Application.CasosUso.TicketCasosUso
 {
     public class TicketQuery : ITicketQuery
@@ -76,7 +78,9 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
             var puedeConsultarTodos = PuedeConsultarTodosLosTickets();
             var puedeConsultarEliminados = _usuarioActual.Rol == Rol.Planner;
             var ticket = await _ticketRepository.ObtenerPorIdAsync(id, puedeConsultarEliminados)
-                ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
+                ?? throw new RecursoNoEncontradoException(
+                    "Ticket no encontrado.",
+                    CodigosError.TicketNoEncontrado);
 
             if (!puedeConsultarTodos && !ticket.PuedeConsultar(_usuarioActual.IdUsuario, _usuarioActual.Rol))
                 throw new UnauthorizedAccessException("No tiene acceso a este ticket.");
@@ -95,7 +99,9 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
                 idTicket,
                 _usuarioActual.IdUsuario,
                 puedeConsultarEliminados)
-                ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
+                ?? throw new RecursoNoEncontradoException(
+                    "Ticket no encontrado.",
+                    CodigosError.TicketNoEncontrado);
 
             if (!puedeConsultarTodos &&
                 !ticket.PuedeConsultar(_usuarioActual.IdUsuario, _usuarioActual.Rol))

@@ -163,7 +163,9 @@ public class TicketTests
         var error = Assert.Throws<InvalidOperationException>(() =>
             ticket.ActualizarEstado(TicketEstado.EnReplicaQA, 2, Rol.Desarrollador, null));
 
-        Assert.Contains("QA_NO_ASIGNADO", error.Message);
+        Assert.Equal(
+            TicketsHex.Domain.Comun.Errores.CodigosError.QaNoAsignado,
+            TicketsHex.Domain.Comun.Errores.CodigosError.ObtenerCodigo(error));
         Assert.Equal(TicketEstado.EnAnalisis, ticket.IdEstado);
     }
 

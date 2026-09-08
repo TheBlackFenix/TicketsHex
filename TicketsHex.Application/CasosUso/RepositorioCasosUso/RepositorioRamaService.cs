@@ -5,6 +5,8 @@ using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.ConfiguracionGit;
 using TicketsHex.Domain.Enums;
 
+using TicketsHex.Domain.Comun.Errores;
+
 namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
 {
     public sealed class RepositorioRamaService : IRepositorioRamaService
@@ -50,7 +52,9 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
         public async Task<IReadOnlyCollection<RamaTicketDTO>> ObtenerRamasTicketAsync(Guid idTicket)
         {
             var ticket = await _ticketRepository.ObtenerPorIdAsync(idTicket)
-                ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
+                ?? throw new RecursoNoEncontradoException(
+                    "Ticket no encontrado.",
+                    CodigosError.TicketNoEncontrado);
 
             if (!ticket.PuedeConsultar(_usuarioActual.IdUsuario, _usuarioActual.Rol))
             {
@@ -82,7 +86,9 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
         {
             ValidarPlannerOLiderTecnico();
             if (await _repository.ObtenerRepositorioPorNombreAsync(request.Nombre) is not null)
-                throw new ConflictoException($"Ya existe el repositorio '{request.Nombre}'.");
+                throw new ConflictoException(
+                    $"Ya existe el repositorio '{request.Nombre}'.",
+                    CodigosError.RecursoDuplicado);
 
             var repositorio = new Repositorio(request.Nombre, request.Link, request.Descripcion);
             await _repository.GuardarRepositorioAsync(repositorio);
@@ -95,7 +101,8 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
             var repositorio = await ObtenerRepositorioAsync(idRepositorio);
             if (await _repository.ObtenerRamaPorNombreAsync(idRepositorio, request.Nombre) is not null)
                 throw new ConflictoException(
-                    $"La rama '{request.Nombre}' ya existe en el repositorio.");
+                    $"La rama '{request.Nombre}' ya existe en el repositorio.",
+                    CodigosError.RecursoDuplicado);
 
             var rama = repositorio.CrearRama(request.Nombre);
             await _repository.GuardarRamaAsync(rama);
@@ -107,7 +114,9 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
             AsignarRamaTicketRequest request)
         {
             var ticket = await _ticketRepository.ObtenerPorIdAsync(idTicket)
-                ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
+                ?? throw new RecursoNoEncontradoException(
+                    "Ticket no encontrado.",
+                    CodigosError.TicketNoEncontrado);
             ValidarPuedeEditarTicket(ticket);
             if (!ticket.EsDesarrollo)
                 throw new InvalidOperationException("Solo se pueden asociar ramas a tickets de desarrollo.");
@@ -119,7 +128,9 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
                 throw new InvalidOperationException(
                     "La rama no pertenece al repositorio indicado.");
             if (await _repository.ExisteAsignacionAsync(idTicket, request.IdRama))
-                throw new ConflictoException("La rama ya está asignada al ticket.");
+                throw new ConflictoException(
+                    "La rama ya está asignada al ticket.",
+                    CodigosError.RecursoDuplicado);
 
             var asignacion = new RamaTicket(idTicket, request.IdRama);
             await _repository.GuardarAsignacionAsync(asignacion);
@@ -130,7 +141,9 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
         public async Task DesasignarRamaAsync(Guid idTicket, Guid idRama)
         {
             var ticket = await _ticketRepository.ObtenerPorIdAsync(idTicket)
-                ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
+                ?? throw new RecursoNoEncontradoException(
+                    "Ticket no encontrado.",
+                    CodigosError.TicketNoEncontrado);
             ValidarPuedeEditarTicket(ticket);
             if (!await _repository.ExisteAsignacionAsync(idTicket, idRama))
                 throw new RecursoNoEncontradoException(

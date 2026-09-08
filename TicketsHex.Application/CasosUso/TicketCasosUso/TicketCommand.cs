@@ -8,6 +8,8 @@ using TicketsHex.Domain.Entidades.Usuario;
 using TicketsHex.Domain.Enums;
 using TicketsHex.Domain.ValueObjects.Ticket;
 
+using TicketsHex.Domain.Comun.Errores;
+
 namespace TicketsHex.Application.CasosUso.TicketCasosUso
 {
     public class TicketCommand : ITicketCommand
@@ -92,7 +94,8 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
             if (request.CausaRaiz is not null || request.SolucionPropuesta is not null)
             {
                 throw new InvalidOperationException(
-                    "KNOWLEDGE_SOURCE_REQUIRED: La causa raíz y la solución solo se modifican mediante los endpoints de conocimiento del ticket.");
+                    "La causa raíz y la solución solo se modifican mediante los endpoints de conocimiento del ticket.")
+                    .ConCodigo(CodigosError.FuenteConocimientoRequerida);
             }
 
             if (request.Titulo is not null)
@@ -215,13 +218,17 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
         private async Task<Ticket> ObtenerTicketActivoAsync(Guid ticketId)
         {
             return await _ticketRepository.ObtenerPorIdAsync(ticketId)
-                ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
+                ?? throw new RecursoNoEncontradoException(
+                    "Ticket no encontrado.",
+                    CodigosError.TicketNoEncontrado);
         }
 
         private async Task ValidarUsuarioExisteAsync(long idUsuario)
         {
             if (!await _usuarioRepository.ExisteAsync(idUsuario))
-                throw new RecursoNoEncontradoException($"El usuario {idUsuario} no existe o está inactivo.");
+                throw new RecursoNoEncontradoException(
+                    $"El usuario {idUsuario} no existe o está inactivo.",
+                    CodigosError.UsuarioNoEncontrado);
         }
 
         private async Task AsignarResponsableAsync(
@@ -253,7 +260,9 @@ namespace TicketsHex.Application.CasosUso.TicketCasosUso
         private async Task<Usuario> ValidarUsuarioRolAsync(long idUsuario, Rol rolEsperado)
         {
             var usuario = await _usuarioRepository.ObtenerPorIdAsync(idUsuario)
-                ?? throw new RecursoNoEncontradoException($"El usuario {idUsuario} no existe.");
+                ?? throw new RecursoNoEncontradoException(
+                    $"El usuario {idUsuario} no existe.",
+                    CodigosError.UsuarioNoEncontrado);
             if (!usuario.Activo)
                 throw new InvalidOperationException($"El usuario {idUsuario} está inactivo.");
             if (usuario.IdRol != rolEsperado)

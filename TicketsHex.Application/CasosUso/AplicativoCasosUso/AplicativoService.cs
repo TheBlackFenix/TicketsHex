@@ -5,6 +5,8 @@ using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Aplicativos;
 using TicketsHex.Domain.Enums;
 
+using TicketsHex.Domain.Comun.Errores;
+
 namespace TicketsHex.Application.CasosUso.AplicativoCasosUso
 {
     public sealed class AplicativoService : IAplicativoService
@@ -56,7 +58,9 @@ namespace TicketsHex.Application.CasosUso.AplicativoCasosUso
         {
             ValidarPlannerOLiderTecnico();
             if (await _repository.ObtenerAplicativoPorNombreAsync(request.Nombre) is not null)
-                throw new ConflictoException($"Ya existe el aplicativo '{request.Nombre}'.");
+                throw new ConflictoException(
+                    $"Ya existe el aplicativo '{request.Nombre}'.",
+                    CodigosError.RecursoDuplicado);
 
             var aplicativo = new Aplicativo(request.Nombre, request.Descripcion);
             await _repository.GuardarAplicativoAsync(aplicativo);
@@ -71,7 +75,9 @@ namespace TicketsHex.Application.CasosUso.AplicativoCasosUso
                 ?? throw new RecursoNoEncontradoException("Aplicativo no encontrado.");
 
             if (await _repository.ExisteAsignacionAsync(idTicket, request.IdAplicativo))
-                throw new ConflictoException("El aplicativo ya está asociado al ticket.");
+                throw new ConflictoException(
+                    "El aplicativo ya está asociado al ticket.",
+                    CodigosError.RecursoDuplicado);
 
             var asignacion = new AplicativoTicket(idTicket, request.IdAplicativo);
             await _repository.GuardarAsignacionAsync(asignacion);
@@ -90,7 +96,9 @@ namespace TicketsHex.Application.CasosUso.AplicativoCasosUso
 
         private async Task<Domain.Entidades.Ticket.Ticket> ObtenerTicketAsync(Guid idTicket) =>
             await _ticketRepository.ObtenerPorIdAsync(idTicket)
-            ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
+            ?? throw new RecursoNoEncontradoException(
+                "Ticket no encontrado.",
+                CodigosError.TicketNoEncontrado);
 
         private void ValidarPlannerOLiderTecnico()
         {

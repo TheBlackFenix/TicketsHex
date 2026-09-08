@@ -19,6 +19,7 @@ using TicketsHex.Application.Comun.Seguridad;
 using TicketsHex.Application.Puertos.Entrada.Autenticacion;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.infrastructure;
+using TicketsHex.Domain.Comun.Errores;
 
 
 
@@ -50,6 +51,7 @@ try
     builder.Services.Configure<ExceptionHandlingOptions>(
         builder.Configuration.GetSection("ExceptionHandling"));
     builder.Services.AddSingleton<ExceptionMessageResolver>();
+    builder.Services.AddSingleton<ApiProblemDetailsWriter>();
 
     builder.Services.ConfigureHttpJsonOptions(options =>
     {
@@ -169,6 +171,26 @@ try
                     {
                         context.Fail(exception);
                     }
+                },
+                OnChallenge = async context =>
+                {
+                    if (context.Response.HasStarted)
+                        return;
+
+                    context.HandleResponse();
+                    var writer = context.HttpContext.RequestServices
+                        .GetRequiredService<ApiProblemDetailsWriter>();
+                    await writer.WriteAsync(
+                        context.HttpContext,
+                        CodigosError.SesionInvalida);
+                },
+                OnForbidden = async context =>
+                {
+                    var writer = context.HttpContext.RequestServices
+                        .GetRequiredService<ApiProblemDetailsWriter>();
+                    await writer.WriteAsync(
+                        context.HttpContext,
+                        CodigosError.AccionNoPermitida);
                 }
             };
         });

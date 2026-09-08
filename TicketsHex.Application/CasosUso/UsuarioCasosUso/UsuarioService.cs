@@ -7,6 +7,8 @@ using TicketsHex.Domain.Enums;
 using TicketsHex.Domain.Servicios;
 using Microsoft.Extensions.Configuration;
 
+using TicketsHex.Domain.Comun.Errores;
+
 namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
 {
     public sealed class UsuarioService : IUsuarioService
@@ -52,9 +54,13 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
         {
             ValidarPlannerOLiderTecnico();
             if (await _repository.ObtenerPorIdAsync(request.IdUsuario) is not null)
-                throw new ConflictoException($"El usuario {request.IdUsuario} ya existe.");
+                throw new ConflictoException(
+                    $"El usuario {request.IdUsuario} ya existe.",
+                    CodigosError.RecursoDuplicado);
             if (await _autenticacionRepository.ObtenerUsuarioPorNombreAsync(request.NombreUsuario) is not null)
-                throw new ConflictoException($"El nombre de usuario {request.NombreUsuario} ya existe.");
+                throw new ConflictoException(
+                    $"El nombre de usuario {request.NombreUsuario} ya existe.",
+                    CodigosError.RecursoDuplicado);
 
             var contrasenaPorDefecto = ObtenerContrasenaPorDefecto();
             ValidadorContrasena.Validar(contrasenaPorDefecto);
@@ -79,7 +85,9 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
             var usuarioMismoNombre = await _autenticacionRepository
                 .ObtenerUsuarioPorNombreAsync(request.NombreUsuario);
             if (usuarioMismoNombre is not null && usuarioMismoNombre.IdUsuario != idUsuario)
-                throw new ConflictoException($"El nombre de usuario {request.NombreUsuario} ya existe.");
+                throw new ConflictoException(
+                    $"El nombre de usuario {request.NombreUsuario} ya existe.",
+                    CodigosError.RecursoDuplicado);
 
             if (usuario.IdRol != request.Rol ||
                 usuario.IdArea != request.IdArea ||
@@ -217,7 +225,9 @@ namespace TicketsHex.Application.CasosUso.UsuarioCasosUso
         private async Task<Usuario> ObtenerEntidadAsync(long idUsuario)
         {
             return await _repository.ObtenerPorIdAsync(idUsuario)
-                ?? throw new RecursoNoEncontradoException("Usuario no encontrado.");
+                ?? throw new RecursoNoEncontradoException(
+                    "Usuario no encontrado.",
+                    CodigosError.UsuarioNoEncontrado);
         }
 
         private async Task ValidarUsuarioSinCargaActivaAsync(long idUsuario)

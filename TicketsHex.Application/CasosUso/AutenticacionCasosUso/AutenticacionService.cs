@@ -6,6 +6,8 @@ using TicketsHex.Domain.Entidades.Usuario;
 using TicketsHex.Domain.Enums;
 using TicketsHex.Domain.Servicios;
 
+using TicketsHex.Domain.Comun.Errores;
+
 namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
 {
     public sealed class AutenticacionService : IAutenticacionService
@@ -164,7 +166,9 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
         {
             var usuario = await _repository.ObtenerUsuarioPorIdAsync(idUsuario);
             if (usuario is null || !usuario.Activo || string.IsNullOrWhiteSpace(usuario.ContrasenaHash))
-                throw CredencialesInvalidas();
+                throw new UsuarioNoAutenticadoException(
+                    "La contraseña actual no es correcta.",
+                    CodigosError.ContrasenaActualInvalida);
             if (usuario.Bloqueado)
                 throw new CuentaBloqueadaException(
                     "La cuenta está bloqueada. Un Planner debe desbloquearla.");
@@ -208,6 +212,6 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
             new("Usuario o contraseña inválidos.");
 
         private static UsuarioNoAutenticadoException SesionInvalida() =>
-            new("La sesión no es válida o expiró.");
+            new("La sesión no es válida o expiró.", CodigosError.SesionInvalida);
     }
 }

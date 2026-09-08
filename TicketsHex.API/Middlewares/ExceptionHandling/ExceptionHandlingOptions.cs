@@ -5,5 +5,7 @@
         public ExceptionMessageOptions Default { get; set; } = new();
 
         public Dictionary<string, ExceptionMessageOptions> Mappings { get; set; } = new();
+
+        public Dictionary<string, ExceptionMessageOptions> Codes { get; set; } = new();
     }
 }
