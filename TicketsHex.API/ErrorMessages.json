@@ -1,6 +1,7 @@
 {
   "ExceptionHandling": {
     "Default": {
+      "Code": "ERROR_INTERNO",
       "StatusCode": 500,
       "Title": "Error interno del servidor",
       "Detail": "Ocurrió un error inesperado en el sistema.",
@@ -8,82 +9,230 @@
     },
     "Mappings": {
       "RecursoNoEncontradoException": {
+        "Code": "RECURSO_NO_ENCONTRADO",
         "StatusCode": 404,
         "Title": "Recurso no encontrado",
         "Detail": "El recurso solicitado no existe.",
         "UseExceptionMessage": true
       },
       "ConflictoException": {
+        "Code": "CONFLICTO",
         "StatusCode": 409,
         "Title": "Conflicto",
         "Detail": "La operación entra en conflicto con el estado actual.",
         "UseExceptionMessage": true
       },
       "UsuarioNoAutenticadoException": {
+        "Code": "CREDENCIALES_INVALIDAS",
         "StatusCode": 401,
-        "Title": "Usuario no autenticado",
-        "Detail": "No fue posible determinar la identidad del usuario.",
-        "UseExceptionMessage": true
+        "Title": "Credenciales inválidas",
+        "Detail": "No fue posible autenticar al usuario.",
+        "UseExceptionMessage": false
       },
       "CuentaBloqueadaException": {
-        "StatusCode": 423,
+        "Code": "CUENTA_BLOQUEADA",
+        "StatusCode": 403,
         "Title": "Cuenta bloqueada",
         "Detail": "La cuenta está bloqueada por intentos fallidos.",
         "UseExceptionMessage": true
       },
       "ContrasenaExpiradaException": {
+        "Code": "CAMBIO_CONTRASENA_REQUERIDO",
         "StatusCode": 403,
-        "Title": "Contraseña expirada",
-        "Detail": "La contraseña debe ser actualizada.",
-        "UseExceptionMessage": true
+        "Title": "Cambio de contraseña requerido",
+        "Detail": "Debe cambiar la contraseña antes de utilizar el resto de la API.",
+        "UseExceptionMessage": false
       },
       "ArgumentException": {
+        "Code": "ERROR_VALIDACION",
         "StatusCode": 400,
         "Title": "Error de validación",
         "Detail": "La solicitud contiene datos inválidos.",
         "UseExceptionMessage": true
       },
       "ArgumentNullException": {
+        "Code": "ERROR_VALIDACION",
         "StatusCode": 400,
         "Title": "Error de validación",
         "Detail": "La solicitud contiene datos incompletos.",
         "UseExceptionMessage": true
       },
+      "BadHttpRequestException": {
+        "Code": "SOLICITUD_INVALIDA",
+        "StatusCode": 400,
+        "Title": "Solicitud inválida",
+        "Detail": "No fue posible interpretar la solicitud.",
+        "UseExceptionMessage": false
+      },
       "FileNotFoundException": {
+        "Code": "RECURSO_NO_ENCONTRADO",
         "StatusCode": 404,
         "Title": "Archivo no encontrado",
         "Detail": "El archivo solicitado no existe.",
         "UseExceptionMessage": true
       },
       "IOException": {
+        "Code": "CONFLICTO",
         "StatusCode": 409,
         "Title": "Error con el archivo",
         "Detail": "No se pudo completar la operación sobre el archivo.",
         "UseExceptionMessage": true
       },
       "UnauthorizedAccessException": {
+        "Code": "ACCION_NO_PERMITIDA",
         "StatusCode": 403,
-        "Title": "Acceso no permitido",
-        "Detail": "No tienes permiso para acceder a este recurso.",
-        "UseExceptionMessage": false
+        "Title": "Acción no permitida",
+        "Detail": "No tiene permiso para realizar esta acción.",
+        "UseExceptionMessage": true
       },
       "InvalidOperationException": {
+        "Code": "OPERACION_INVALIDA",
         "StatusCode": 409,
         "Title": "Operación no permitida",
         "Detail": "No se pudo completar la operación solicitada.",
         "UseExceptionMessage": true
       },
       "DbException": {
+        "Code": "ERROR_INTERNO",
         "StatusCode": 500,
         "Title": "Error de persistencia",
         "Detail": "Ocurrió un error obteniendo o procesando la información.",
         "UseExceptionMessage": false
       },
       "DataException": {
+        "Code": "ERROR_INTERNO",
         "StatusCode": 500,
         "Title": "Error de datos",
         "Detail": "Ocurrió un error procesando la información.",
         "UseExceptionMessage": false
+      }
+    },
+    "Codes": {
+      "ERROR_INTERNO": {
+        "StatusCode": 500,
+        "Title": "Error interno del servidor",
+        "Detail": "Ocurrió un error inesperado en el sistema.",
+        "UseExceptionMessage": false
+      },
+      "ERROR_VALIDACION": {
+        "StatusCode": 400,
+        "Title": "Error de validación",
+        "Detail": "La solicitud contiene datos inválidos.",
+        "UseExceptionMessage": true
+      },
+      "SOLICITUD_INVALIDA": {
+        "StatusCode": 400,
+        "Title": "Solicitud inválida",
+        "Detail": "No fue posible interpretar la solicitud.",
+        "UseExceptionMessage": false
+      },
+      "CREDENCIALES_INVALIDAS": {
+        "StatusCode": 401,
+        "Title": "Credenciales inválidas",
+        "Detail": "Usuario o contraseña inválidos.",
+        "UseExceptionMessage": false
+      },
+      "SESION_INVALIDA": {
+        "StatusCode": 401,
+        "Title": "Sesión inválida",
+        "Detail": "La sesión no es válida o expiró.",
+        "UseExceptionMessage": false
+      },
+      "CAMBIO_CONTRASENA_REQUERIDO": {
+        "StatusCode": 403,
+        "Title": "Cambio de contraseña requerido",
+        "Detail": "Debe cambiar la contraseña antes de utilizar el resto de la API.",
+        "UseExceptionMessage": false
+      },
+      "CONTRASENA_ACTUAL_INVALIDA": {
+        "StatusCode": 400,
+        "Title": "Contraseña actual inválida",
+        "Detail": "La contraseña actual no es correcta.",
+        "UseExceptionMessage": false
+      },
+      "CUENTA_BLOQUEADA": {
+        "StatusCode": 403,
+        "Title": "Cuenta bloqueada",
+        "Detail": "La cuenta está bloqueada por intentos fallidos.",
+        "UseExceptionMessage": true
+      },
+      "ACCION_NO_PERMITIDA": {
+        "StatusCode": 403,
+        "Title": "Acción no permitida",
+        "Detail": "No tiene permiso para realizar esta acción.",
+        "UseExceptionMessage": true
+      },
+      "RECURSO_NO_ENCONTRADO": {
+        "StatusCode": 404,
+        "Title": "Recurso no encontrado",
+        "Detail": "El recurso solicitado no existe.",
+        "UseExceptionMessage": true
+      },
+      "TICKET_NO_ENCONTRADO": {
+        "StatusCode": 404,
+        "Title": "Ticket no encontrado",
+        "Detail": "El ticket solicitado no existe.",
+        "UseExceptionMessage": true
+      },
+      "USUARIO_NO_ENCONTRADO": {
+        "StatusCode": 404,
+        "Title": "Usuario no encontrado",
+        "Detail": "El usuario solicitado no existe.",
+        "UseExceptionMessage": true
+      },
+      "TRANSICION_INVALIDA": {
+        "StatusCode": 409,
+        "Title": "Transición inválida",
+        "Detail": "La transición de estado solicitada no está permitida.",
+        "UseExceptionMessage": true
+      },
+      "TICKET_NO_ASIGNADO": {
+        "StatusCode": 403,
+        "Title": "Ticket no asignado",
+        "Detail": "El usuario no tiene asignado el ticket para realizar esta acción.",
+        "UseExceptionMessage": true
+      },
+      "DESARROLLADOR_NO_ASIGNADO": {
+        "StatusCode": 409,
+        "Title": "Desarrollador no asignado",
+        "Detail": "El ticket requiere un responsable de desarrollo.",
+        "UseExceptionMessage": true
+      },
+      "QA_NO_ASIGNADO": {
+        "StatusCode": 409,
+        "Title": "QA no asignado",
+        "Detail": "El ticket requiere un responsable de QA.",
+        "UseExceptionMessage": true
+      },
+      "TICKET_FINALIZADO": {
+        "StatusCode": 409,
+        "Title": "Ticket finalizado",
+        "Detail": "Un ticket finalizado no admite modificaciones.",
+        "UseExceptionMessage": true
+      },
+      "FUENTE_CONOCIMIENTO_REQUERIDA": {
+        "StatusCode": 409,
+        "Title": "Fuente de conocimiento requerida",
+        "Detail": "La causa raíz y la solución se administran desde la base de conocimiento.",
+        "UseExceptionMessage": true
+      },
+      "RECURSO_DUPLICADO": {
+        "StatusCode": 409,
+        "Title": "Recurso duplicado",
+        "Detail": "Ya existe un recurso con los mismos datos.",
+        "UseExceptionMessage": true
+      },
+      "CONFLICTO": {
+        "StatusCode": 409,
+        "Title": "Conflicto",
+        "Detail": "La operación entra en conflicto con el estado actual.",
+        "UseExceptionMessage": true
+      },
+      "OPERACION_INVALIDA": {
+        "StatusCode": 409,
+        "Title": "Operación no permitida",
+        "Detail": "No se pudo completar la operación solicitada.",
+        "UseExceptionMessage": true
       }
     }
   }

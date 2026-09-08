@@ -7,6 +7,8 @@ using TicketsHex.Domain.Entidades.Conocimiento;
 using TicketsHex.Domain.Entidades.Ticket;
 using TicketsHex.Domain.Enums;
 
+using TicketsHex.Domain.Comun.Errores;
+
 namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
 {
     public sealed class ConocimientoTicketService : IConocimientoTicketService
@@ -271,7 +273,9 @@ namespace TicketsHex.Application.CasosUso.ConocimientoCasosUso
 
         private async Task<Ticket> ObtenerTicketAsync(Guid idTicket) =>
             await _ticketRepository.ObtenerPorIdAsync(idTicket)
-            ?? throw new RecursoNoEncontradoException("Ticket no encontrado.");
+            ?? throw new RecursoNoEncontradoException(
+                "Ticket no encontrado.",
+                CodigosError.TicketNoEncontrado);
 
         private void ValidarPuedeConsultar(Ticket ticket)
         {

@@ -12,6 +12,7 @@ namespace TicketsHex.Application.Comun.Seguridad
         public string PrivateKeyBase64 { get; set; } = string.Empty;
         public string PublicKeyBase64 { get; set; } = string.Empty;
         public int AccessTokenMinutes { get; set; } = 15;
+        public int PasswordChangeTokenMinutes { get; set; } = 10;
         public int ClockSkewSeconds { get; set; } = 30;
     }
 }

@@ -1,6 +1,8 @@
 ﻿using TicketsHex.Domain.Enums;
 using TicketsHex.Domain.ValueObjects.Ticket;
 
+using TicketsHex.Domain.Comun.Errores;
+
 namespace TicketsHex.Domain.Entidades.Ticket
 {
     public class Ticket
@@ -122,7 +124,8 @@ namespace TicketsHex.Domain.Entidades.Ticket
             ValidarModificable();
 
             if (nuevoEstado == IdEstado)
-                throw new InvalidOperationException("El nuevo estado debe ser diferente al estado actual.");
+                throw new InvalidOperationException("El nuevo estado debe ser diferente al estado actual.")
+                    .ConCodigo(CodigosError.TransicionInvalida);
 
             ValidarAutorizacionTransicion(nuevoEstado, idUsuarioActualizacion, rolActualiza);
             TicketWorkflow.ValidarTransicion(IdEstado, nuevoEstado, rolActualiza, comentario);
@@ -562,7 +565,8 @@ namespace TicketsHex.Domain.Entidades.Ticket
         {
             ValidarActivo();
             if (IdEstado == TicketEstado.Finalizado)
-                throw new InvalidOperationException("Un ticket finalizado no admite modificaciones.");
+                throw new InvalidOperationException("Un ticket finalizado no admite modificaciones.")
+                    .ConCodigo(CodigosError.TicketFinalizado);
         }
 
         private void RegistrarAsignacion(
@@ -628,20 +632,23 @@ namespace TicketsHex.Domain.Entidades.Ticket
             if (RequiereResponsableQa(nuevoEstado) &&
                 ObtenerIdResponsable(TipoResponsabilidadTicket.QA) is null)
             {
-                throw new InvalidOperationException("QA_NO_ASIGNADO: El ticket requiere un responsable de QA.");
+                throw new InvalidOperationException("El ticket requiere un responsable de QA.")
+                    .ConCodigo(CodigosError.QaNoAsignado);
             }
 
             if (RequiereResponsableDesarrollo(nuevoEstado) &&
                 ObtenerIdResponsable(TipoResponsabilidadTicket.Desarrollo) is null)
             {
-                throw new InvalidOperationException("DESARROLLADOR_NO_ASIGNADO: El ticket requiere un responsable de desarrollo.");
+                throw new InvalidOperationException("El ticket requiere un responsable de desarrollo.")
+                    .ConCodigo(CodigosError.DesarrolladorNoAsignado);
             }
 
             if (IdEstado == TicketEstado.EnReplicaQA &&
                 nuevoEstado == TicketEstado.EnAnalisis &&
                 ObtenerIdResponsable(TipoResponsabilidadTicket.Desarrollo) is null)
             {
-                throw new InvalidOperationException("DESARROLLADOR_NO_ASIGNADO: El ticket requiere un responsable de desarrollo.");
+                throw new InvalidOperationException("El ticket requiere un responsable de desarrollo.")
+                    .ConCodigo(CodigosError.DesarrolladorNoAsignado);
             }
         }
 
@@ -690,7 +697,9 @@ namespace TicketsHex.Domain.Entidades.Ticket
                 IdUsuarioAsignado != idUsuario ||
                 !EsResponsableFuncional(idUsuario, TipoResponsabilidadTicket.Desarrollo))
             {
-                throw new UnauthorizedAccessException("Solo el desarrollador asignado, Planner o Líder Técnico pueden realizar esta acción.");
+                throw new UnauthorizedAccessException(
+                    "Solo el desarrollador asignado, Planner o Líder Técnico pueden realizar esta acción.")
+                    .ConCodigo(CodigosError.TicketNoAsignado);
             }
         }
 

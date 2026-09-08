@@ -31,6 +31,22 @@ public sealed class NotificacionTests
     }
 
     [Fact]
+    public void Notificacion_respeta_la_retencion_configurada()
+    {
+        var fecha = new DateTimeOffset(2026, 9, 8, 12, 0, 0, TimeSpan.Zero);
+
+        var notificacion = new NotificacionUsuario(
+            2,
+            Guid.NewGuid(),
+            TipoNotificacion.Asignacion,
+            "Ticket asignado",
+            fecha,
+            diasRetencion: 3);
+
+        Assert.Equal(fecha.AddDays(3), notificacion.FechaExpiracion);
+    }
+
+    [Fact]
     public void Ambos_adaptadores_configuran_la_bandeja_de_notificaciones()
     {
         using var sqlServer = new SqlServerContext(

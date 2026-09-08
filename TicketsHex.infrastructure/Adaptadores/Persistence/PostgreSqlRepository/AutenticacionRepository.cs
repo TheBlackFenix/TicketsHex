@@ -3,16 +3,21 @@ using TicketsHex.Application.Comun.Excepciones;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Usuario;
 using TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository.Context;
+using TicketsHex.Application.Comun.Configuracion;
 
 namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
 {
     public sealed class AutenticacionRepository : IAutenticacionRepository
     {
         private readonly MantenimientoContext _dbContext;
+        private readonly UsuariosOptions _options;
 
-        public AutenticacionRepository(MantenimientoContext dbContext)
+        public AutenticacionRepository(
+            MantenimientoContext dbContext,
+            UsuariosOptions options)
         {
             _dbContext = dbContext;
+            _options = options;
         }
 
         public Task<Usuario?> ObtenerUsuarioPorIdAsync(long idUsuario) =>
@@ -37,6 +42,7 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
 
         public async Task RegistrarIntentoFallidoAsync(long idUsuario, DateTimeOffset fecha)
         {
+            var maximoIntentos = _options.MaximoIntentosFallidos;
             await _dbContext.Usuarios
                 .Where(u => u.IdUsuario == idUsuario && !u.Bloqueado)
                 .ExecuteUpdateAsync(actualizacion => actualizacion
@@ -45,10 +51,10 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
                         u => u.IntentosFallidos + 1)
                     .SetProperty(
                         u => u.Bloqueado,
-                        u => u.IntentosFallidos + 1 >= Usuario.MaximoIntentosFallidos)
+                        u => u.IntentosFallidos + 1 >= maximoIntentos)
                     .SetProperty(
                         u => u.FechaBloqueo,
-                        u => u.IntentosFallidos + 1 >= Usuario.MaximoIntentosFallidos
+                        u => u.IntentosFallidos + 1 >= maximoIntentos
                             ? fecha
                             : u.FechaBloqueo));
         }

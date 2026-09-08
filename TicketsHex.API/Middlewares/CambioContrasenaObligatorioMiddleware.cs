@@ -1,4 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
+using TicketsHex.API.Middelwares.ExceptionHandling;
+using TicketsHex.Domain.Comun.Errores;
 
 namespace TicketsHex.API.Middelwares
 {
@@ -7,7 +8,11 @@ namespace TicketsHex.API.Middelwares
         public const string ClaimName = "password_change_required";
 
         private static readonly PathString RutaCambio = new("/api/auth/cambiar-contrasena");
-        private static readonly PathString RutaLogout = new("/api/auth/logout");
+        private static readonly PathString RutaLogin = new("/api/auth/login");
+        private static readonly PathString RutaInicializacion = new("/api/auth/inicializar");
+        private static readonly PathString RutaHealth = new("/health");
+        private static readonly PathString RutaJwks = new("/.well-known/jwks.json");
+        private static readonly PathString RutaSwagger = new("/swagger");
         private readonly RequestDelegate _next;
 
         public CambioContrasenaObligatorioMiddleware(RequestDelegate next)
@@ -15,7 +20,9 @@ namespace TicketsHex.API.Middelwares
             _next = next;
         }
 
-        public async Task InvokeAsync(HttpContext context)
+        public async Task InvokeAsync(
+            HttpContext context,
+            ApiProblemDetailsWriter problemDetailsWriter)
         {
             var requiereCambio = context.User.Identity?.IsAuthenticated == true &&
                 string.Equals(
@@ -23,28 +30,23 @@ namespace TicketsHex.API.Middelwares
                     bool.TrueString,
                     StringComparison.OrdinalIgnoreCase);
 
-            if (!requiereCambio ||
-                context.Request.Path.Equals(RutaCambio) ||
-                context.Request.Path.Equals(RutaLogout))
+            if (!requiereCambio || EsRutaPermitida(context.Request.Path))
             {
                 await _next(context);
                 return;
             }
 
-            context.Response.StatusCode = StatusCodes.Status403Forbidden;
-            context.Response.ContentType = "application/problem+json";
-            await context.Response.WriteAsJsonAsync(new ProblemDetails
-            {
-                Status = StatusCodes.Status403Forbidden,
-                Title = "Cambio de contraseña requerido",
-                Detail = "Debe cambiar la contraseña antes de utilizar el resto de la API.",
-                Instance = context.Request.Path,
-                Extensions =
-                {
-                    ["code"] = "PASSWORD_CHANGE_REQUIRED",
-                    ["traceId"] = context.TraceIdentifier
-                }
-            });
+            await problemDetailsWriter.WriteAsync(
+                context,
+                CodigosError.CambioContrasenaRequerido);
         }
+
+        private static bool EsRutaPermitida(PathString ruta) =>
+            ruta.Equals(RutaCambio) ||
+            ruta.Equals(RutaLogin) ||
+            ruta.Equals(RutaInicializacion) ||
+            ruta.Equals(RutaHealth) ||
+            ruta.Equals(RutaJwks) ||
+            ruta.StartsWithSegments(RutaSwagger);
     }
 }

@@ -2,6 +2,7 @@
 {
     public class ExceptionMessageOptions
     {
+        public string Code { get; set; } = "ERROR_INTERNO";
         public int StatusCode { get; set; } = StatusCodes.Status500InternalServerError;
         public string Title { get; set; } = "Error interno del servidor";
         public string Detail { get; set; } = "Ocurrió un error inesperado en el sistema.";

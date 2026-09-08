@@ -98,7 +98,9 @@ public sealed class TicketCommandTests
                     SolucionPropuesta: solucionPropuesta,
                     Comentario: null)));
 
-        Assert.Contains("KNOWLEDGE_SOURCE_REQUIRED", error.Message);
+        Assert.Equal(
+            TicketsHex.Domain.Comun.Errores.CodigosError.FuenteConocimientoRequerida,
+            TicketsHex.Domain.Comun.Errores.CodigosError.ObtenerCodigo(error));
         Assert.False(tickets.FueActualizado);
     }
 

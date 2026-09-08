@@ -4,8 +4,8 @@ namespace TicketsHex.Domain.Entidades.Usuario
 {
     public class Usuario
     {
-        public const int MaximoIntentosFallidos = 5;
-        public const int DiasVigenciaContrasena = 30;
+        public const int MaximoIntentosFallidosPredeterminado = 5;
+        public const int DiasVigenciaContrasenaPredeterminados = 30;
 
         public long IdUsuario { get; private set; }
         public string NombreUsuario { get; private set; } = string.Empty;
@@ -128,13 +128,17 @@ namespace TicketsHex.Domain.Entidades.Usuario
             ContrasenaHash = contrasenaHash;
         }
 
-        public void RegistrarIntentoFallido(DateTimeOffset fecha)
+        public void RegistrarIntentoFallido(
+            DateTimeOffset fecha,
+            int maximoIntentosFallidos = MaximoIntentosFallidosPredeterminado)
         {
+            if (maximoIntentosFallidos <= 0)
+                throw new ArgumentOutOfRangeException(nameof(maximoIntentosFallidos));
             if (Bloqueado)
                 return;
 
             IntentosFallidos++;
-            if (IntentosFallidos >= MaximoIntentosFallidos)
+            if (IntentosFallidos >= maximoIntentosFallidos)
             {
                 Bloqueado = true;
                 FechaBloqueo = fecha;
@@ -150,15 +154,20 @@ namespace TicketsHex.Domain.Entidades.Usuario
 
         public void Desbloquear() => ReiniciarIntentosFallidos();
 
-        public bool ContrasenaEstaExpirada(DateTimeOffset fechaActual) =>
+        public bool ContrasenaEstaExpirada(
+            DateTimeOffset fechaActual,
+            int diasVigencia = DiasVigenciaContrasenaPredeterminados) =>
             !FechaCambioContrasena.HasValue ||
-            FechaCambioContrasena.Value.AddDays(DiasVigenciaContrasena) <= fechaActual;
+            FechaCambioContrasena.Value.AddDays(diasVigencia) <= fechaActual;
 
-        public bool RequiereCambioContrasena(DateTimeOffset fechaActual) =>
-            DebeCambiarContrasena || ContrasenaEstaExpirada(fechaActual);
+        public bool RequiereCambioContrasena(
+            DateTimeOffset fechaActual,
+            int diasVigencia = DiasVigenciaContrasenaPredeterminados) =>
+            DebeCambiarContrasena || ContrasenaEstaExpirada(fechaActual, diasVigencia);
 
-        public DateTimeOffset? ContrasenaExpiraEn =>
-            FechaCambioContrasena?.AddDays(DiasVigenciaContrasena);
+        public DateTimeOffset? ObtenerFechaExpiracionContrasena(
+            int diasVigencia = DiasVigenciaContrasenaPredeterminados) =>
+            FechaCambioContrasena?.AddDays(diasVigencia);
 
         public void Desactivar() => Activo = false;
         public void Activar() => Activo = true;

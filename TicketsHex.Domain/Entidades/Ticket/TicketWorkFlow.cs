@@ -1,5 +1,7 @@
 ﻿using TicketsHex.Domain.Enums;
 
+using TicketsHex.Domain.Comun.Errores;
+
 namespace TicketsHex.Domain.Entidades.Ticket
 {
     public static class TicketWorkflow
@@ -58,7 +60,9 @@ namespace TicketsHex.Domain.Entidades.Ticket
                 throw new ArgumentOutOfRangeException(nameof(nuevoEstado), nuevoEstado, "El estado objetivo no es válido.");
 
             if (estadoActual == TicketEstado.Finalizado)
-                throw new InvalidOperationException("Un ticket finalizado es terminal y no admite nuevas transiciones.");
+                throw new InvalidOperationException(
+                    "Un ticket finalizado es terminal y no admite nuevas transiciones.")
+                    .ConCodigo(CodigosError.TicketFinalizado);
 
             if (nuevoEstado == TicketEstado.Finalizado)
             {
@@ -92,7 +96,8 @@ namespace TicketsHex.Domain.Entidades.Ticket
                 if (estadoActual == TicketEstado.EnReplicaQA)
                 {
                     throw new InvalidOperationException(
-                        "Desde EnReplicaQA solo se puede volver a EnAnalisis o finalizar el ticket.");
+                        "Desde EnReplicaQA solo se puede volver a EnAnalisis o finalizar el ticket.")
+                        .ConCodigo(CodigosError.TransicionInvalida);
                 }
 
                 if (rolActualiza is Rol.Planner or Rol.LiderTecnico)
@@ -102,7 +107,8 @@ namespace TicketsHex.Domain.Entidades.Ticket
                 }
 
                 throw new InvalidOperationException(
-                    $"Transición inválida. No se puede pasar a {nuevoEstado} desde {estadoActual}.");
+                    $"Transición inválida. No se puede pasar a {nuevoEstado} desde {estadoActual}.")
+                    .ConCodigo(CodigosError.TransicionInvalida);
             }
 
             ValidarRol(rolActualiza, regla.RolesPermitidos, nuevoEstado);

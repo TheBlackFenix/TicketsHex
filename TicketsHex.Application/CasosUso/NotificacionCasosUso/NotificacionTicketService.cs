@@ -5,6 +5,8 @@ using TicketsHex.Domain.Entidades.Notificacion;
 using TicketsHex.Domain.Entidades.Ticket;
 using TicketsHex.Domain.Enums;
 
+using TicketsHex.Application.Comun.Configuracion;
+
 namespace TicketsHex.Application.CasosUso.NotificacionCasosUso
 {
     public sealed class NotificacionTicketService : INotificacionTicketService
@@ -12,15 +14,18 @@ namespace TicketsHex.Application.CasosUso.NotificacionCasosUso
         private readonly INotificacionUsuarioRepository _repository;
         private readonly INotificacionPublisher _publisher;
         private readonly IUsuarioActual _usuarioActual;
+        private readonly NotificacionesOptions _options;
 
         public NotificacionTicketService(
             INotificacionUsuarioRepository repository,
             INotificacionPublisher publisher,
-            IUsuarioActual usuarioActual)
+            IUsuarioActual usuarioActual,
+            NotificacionesOptions? options = null)
         {
             _repository = repository;
             _publisher = publisher;
             _usuarioActual = usuarioActual;
+            _options = options ?? new NotificacionesOptions();
         }
 
         public ContextoNotificacionTicket CapturarContexto(Ticket ticket) => new(
@@ -229,7 +234,8 @@ namespace TicketsHex.Application.CasosUso.NotificacionCasosUso
                 idUsuario.Value,
                 ticket.IdTicket,
                 tipo,
-                mensaje));
+                mensaje,
+                diasRetencion: _options.DiasRetencion));
         }
 
         private static bool TieneHu(Ticket ticket) =>

@@ -19,6 +19,8 @@ using TicketsHex.Application.Comun.Seguridad;
 using TicketsHex.Application.Puertos.Entrada.Autenticacion;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.infrastructure;
+using TicketsHex.Domain.Comun.Errores;
+using TicketsHex.Application.Comun.Configuracion;
 
 
 
@@ -45,11 +47,19 @@ try
     }
 
     builder.Configuration
-    .AddJsonFile("ErrorMessages.json", optional: false, reloadOnChange: true);
+        .AddJsonFile("ErrorMessages.json", optional: false, reloadOnChange: true)
+        .AddJsonFile(
+            $"ErrorMessages.{builder.Environment.EnvironmentName}.json",
+            optional: true,
+            reloadOnChange: true)
+        .AddEnvironmentVariables();
+
+    ConfiguracionAplicacion.Registrar(builder.Services, builder.Configuration);
 
     builder.Services.Configure<ExceptionHandlingOptions>(
         builder.Configuration.GetSection("ExceptionHandling"));
     builder.Services.AddSingleton<ExceptionMessageResolver>();
+    builder.Services.AddSingleton<ApiProblemDetailsWriter>();
 
     builder.Services.ConfigureHttpJsonOptions(options =>
     {
@@ -169,6 +179,26 @@ try
                     {
                         context.Fail(exception);
                     }
+                },
+                OnChallenge = async context =>
+                {
+                    if (context.Response.HasStarted)
+                        return;
+
+                    context.HandleResponse();
+                    var writer = context.HttpContext.RequestServices
+                        .GetRequiredService<ApiProblemDetailsWriter>();
+                    await writer.WriteAsync(
+                        context.HttpContext,
+                        CodigosError.SesionInvalida);
+                },
+                OnForbidden = async context =>
+                {
+                    var writer = context.HttpContext.RequestServices
+                        .GetRequiredService<ApiProblemDetailsWriter>();
+                    await writer.WriteAsync(
+                        context.HttpContext,
+                        CodigosError.AccionNoPermitida);
                 }
             };
         });
@@ -177,13 +207,16 @@ try
         options.AddPolicy("PlannerOrLiderTecnico", policy =>
             policy.RequireRole("Planner", "LiderTecnico"));
     });
-    builder.Services.AddOutputCache(options =>
-    {
-        options.AddPolicy(ParametricosEndpoints.CachePolicyName, policy =>
-            policy
-                .Expire(TimeSpan.FromHours(12))
-                .Tag(ParametricosEndpoints.CacheTag));
-    });
+    builder.Services.AddOutputCache();
+    builder.Services
+        .AddOptions<OutputCacheOptions>()
+        .Configure<ParametricosOptions>((options, parametricos) =>
+        {
+            options.AddPolicy(ParametricosEndpoints.CachePolicyName, policy =>
+                policy
+                    .Expire(TimeSpan.FromHours(parametricos.HorasCache))
+                    .Tag(ParametricosEndpoints.CacheTag));
+        });
     builder.Services.AddHealthChecks();
     builder.Services.AddSignalR();
     builder.Services.AddCors(options =>
@@ -297,3 +330,5 @@ finally
     Log.Information("Terminando el servicio");
     await Log.CloseAndFlushAsync();
 }
+
+public partial class Program;
