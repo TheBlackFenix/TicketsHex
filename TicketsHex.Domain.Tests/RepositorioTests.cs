@@ -1,4 +1,5 @@
 using TicketsHex.Domain.Entidades.ConfiguracionGit;
+using TicketsHex.Domain.Enums;
 using Xunit;
 
 namespace TicketsHex.Domain.Tests;
@@ -11,12 +12,14 @@ public sealed class RepositorioTests
         var repositorio = new Repositorio(
             "  tickets-api  ",
             "https://git.example.com/tickets-api",
-            " API de tickets ");
+            " API de tickets ",
+            TipoRepositorio.Backend);
 
         var rama = repositorio.CrearRama(" feature/asignacion-rama ");
 
         Assert.Equal("tickets-api", repositorio.Nombre);
         Assert.Equal("API de tickets", repositorio.Descripcion);
+        Assert.Equal(TipoRepositorio.Backend, repositorio.IdTipoRepositorio);
         Assert.Equal("feature/asignacion-rama", rama.NombreRama);
         Assert.Equal(repositorio.IdRepositorio, rama.IdRepositorio);
         Assert.Contains(rama, repositorio.Ramas);
@@ -26,7 +29,11 @@ public sealed class RepositorioTests
     public void Rechaza_link_que_no_sea_http_o_https()
     {
         Assert.Throws<ArgumentException>(() =>
-            new Repositorio("tickets-api", "ftp://example.com/repo", null));
+            new Repositorio(
+                "tickets-api",
+                "ftp://example.com/repo",
+                null,
+                TipoRepositorio.Backend));
     }
 
     [Fact]

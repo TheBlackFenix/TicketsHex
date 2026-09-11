@@ -222,6 +222,24 @@
         "Detail": "Ya existe un recurso con los mismos datos.",
         "UseExceptionMessage": true
       },
+      "REPOSITORIO_NO_ASOCIADO": {
+        "StatusCode": 409,
+        "Title": "Repositorio no asociado",
+        "Detail": "El repositorio no está relacionado con los aplicativos del ticket.",
+        "UseExceptionMessage": true
+      },
+      "RELACION_REPOSITORIO_EN_USO": {
+        "StatusCode": 409,
+        "Title": "Relación en uso",
+        "Detail": "La relación entre el aplicativo y el repositorio está siendo utilizada por tickets activos.",
+        "UseExceptionMessage": true
+      },
+      "APLICATIVO_CON_RAMAS_ASOCIADAS": {
+        "StatusCode": 409,
+        "Title": "Aplicativo con ramas asociadas",
+        "Detail": "El aplicativo no puede retirarse porque dejaría ramas del ticket sin respaldo.",
+        "UseExceptionMessage": true
+      },
       "CONFLICTO": {
         "StatusCode": 409,
         "Title": "Conflicto",

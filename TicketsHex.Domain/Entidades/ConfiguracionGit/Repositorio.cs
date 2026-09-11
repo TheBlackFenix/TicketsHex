@@ -1,3 +1,5 @@
+using TicketsHex.Domain.Enums;
+
 namespace TicketsHex.Domain.Entidades.ConfiguracionGit
 {
     public sealed class Repositorio
@@ -8,16 +10,27 @@ namespace TicketsHex.Domain.Entidades.ConfiguracionGit
         public string Nombre { get; private set; } = string.Empty;
         public string? Link { get; private set; }
         public string? Descripcion { get; private set; }
+        public TipoRepositorio? IdTipoRepositorio { get; private set; }
         public IReadOnlyCollection<Rama> Ramas => _ramas.AsReadOnly();
 
         private Repositorio() { }
 
-        public Repositorio(string nombre, string? link, string? descripcion)
+        public Repositorio(
+            string nombre,
+            string? link,
+            string? descripcion,
+            TipoRepositorio idTipoRepositorio)
         {
+            if (!Enum.IsDefined(idTipoRepositorio))
+                throw new ArgumentException(
+                    "El tipo de repositorio no es válido.",
+                    nameof(idTipoRepositorio));
+
             IdRepositorio = Guid.NewGuid();
             Nombre = ValidarTexto(nombre, 100, "El nombre del repositorio");
             Link = ValidarLink(link);
             Descripcion = ValidarTextoOpcional(descripcion, 500, "La descripción");
+            IdTipoRepositorio = idTipoRepositorio;
         }
 
         public Rama CrearRama(string nombre)

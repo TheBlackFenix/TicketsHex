@@ -102,6 +102,9 @@ namespace TicketsHex.API.Middelwares.ExceptionHandling
             CodigosError.TicketFinalizado or
             CodigosError.FuenteConocimientoRequerida or
             CodigosError.RecursoDuplicado or
+            CodigosError.RepositorioNoAsociado or
+            CodigosError.RelacionRepositorioEnUso or
+            CodigosError.AplicativoConRamasAsociadas or
             CodigosError.Conflicto or
             CodigosError.OperacionInvalida => Crear(
                 codigo, 409, "Conflicto", "No se pudo completar la operación solicitada.", true),

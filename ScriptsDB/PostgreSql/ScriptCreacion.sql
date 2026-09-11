@@ -49,6 +49,13 @@ CREATE TABLE impactosticket (
     activo BOOLEAN NOT NULL DEFAULT TRUE
 );
 
+CREATE TABLE tiposrepositorio (
+    idtiporepositorio INT PRIMARY KEY,
+    tipo VARCHAR(50) NOT NULL,
+    descripcion VARCHAR(200),
+    activo BOOLEAN NOT NULL DEFAULT TRUE
+);
+
 CREATE TABLE aplicativos (
     idaplicativo UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     aplicativo VARCHAR(100) NOT NULL,
@@ -184,10 +191,12 @@ CREATE TABLE repositorios (
     idrepositorio UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     repositorio VARCHAR(100) NOT NULL,
     link VARCHAR(255),
-    descripcion VARCHAR(500)
+    descripcion VARCHAR(500),
+    idtiporepositorio INT NOT NULL REFERENCES tiposrepositorio(idtiporepositorio)
 );
 
 CREATE UNIQUE INDEX ux_repositorios_repositorio ON repositorios(repositorio);
+CREATE INDEX ix_repositorios_tiporepositorio ON repositorios(idtiporepositorio);
 
 CREATE TABLE ramas (
     idrama UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -227,6 +236,8 @@ CREATE TABLE repositoriosaplicativo (
 
 CREATE UNIQUE INDEX ux_repositoriosaplicativo_repositorio_aplicativo
     ON repositoriosaplicativo(idrepositorio, idaplicativo);
+CREATE INDEX ix_repositoriosaplicativo_aplicativo
+    ON repositoriosaplicativo(idaplicativo);
 
 CREATE TABLE tiposentradaconocimiento (
     idtipoentrada INT PRIMARY KEY,
@@ -342,6 +353,11 @@ INSERT INTO impactosticket (idimpacto, impacto, descripcion, activo) VALUES
 (2, 'Medio', 'Afectacion moderada', TRUE),
 (3, 'Alto', 'Afectacion significativa', TRUE),
 (4, 'Crítico', 'Afectacion general o de operacion critica', TRUE);
+
+INSERT INTO tiposrepositorio (idtiporepositorio, tipo, descripcion, activo) VALUES
+(1, 'Frontend', 'Repositorio de interfaz de usuario', TRUE),
+(2, 'Backend', 'Repositorio de servicios y logica de servidor', TRUE),
+(3, 'Scripts', 'Repositorio de scripts de datos, despliegue o automatizacion', TRUE);
 
 INSERT INTO estadosticket (idestado, estado, descripcion, activo) VALUES
 (1, 'EnAnalisis', 'El caso esta siendo revisado inicialmente', TRUE),

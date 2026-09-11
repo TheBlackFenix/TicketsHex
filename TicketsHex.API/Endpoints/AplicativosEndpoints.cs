@@ -1,5 +1,6 @@
 using TicketsHex.API.Reponses;
 using TicketsHex.Application.DTO_s.Aplicativo;
+using TicketsHex.Application.DTO_s.Repositorio;
 using TicketsHex.Application.Puertos.Entrada.Aplicativo;
 using Microsoft.AspNetCore.OutputCaching;
 
@@ -33,6 +34,36 @@ namespace TicketsHex.API.Endpoints
                 return Results.Created(
                     $"/api/aplicativos/{id}",
                     ApiResponse<Guid>.Ok(id, "Aplicativo creado correctamente."));
+            }).RequireAuthorization("PlannerOrLiderTecnico");
+
+            aplicativos.MapGet("/{idAplicativo:guid}/repositorios", async (
+                Guid idAplicativo,
+                IAplicativoService service) =>
+            {
+                var resultado = await service.ObtenerRepositoriosAplicativoAsync(idAplicativo);
+                return Results.Ok(ApiResponse<IReadOnlyCollection<RepositorioAplicativoDTO>>.Ok(resultado));
+            });
+
+            aplicativos.MapPost("/{idAplicativo:guid}/repositorios", async (
+                Guid idAplicativo,
+                AsignarRepositorioAplicativoRequest request,
+                IAplicativoService service) =>
+            {
+                var id = await service.AsignarRepositorioAsync(idAplicativo, request);
+                return Results.Created(
+                    $"/api/aplicativos/{idAplicativo}/repositorios/{request.IdRepositorio}",
+                    ApiResponse<Guid>.Ok(id, "Repositorio asociado correctamente."));
+            }).RequireAuthorization("PlannerOrLiderTecnico");
+
+            aplicativos.MapDelete("/{idAplicativo:guid}/repositorios/{idRepositorio:guid}", async (
+                Guid idAplicativo,
+                Guid idRepositorio,
+                IAplicativoService service) =>
+            {
+                await service.DesasignarRepositorioAsync(idAplicativo, idRepositorio);
+                return Results.Ok(ApiResponse<bool>.Ok(
+                    true,
+                    "Repositorio desasociado correctamente."));
             }).RequireAuthorization("PlannerOrLiderTecnico");
 
             var aplicativosTicket = app.MapGroup("/api/tickets/{idTicket:guid}/aplicativos")

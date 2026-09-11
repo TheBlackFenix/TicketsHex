@@ -22,6 +22,7 @@ namespace TicketsHex.API.Endpoints
                     new("tiposTicket", await parametros.ObtenerTiposTicketAsync(false)),
                     new("prioridadesTicket", await parametros.ObtenerPrioridadesTicketAsync(false)),
                     new("impactosTicket", await parametros.ObtenerImpactosTicketAsync(false)),
+                    new("tiposRepositorio", await parametros.ObtenerTiposRepositorioAsync(false)),
                     new("roles", await parametros.ObtenerRolesAsync()),
                     new("estadosTicket", await parametros.ObtenerEstadosTicketAsync(false)),
                     new("origenesTicket", await parametros.ObtenerOrigenesTicketAsync(false)),

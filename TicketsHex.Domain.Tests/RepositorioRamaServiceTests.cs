@@ -25,10 +25,12 @@ public sealed class RepositorioRamaServiceTests
             new CrearRepositorioRequest(
                 "tickets-api",
                 "https://git.example.com/tickets-api",
-                null));
+                null,
+                TipoRepositorio.Backend));
         var idRama = await service.CrearRamaAsync(
             idRepositorio,
             new CrearRamaRequest("feature/ticket-123"));
+        configuracion.PermitirRepositorioTicket(ticket.IdTicket, idRepositorio);
         var idAsignacion = await service.AsignarRamaAsync(
             ticket.IdTicket,
             new AsignarRamaTicketRequest(idRepositorio, idRama));
@@ -51,7 +53,11 @@ public sealed class RepositorioRamaServiceTests
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             service.CrearRepositorioAsync(
-                new CrearRepositorioRequest("tickets-api", null, null)));
+                new CrearRepositorioRequest(
+                    "tickets-api",
+                    null,
+                    null,
+                    TipoRepositorio.Backend)));
     }
 
     [Fact]
@@ -66,9 +72,9 @@ public sealed class RepositorioRamaServiceTests
             new NotificacionPublisherFake());
 
         var repositorioUno = await service.CrearRepositorioAsync(
-            new CrearRepositorioRequest("repo-uno", null, null));
+            new CrearRepositorioRequest("repo-uno", null, null, TipoRepositorio.Backend));
         var repositorioDos = await service.CrearRepositorioAsync(
-            new CrearRepositorioRequest("repo-dos", null, null));
+            new CrearRepositorioRequest("repo-dos", null, null, TipoRepositorio.Backend));
         var rama = await service.CrearRamaAsync(
             repositorioUno,
             new CrearRamaRequest("feature/uno"));
@@ -141,6 +147,10 @@ public sealed class RepositorioRamaServiceTests
         private readonly List<Repositorio> _repositorios = [];
         private readonly List<Rama> _ramas = [];
         private readonly List<RamaTicket> _asignaciones = [];
+        private readonly HashSet<(Guid IdTicket, Guid IdRepositorio)> _repositoriosPermitidos = [];
+
+        public void PermitirRepositorioTicket(Guid idTicket, Guid idRepositorio) =>
+            _repositoriosPermitidos.Add((idTicket, idRepositorio));
 
         public Task<IReadOnlyCollection<Repositorio>> ObtenerRepositoriosAsync() =>
             Task.FromResult<IReadOnlyCollection<Repositorio>>(_repositorios);
@@ -166,9 +176,21 @@ public sealed class RepositorioRamaServiceTests
             Task.FromResult<IReadOnlyCollection<RamaTicket>>(
                 _asignaciones.Where(item => item.IdTicket == idTicket).ToArray());
 
+        public Task<IReadOnlyCollection<Repositorio>> ObtenerRepositoriosDisponiblesTicketAsync(
+            Guid idTicket) =>
+            Task.FromResult<IReadOnlyCollection<Repositorio>>(
+                _repositorios.Where(item =>
+                    _repositoriosPermitidos.Contains((idTicket, item.IdRepositorio)))
+                    .ToArray());
+
         public Task<bool> ExisteAsignacionAsync(Guid idTicket, Guid idRama) =>
             Task.FromResult(_asignaciones.Any(item =>
                 item.IdTicket == idTicket && item.IdRama == idRama));
+
+        public Task<bool> RepositorioPerteneceAAplicativoTicketAsync(
+            Guid idTicket,
+            Guid idRepositorio) =>
+            Task.FromResult(_repositoriosPermitidos.Contains((idTicket, idRepositorio)));
 
         public Task GuardarRepositorioAsync(Repositorio repositorio)
         {

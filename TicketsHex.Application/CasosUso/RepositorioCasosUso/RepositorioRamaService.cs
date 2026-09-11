@@ -36,7 +36,34 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
                     item.IdRepositorio,
                     item.Nombre,
                     item.Link,
-                    item.Descripcion))
+                    item.Descripcion,
+                    item.IdTipoRepositorio,
+                    item.IdTipoRepositorio?.ToString()))
+                .ToArray();
+        }
+
+        public async Task<IReadOnlyCollection<RepositorioDisponibleTicketDTO>> ObtenerRepositoriosDisponiblesTicketAsync(
+            Guid idTicket)
+        {
+            var ticket = await _ticketRepository.ObtenerPorIdAsync(idTicket)
+                ?? throw new RecursoNoEncontradoException(
+                    "Ticket no encontrado.",
+                    CodigosError.TicketNoEncontrado);
+            if (!ticket.PuedeConsultar(_usuarioActual.IdUsuario, _usuarioActual.Rol))
+                throw new UnauthorizedAccessException(
+                    "No tiene acceso a los repositorios de este ticket.");
+
+            var repositorios = await _repository.ObtenerRepositoriosDisponiblesTicketAsync(idTicket);
+            return repositorios.Select(item => new RepositorioDisponibleTicketDTO(
+                item.IdRepositorio,
+                item.Nombre,
+                item.Link,
+                item.IdTipoRepositorio,
+                item.IdTipoRepositorio?.ToString(),
+                item.Ramas
+                    .OrderBy(rama => rama.NombreRama)
+                    .Select(MapearRama)
+                    .ToArray()))
                 .ToArray();
         }
 
@@ -85,12 +112,18 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
         public async Task<Guid> CrearRepositorioAsync(CrearRepositorioRequest request)
         {
             ValidarPlannerOLiderTecnico();
+            if (!Enum.IsDefined(request.IdTipoRepositorio))
+                throw new ArgumentException("El tipo de repositorio no es válido.");
             if (await _repository.ObtenerRepositorioPorNombreAsync(request.Nombre) is not null)
                 throw new ConflictoException(
                     $"Ya existe el repositorio '{request.Nombre}'.",
                     CodigosError.RecursoDuplicado);
 
-            var repositorio = new Repositorio(request.Nombre, request.Link, request.Descripcion);
+            var repositorio = new Repositorio(
+                request.Nombre,
+                request.Link,
+                request.Descripcion,
+                request.IdTipoRepositorio);
             await _repository.GuardarRepositorioAsync(repositorio);
             return repositorio.IdRepositorio;
         }
@@ -127,6 +160,14 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
             if (rama.IdRepositorio != request.IdRepositorio)
                 throw new InvalidOperationException(
                     "La rama no pertenece al repositorio indicado.");
+            if (!await _repository.RepositorioPerteneceAAplicativoTicketAsync(
+                    idTicket,
+                    request.IdRepositorio))
+            {
+                throw new ConflictoException(
+                    "El repositorio de la rama no está relacionado con ningún aplicativo del ticket.",
+                    CodigosError.RepositorioNoAsociado);
+            }
             if (await _repository.ExisteAsignacionAsync(idTicket, request.IdRama))
                 throw new ConflictoException(
                     "La rama ya está asignada al ticket.",

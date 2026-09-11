@@ -43,6 +43,7 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
         public DbSet<TipoTicketParametro> TiposTicket => Set<TipoTicketParametro>();
         public DbSet<PrioridadTicketParametro> PrioridadesTicket => Set<PrioridadTicketParametro>();
         public DbSet<ImpactoTicketParametro> ImpactosTicket => Set<ImpactoTicketParametro>();
+        public DbSet<TipoRepositorioParametro> TiposRepositorio => Set<TipoRepositorioParametro>();
         public DbSet<NotificacionUsuario> NotificacionesUsuario => Set<NotificacionUsuario>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -274,6 +275,15 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
                 b.Property(item => item.Descripcion).HasMaxLength(200);
             });
 
+            modelBuilder.Entity<TipoRepositorioParametro>(b =>
+            {
+                b.ToTable("tiposrepositorio");
+                b.HasKey(item => item.IdTipoRepositorio);
+                b.Property(item => item.IdTipoRepositorio).HasConversion<int>();
+                b.Property(item => item.Tipo).HasMaxLength(50).IsRequired();
+                b.Property(item => item.Descripcion).HasMaxLength(200);
+            });
+
             modelBuilder.Entity<Aplicativo>(b =>
             {
                 b.ToTable("aplicativos");
@@ -295,6 +305,12 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
                     .IsRequired();
                 b.Property(item => item.Link).HasMaxLength(255);
                 b.Property(item => item.Descripcion).HasMaxLength(500);
+                b.Property(item => item.IdTipoRepositorio).HasConversion<int?>();
+                b.HasIndex(item => item.IdTipoRepositorio);
+                b.HasOne<TipoRepositorioParametro>()
+                    .WithMany()
+                    .HasForeignKey(item => item.IdTipoRepositorio)
+                    .OnDelete(DeleteBehavior.Restrict);
                 b.HasMany(item => item.Ramas)
                     .WithOne()
                     .HasForeignKey(item => item.IdRepositorio)
@@ -346,6 +362,7 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
                 b.ToTable("repositoriosaplicativo");
                 b.HasKey(item => item.IdRepositorioAplicativo);
                 b.HasIndex(item => new { item.IdRepositorio, item.IdAplicativo }).IsUnique();
+                b.HasIndex(item => item.IdAplicativo);
                 b.HasOne<Repositorio>()
                     .WithMany()
                     .HasForeignKey(item => item.IdRepositorio)

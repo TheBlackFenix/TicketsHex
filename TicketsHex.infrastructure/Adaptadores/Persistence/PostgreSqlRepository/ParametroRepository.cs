@@ -85,5 +85,12 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
                 .Where(item => incluirInactivos || item.Activo)
                 .OrderBy(item => item.IdImpacto)
                 .ToListAsync();
+
+        public async Task<IReadOnlyCollection<TipoRepositorioParametro>> ObtenerTiposRepositorioAsync(
+            bool incluirInactivos) =>
+            await _dbContext.TiposRepositorio.AsNoTracking()
+                .Where(item => incluirInactivos || item.Activo)
+                .OrderBy(item => item.IdTipoRepositorio)
+                .ToListAsync();
     }
 }

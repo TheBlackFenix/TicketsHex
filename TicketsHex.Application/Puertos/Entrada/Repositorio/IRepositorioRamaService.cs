@@ -7,6 +7,7 @@ namespace TicketsHex.Application.Puertos.Entrada.Repositorio
         Task<IReadOnlyCollection<RepositorioDTO>> ObtenerRepositoriosAsync();
         Task<IReadOnlyCollection<RamaDTO>> ObtenerRamasAsync(Guid idRepositorio);
         Task<IReadOnlyCollection<RamaTicketDTO>> ObtenerRamasTicketAsync(Guid idTicket);
+        Task<IReadOnlyCollection<RepositorioDisponibleTicketDTO>> ObtenerRepositoriosDisponiblesTicketAsync(Guid idTicket);
         Task<Guid> CrearRepositorioAsync(CrearRepositorioRequest request);
         Task<Guid> CrearRamaAsync(Guid idRepositorio, CrearRamaRequest request);
         Task<Guid> AsignarRamaAsync(Guid idTicket, AsignarRamaTicketRequest request);

@@ -23,6 +23,9 @@ namespace TicketsHex.Domain.Comun.Errores
         public const string Conflicto = "CONFLICTO";
         public const string OperacionInvalida = "OPERACION_INVALIDA";
         public const string SolicitudInvalida = "SOLICITUD_INVALIDA";
+        public const string RepositorioNoAsociado = "REPOSITORIO_NO_ASOCIADO";
+        public const string RelacionRepositorioEnUso = "RELACION_REPOSITORIO_EN_USO";
+        public const string AplicativoConRamasAsociadas = "APLICATIVO_CON_RAMAS_ASOCIADAS";
 
         internal const string DataKey = "TicketsHex.CodigoError";
 
