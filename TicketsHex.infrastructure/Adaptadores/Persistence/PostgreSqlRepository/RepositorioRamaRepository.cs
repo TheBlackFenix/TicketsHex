@@ -59,9 +59,31 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
                 .OrderBy(item => item.FechaAsignacion)
                 .ToArrayAsync();
 
+        public async Task<IReadOnlyCollection<Repositorio>> ObtenerRepositoriosDisponiblesTicketAsync(
+            Guid idTicket) =>
+            await _dbContext.Repositorios
+                .AsNoTracking()
+                .Include(item => item.Ramas)
+                .Where(repositorio => _dbContext.RepositoriosAplicativo.Any(relacion =>
+                    relacion.IdRepositorio == repositorio.IdRepositorio &&
+                    _dbContext.AplicativosTicket.Any(aplicativoTicket =>
+                        aplicativoTicket.IdTicket == idTicket &&
+                        aplicativoTicket.IdAplicativo == relacion.IdAplicativo)))
+                .OrderBy(item => item.Nombre)
+                .ToArrayAsync();
+
         public Task<bool> ExisteAsignacionAsync(Guid idTicket, Guid idRama) =>
             _dbContext.RamasTicket.AnyAsync(item =>
                 item.IdTicket == idTicket && item.IdRama == idRama);
+
+        public Task<bool> RepositorioPerteneceAAplicativoTicketAsync(
+            Guid idTicket,
+            Guid idRepositorio) =>
+            _dbContext.RepositoriosAplicativo.AnyAsync(relacion =>
+                relacion.IdRepositorio == idRepositorio &&
+                _dbContext.AplicativosTicket.Any(aplicativoTicket =>
+                    aplicativoTicket.IdTicket == idTicket &&
+                    aplicativoTicket.IdAplicativo == relacion.IdAplicativo));
 
         public async Task GuardarRepositorioAsync(Repositorio repositorio)
         {

@@ -51,6 +51,18 @@ namespace TicketsHex.API.Endpoints
                     ApiResponse<Guid>.Ok(id, "Rama creada correctamente."));
             }).RequireAuthorization("PlannerOrLiderTecnico");
 
+            app.MapGet("/api/tickets/{idTicket:guid}/repositorios-disponibles", async (
+                Guid idTicket,
+                IRepositorioRamaService service) =>
+            {
+                var resultado = await service.ObtenerRepositoriosDisponiblesTicketAsync(idTicket);
+                return Results.Ok(
+                    ApiResponse<IReadOnlyCollection<RepositorioDisponibleTicketDTO>>.Ok(resultado));
+            })
+            .WithTags("Repositorios y ramas")
+            .WithOpenApi()
+            .RequireAuthorization();
+
             var ramasTicket = app.MapGroup("/api/tickets/{idTicket:guid}/ramas")
                 .WithTags("Repositorios y ramas")
                 .WithOpenApi()

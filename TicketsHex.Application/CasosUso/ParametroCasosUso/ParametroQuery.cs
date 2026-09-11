@@ -112,5 +112,15 @@ namespace TicketsHex.Application.CasosUso.ParametroCasosUso
                     item.Descripcion,
                     item.Activo))
                 .ToArray();
+
+        public async Task<IReadOnlyCollection<ParametroDTO>> ObtenerTiposRepositorioAsync(
+            bool incluirInactivos) =>
+            (await _repository.ObtenerTiposRepositorioAsync(incluirInactivos))
+                .Select(item => new ParametroDTO(
+                    (int)item.IdTipoRepositorio,
+                    item.Tipo,
+                    item.Descripcion,
+                    item.Activo))
+                .ToArray();
     }
 }

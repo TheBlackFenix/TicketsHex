@@ -52,6 +52,13 @@ CREATE TABLE dbo.impactosticket (
     activo BIT NOT NULL CONSTRAINT df_impactosticket_activo DEFAULT (1)
 );
 
+CREATE TABLE dbo.tiposrepositorio (
+    idtiporepositorio INT PRIMARY KEY,
+    tipo VARCHAR(50) NOT NULL,
+    descripcion VARCHAR(200) NULL,
+    activo BIT NOT NULL CONSTRAINT df_tiposrepositorio_activo DEFAULT (1)
+);
+
 CREATE TABLE dbo.aplicativos (
     idaplicativo UNIQUEIDENTIFIER PRIMARY KEY CONSTRAINT df_aplicativos_idaplicativo DEFAULT NEWID(),
     aplicativo VARCHAR(100) NOT NULL,
@@ -213,10 +220,14 @@ CREATE TABLE dbo.repositorios (
     idrepositorio UNIQUEIDENTIFIER PRIMARY KEY CONSTRAINT df_repositorios_idrepositorio DEFAULT NEWID(),
     repositorio VARCHAR(100) NOT NULL,
     link VARCHAR(255) NULL,
-    descripcion VARCHAR(500) NULL
+    descripcion VARCHAR(500) NULL,
+    idtiporepositorio INT NOT NULL,
+    CONSTRAINT fk_repositorios_tiposrepositorio FOREIGN KEY (idtiporepositorio)
+        REFERENCES dbo.tiposrepositorio(idtiporepositorio)
 );
 
 CREATE UNIQUE INDEX ux_repositorios_repositorio ON dbo.repositorios(repositorio);
+CREATE INDEX ix_repositorios_tiporepositorio ON dbo.repositorios(idtiporepositorio);
 
 CREATE TABLE dbo.ramas (
     idrama UNIQUEIDENTIFIER PRIMARY KEY CONSTRAINT df_ramas_idrama DEFAULT NEWID(),
@@ -263,6 +274,8 @@ CREATE TABLE dbo.repositoriosaplicativo (
 
 CREATE UNIQUE INDEX ux_repositoriosaplicativo_repositorio_aplicativo
     ON dbo.repositoriosaplicativo(idrepositorio, idaplicativo);
+CREATE INDEX ix_repositoriosaplicativo_aplicativo
+    ON dbo.repositoriosaplicativo(idaplicativo);
 
 CREATE TABLE dbo.tiposentradaconocimiento (
     idtipoentrada INT PRIMARY KEY,
@@ -394,6 +407,11 @@ INSERT INTO dbo.impactosticket (idimpacto, impacto, descripcion, activo) VALUES
 (2, 'Medio', 'Afectacion moderada', 1),
 (3, 'Alto', 'Afectacion significativa', 1),
 (4, 'Crítico', 'Afectacion general o de operacion critica', 1);
+
+INSERT INTO dbo.tiposrepositorio (idtiporepositorio, tipo, descripcion, activo) VALUES
+(1, 'Frontend', 'Repositorio de interfaz de usuario', 1),
+(2, 'Backend', 'Repositorio de servicios y logica de servidor', 1),
+(3, 'Scripts', 'Repositorio de scripts de datos, despliegue o automatizacion', 1);
 
 INSERT INTO dbo.estadosticket (idestado, estado, descripcion, activo) VALUES
 (1, 'EnAnalisis', 'El caso esta siendo revisado inicialmente', 1),

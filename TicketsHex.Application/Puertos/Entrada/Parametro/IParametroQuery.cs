@@ -14,5 +14,6 @@ namespace TicketsHex.Application.Puertos.Entrada.Parametro
         Task<IReadOnlyCollection<ParametroDTO>> ObtenerTiposTicketAsync(bool incluirInactivos);
         Task<IReadOnlyCollection<ParametroDTO>> ObtenerPrioridadesTicketAsync(bool incluirInactivos);
         Task<IReadOnlyCollection<ParametroDTO>> ObtenerImpactosTicketAsync(bool incluirInactivos);
+        Task<IReadOnlyCollection<ParametroDTO>> ObtenerTiposRepositorioAsync(bool incluirInactivos);
     }
 }

@@ -5,6 +5,7 @@ using TicketsHex.Application.DTO_s.Ticket;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Aplicativos;
 using TicketsHex.Domain.Entidades.Conocimiento;
+using TicketsHex.Domain.Entidades.ConfiguracionGit;
 using TicketsHex.Domain.Entidades.Ticket;
 using TicketsHex.Domain.Enums;
 using Xunit;
@@ -353,8 +354,19 @@ public sealed class ConocimientoTicketTests
         public Task<Aplicativo?> ObtenerAplicativoPorNombreAsync(string nombre) => Task.FromResult<Aplicativo?>(null);
         public Task<IReadOnlyCollection<AplicativoTicket>> ObtenerAsignacionesTicketAsync(Guid idTicket) =>
             Task.FromResult<IReadOnlyCollection<AplicativoTicket>>([]);
+        public Task<IReadOnlyCollection<RepositorioAplicativo>> ObtenerRelacionesRepositorioAsync(Guid idAplicativo) =>
+            Task.FromResult<IReadOnlyCollection<RepositorioAplicativo>>([]);
+        public Task<IReadOnlyCollection<Repositorio>> ObtenerRepositoriosAplicativoAsync(Guid idAplicativo) =>
+            Task.FromResult<IReadOnlyCollection<Repositorio>>([]);
         public Task<bool> ExisteAsignacionAsync(Guid idTicket, Guid idAplicativo) => Task.FromResult(false);
-        public Task GuardarAplicativoAsync(Aplicativo aplicativo) => Task.CompletedTask;
+        public Task<bool> ExisteRelacionRepositorioAsync(Guid idAplicativo, Guid idRepositorio) => Task.FromResult(false);
+        public Task<bool> TieneRamasTicketSinRespaldoAsync(Guid idTicket, Guid idAplicativo) => Task.FromResult(false);
+        public Task<bool> TieneTicketsActivosDependientesAsync(Guid idAplicativo, Guid idRepositorio) => Task.FromResult(false);
+        public Task GuardarAplicativoAsync(
+            Aplicativo aplicativo,
+            IReadOnlyCollection<RepositorioAplicativo> relaciones) => Task.CompletedTask;
+        public Task GuardarRelacionRepositorioAsync(RepositorioAplicativo relacion) => Task.CompletedTask;
+        public Task EliminarRelacionRepositorioAsync(Guid idAplicativo, Guid idRepositorio) => Task.CompletedTask;
         public Task GuardarAsignacionAsync(AplicativoTicket asignacion) => Task.CompletedTask;
         public Task EliminarAsignacionAsync(Guid idTicket, Guid idAplicativo) => Task.CompletedTask;
     }

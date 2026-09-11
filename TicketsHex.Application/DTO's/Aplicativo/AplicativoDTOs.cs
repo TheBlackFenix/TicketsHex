@@ -15,7 +15,10 @@ namespace TicketsHex.Application.DTO_s.Aplicativo
 
     public sealed record CrearAplicativoRequest(
         string Nombre,
-        string? Descripcion);
+        string? Descripcion,
+        IReadOnlyCollection<Guid>? IdsRepositorios = null);
 
     public sealed record AsignarAplicativoTicketRequest(Guid IdAplicativo);
+
+    public sealed record AsignarRepositorioAplicativoRequest(Guid IdRepositorio);
 }

@@ -1,10 +1,31 @@
+using TicketsHex.Domain.Enums;
+
 namespace TicketsHex.Application.DTO_s.Repositorio
 {
     public sealed record RepositorioDTO(
         Guid IdRepositorio,
         string Nombre,
         string? Link,
-        string? Descripcion);
+        string? Descripcion,
+        TipoRepositorio? IdTipoRepositorio,
+        string? TipoRepositorio);
+
+    public sealed record RepositorioAplicativoDTO(
+        Guid IdRepositorioAplicativo,
+        Guid IdRepositorio,
+        string Nombre,
+        string? Link,
+        string? Descripcion,
+        TipoRepositorio? IdTipoRepositorio,
+        string? TipoRepositorio);
+
+    public sealed record RepositorioDisponibleTicketDTO(
+        Guid IdRepositorio,
+        string Nombre,
+        string? Link,
+        TipoRepositorio? IdTipoRepositorio,
+        string? TipoRepositorio,
+        IReadOnlyCollection<RamaDTO> Ramas);
 
     public sealed record RamaDTO(
         Guid IdRama,
@@ -24,7 +45,8 @@ namespace TicketsHex.Application.DTO_s.Repositorio
     public sealed record CrearRepositorioRequest(
         string Nombre,
         string? Link,
-        string? Descripcion);
+        string? Descripcion,
+        TipoRepositorio IdTipoRepositorio);
 
     public sealed record CrearRamaRequest(string Nombre);
 

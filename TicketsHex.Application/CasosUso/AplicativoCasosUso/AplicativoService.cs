@@ -1,5 +1,6 @@
 using TicketsHex.Application.Comun.Excepciones;
 using TicketsHex.Application.DTO_s.Aplicativo;
+using TicketsHex.Application.DTO_s.Repositorio;
 using TicketsHex.Application.Puertos.Entrada.Aplicativo;
 using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Aplicativos;
@@ -13,15 +14,18 @@ namespace TicketsHex.Application.CasosUso.AplicativoCasosUso
     {
         private readonly IAplicativoRepository _repository;
         private readonly ITicketRepository _ticketRepository;
+        private readonly IRepositorioRamaRepository _repositorioRepository;
         private readonly IUsuarioActual _usuarioActual;
 
         public AplicativoService(
             IAplicativoRepository repository,
             ITicketRepository ticketRepository,
+            IRepositorioRamaRepository repositorioRepository,
             IUsuarioActual usuarioActual)
         {
             _repository = repository;
             _ticketRepository = ticketRepository;
+            _repositorioRepository = repositorioRepository;
             _usuarioActual = usuarioActual;
         }
 
@@ -63,8 +67,80 @@ namespace TicketsHex.Application.CasosUso.AplicativoCasosUso
                     CodigosError.RecursoDuplicado);
 
             var aplicativo = new Aplicativo(request.Nombre, request.Descripcion);
-            await _repository.GuardarAplicativoAsync(aplicativo);
+            if (request.IdsRepositorios?.Any(item => item == Guid.Empty) == true)
+                throw new ArgumentException("Los identificadores de repositorio deben ser válidos.");
+            var idsRepositorios = (request.IdsRepositorios ?? [])
+                .Distinct()
+                .ToArray();
+            foreach (var idRepositorio in idsRepositorios)
+                _ = await ObtenerRepositorioAsync(idRepositorio);
+
+            var relaciones = idsRepositorios
+                .Select(idRepositorio => new RepositorioAplicativo(
+                    idRepositorio,
+                    aplicativo.IdAplicativo))
+                .ToArray();
+            await _repository.GuardarAplicativoAsync(aplicativo, relaciones);
             return aplicativo.IdAplicativo;
+        }
+
+        public async Task<IReadOnlyCollection<RepositorioAplicativoDTO>> ObtenerRepositoriosAplicativoAsync(
+            Guid idAplicativo)
+        {
+            _ = await ObtenerAplicativoAsync(idAplicativo);
+            var relaciones = await _repository.ObtenerRelacionesRepositorioAsync(idAplicativo);
+            var relacionesPorRepositorio = relaciones.ToDictionary(item => item.IdRepositorio);
+            var repositorios = await _repository.ObtenerRepositoriosAplicativoAsync(idAplicativo);
+
+            return repositorios.Select(repositorio => new RepositorioAplicativoDTO(
+                relacionesPorRepositorio[repositorio.IdRepositorio].IdRepositorioAplicativo,
+                repositorio.IdRepositorio,
+                repositorio.Nombre,
+                repositorio.Link,
+                repositorio.Descripcion,
+                repositorio.IdTipoRepositorio,
+                repositorio.IdTipoRepositorio?.ToString()))
+                .ToArray();
+        }
+
+        public async Task<Guid> AsignarRepositorioAsync(
+            Guid idAplicativo,
+            AsignarRepositorioAplicativoRequest request)
+        {
+            ValidarPlannerOLiderTecnico();
+            _ = await ObtenerAplicativoAsync(idAplicativo);
+            _ = await ObtenerRepositorioAsync(request.IdRepositorio);
+            if (await _repository.ExisteRelacionRepositorioAsync(
+                    idAplicativo,
+                    request.IdRepositorio))
+            {
+                throw new ConflictoException(
+                    "El repositorio ya está asociado al aplicativo.",
+                    CodigosError.RecursoDuplicado);
+            }
+
+            var relacion = new RepositorioAplicativo(request.IdRepositorio, idAplicativo);
+            await _repository.GuardarRelacionRepositorioAsync(relacion);
+            return relacion.IdRepositorioAplicativo;
+        }
+
+        public async Task DesasignarRepositorioAsync(Guid idAplicativo, Guid idRepositorio)
+        {
+            ValidarPlannerOLiderTecnico();
+            _ = await ObtenerAplicativoAsync(idAplicativo);
+            if (!await _repository.ExisteRelacionRepositorioAsync(idAplicativo, idRepositorio))
+                throw new RecursoNoEncontradoException(
+                    "El repositorio no está asociado al aplicativo.");
+            if (await _repository.TieneTicketsActivosDependientesAsync(
+                    idAplicativo,
+                    idRepositorio))
+            {
+                throw new ConflictoException(
+                    "La relación no puede retirarse porque existen tickets activos con ramas que dependen de ella.",
+                    CodigosError.RelacionRepositorioEnUso);
+            }
+
+            await _repository.EliminarRelacionRepositorioAsync(idAplicativo, idRepositorio);
         }
 
         public async Task<Guid> AsignarAplicativoAsync(Guid idTicket, AsignarAplicativoTicketRequest request)
@@ -90,9 +166,24 @@ namespace TicketsHex.Application.CasosUso.AplicativoCasosUso
             ValidarPuedeEditarTicket(ticket);
             if (!await _repository.ExisteAsignacionAsync(idTicket, idAplicativo))
                 throw new RecursoNoEncontradoException("El aplicativo no está asociado al ticket.");
+            if (await _repository.TieneRamasTicketSinRespaldoAsync(idTicket, idAplicativo))
+            {
+                throw new ConflictoException(
+                    "No se puede retirar el aplicativo porque dejaría ramas del ticket sin un aplicativo relacionado.",
+                    CodigosError.AplicativoConRamasAsociadas);
+            }
 
             await _repository.EliminarAsignacionAsync(idTicket, idAplicativo);
         }
+
+        private async Task<Aplicativo> ObtenerAplicativoAsync(Guid idAplicativo) =>
+            await _repository.ObtenerAplicativoAsync(idAplicativo)
+            ?? throw new RecursoNoEncontradoException("Aplicativo no encontrado.");
+
+        private async Task<Domain.Entidades.ConfiguracionGit.Repositorio> ObtenerRepositorioAsync(
+            Guid idRepositorio) =>
+            await _repositorioRepository.ObtenerRepositorioAsync(idRepositorio)
+            ?? throw new RecursoNoEncontradoException("Repositorio no encontrado.");
 
         private async Task<Domain.Entidades.Ticket.Ticket> ObtenerTicketAsync(Guid idTicket) =>
             await _ticketRepository.ObtenerPorIdAsync(idTicket)
