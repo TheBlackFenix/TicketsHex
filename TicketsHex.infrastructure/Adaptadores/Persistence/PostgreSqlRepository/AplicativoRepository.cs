@@ -112,6 +112,13 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.PostgreSqlRepository
             await _dbContext.SaveChangesAsync();
         }
 
+        public async Task ActualizarAplicativoAsync(Aplicativo aplicativo) =>
+            await _dbContext.Aplicativos
+                .Where(item => item.IdAplicativo == aplicativo.IdAplicativo)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(item => item.Nombre, aplicativo.Nombre)
+                    .SetProperty(item => item.Descripcion, aplicativo.Descripcion));
+
         public async Task GuardarRelacionRepositorioAsync(RepositorioAplicativo relacion)
         {
             await _dbContext.RepositoriosAplicativo.AddAsync(relacion);

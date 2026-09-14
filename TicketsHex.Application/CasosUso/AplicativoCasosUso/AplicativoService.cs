@@ -84,6 +84,21 @@ namespace TicketsHex.Application.CasosUso.AplicativoCasosUso
             return aplicativo.IdAplicativo;
         }
 
+        public async Task ActualizarAplicativoAsync(
+            Guid idAplicativo,
+            ActualizarAplicativoRequest request)
+        {
+            ValidarPlannerOLiderTecnico();
+            var aplicativo = await ObtenerAplicativoAsync(idAplicativo);
+            var duplicado = await _repository.ObtenerAplicativoPorNombreAsync(request.Nombre);
+            if (duplicado is not null && duplicado.IdAplicativo != idAplicativo)
+                throw new ConflictoException(
+                    $"Ya existe el aplicativo '{request.Nombre}'.",
+                    CodigosError.RecursoDuplicado);
+            aplicativo.Actualizar(request.Nombre, request.Descripcion);
+            await _repository.ActualizarAplicativoAsync(aplicativo);
+        }
+
         public async Task<IReadOnlyCollection<RepositorioAplicativoDTO>> ObtenerRepositoriosAplicativoAsync(
             Guid idAplicativo)
         {

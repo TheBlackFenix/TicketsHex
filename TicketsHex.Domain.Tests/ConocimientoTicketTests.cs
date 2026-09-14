@@ -365,6 +365,7 @@ public sealed class ConocimientoTicketTests
         public Task GuardarAplicativoAsync(
             Aplicativo aplicativo,
             IReadOnlyCollection<RepositorioAplicativo> relaciones) => Task.CompletedTask;
+        public Task ActualizarAplicativoAsync(Aplicativo aplicativo) => Task.CompletedTask;
         public Task GuardarRelacionRepositorioAsync(RepositorioAplicativo relacion) => Task.CompletedTask;
         public Task EliminarRelacionRepositorioAsync(Guid idAplicativo, Guid idRepositorio) => Task.CompletedTask;
         public Task GuardarAsignacionAsync(AplicativoTicket asignacion) => Task.CompletedTask;

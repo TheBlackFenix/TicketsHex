@@ -18,6 +18,7 @@ namespace TicketsHex.Application.Puertos.Salida
         Task GuardarAplicativoAsync(
             Aplicativo aplicativo,
             IReadOnlyCollection<RepositorioAplicativo> relaciones);
+        Task ActualizarAplicativoAsync(Aplicativo aplicativo);
         Task GuardarRelacionRepositorioAsync(RepositorioAplicativo relacion);
         Task EliminarRelacionRepositorioAsync(Guid idAplicativo, Guid idRepositorio);
         Task GuardarAsignacionAsync(AplicativoTicket asignacion);

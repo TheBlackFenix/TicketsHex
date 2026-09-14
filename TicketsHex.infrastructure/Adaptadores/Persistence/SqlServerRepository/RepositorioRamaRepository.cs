@@ -91,6 +91,15 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository
             await _dbContext.SaveChangesAsync();
         }
 
+        public async Task ActualizarRepositorioAsync(Repositorio repositorio) =>
+            await _dbContext.Repositorios
+                .Where(item => item.IdRepositorio == repositorio.IdRepositorio)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(item => item.Nombre, repositorio.Nombre)
+                    .SetProperty(item => item.Link, repositorio.Link)
+                    .SetProperty(item => item.Descripcion, repositorio.Descripcion)
+                    .SetProperty(item => item.IdTipoRepositorio, repositorio.IdTipoRepositorio));
+
         public async Task GuardarRamaAsync(Rama rama)
         {
             await _dbContext.Ramas.AddAsync(rama);

@@ -33,6 +33,20 @@ namespace TicketsHex.Domain.Entidades.ConfiguracionGit
             IdTipoRepositorio = idTipoRepositorio;
         }
 
+        public void Actualizar(
+            string nombre,
+            string? link,
+            string? descripcion,
+            TipoRepositorio idTipoRepositorio)
+        {
+            if (!Enum.IsDefined(idTipoRepositorio))
+                throw new ArgumentException("El tipo de repositorio no es válido.", nameof(idTipoRepositorio));
+            Nombre = ValidarTexto(nombre, 100, "El nombre del repositorio");
+            Link = ValidarLink(link);
+            Descripcion = ValidarTextoOpcional(descripcion, 500, "La descripción");
+            IdTipoRepositorio = idTipoRepositorio;
+        }
+
         public Rama CrearRama(string nombre)
         {
             var rama = new Rama(IdRepositorio, nombre);
