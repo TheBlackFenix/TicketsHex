@@ -36,6 +36,18 @@ namespace TicketsHex.API.Endpoints
                     ApiResponse<Guid>.Ok(id, "Aplicativo creado correctamente."));
             }).RequireAuthorization("PlannerOrLiderTecnico");
 
+            aplicativos.MapPut("/{idAplicativo:guid}", async (
+                Guid idAplicativo,
+                ActualizarAplicativoRequest request,
+                IAplicativoService service,
+                IOutputCacheStore cache,
+                CancellationToken cancellationToken) =>
+            {
+                await service.ActualizarAplicativoAsync(idAplicativo, request);
+                await cache.EvictByTagAsync(ParametricosEndpoints.CacheTag, cancellationToken);
+                return Results.Ok(ApiResponse<bool>.Ok(true, "Aplicativo actualizado correctamente."));
+            }).RequireAuthorization("PlannerOrLiderTecnico");
+
             aplicativos.MapGet("/{idAplicativo:guid}/repositorios", async (
                 Guid idAplicativo,
                 IAplicativoService service) =>

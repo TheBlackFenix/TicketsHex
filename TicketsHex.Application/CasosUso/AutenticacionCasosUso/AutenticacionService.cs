@@ -8,6 +8,8 @@ using TicketsHex.Domain.Servicios;
 
 using TicketsHex.Domain.Comun.Errores;
 using TicketsHex.Application.Comun.Configuracion;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
 {
@@ -17,17 +19,20 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
         private readonly IContrasenaHasher _contrasenaHasher;
         private readonly IGeneradorJwtSesion _jwtGenerator;
         private readonly UsuariosOptions _usuariosOptions;
+        private readonly RefreshOptions _refreshOptions;
 
         public AutenticacionService(
             IAutenticacionRepository repository,
             IContrasenaHasher contrasenaHasher,
             IGeneradorJwtSesion jwtGenerator,
-            UsuariosOptions? usuariosOptions = null)
+            UsuariosOptions? usuariosOptions = null,
+            RefreshOptions? refreshOptions = null)
         {
             _repository = repository;
             _contrasenaHasher = contrasenaHasher;
             _jwtGenerator = jwtGenerator;
             _usuariosOptions = usuariosOptions ?? new UsuariosOptions();
+            _refreshOptions = refreshOptions ?? new RefreshOptions();
         }
 
         public async Task InicializarAsync(InicializarAutenticacionRequest request)
@@ -110,18 +115,71 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
                 jti,
                 ahora,
                 debeCambiarContrasena);
+            var secretoRefresh = CrearSecretoRefresh();
+            var expiracionRefresh = ahora.AddDays(_refreshOptions.DiasVigencia);
             var sesion = new SesionUsuario(
                 usuario.IdUsuario,
                 jti,
                 ahora,
-                jwt.FechaExpiracion);
+                expiracionRefresh,
+                CalcularHash(secretoRefresh));
 
             await _repository.ReemplazarSesionAsync(sesion, ahora);
 
             return new LoginResponse(
                 jwt.Token,
                 jwt.FechaExpiracion,
-                MapearUsuario(usuario, ahora));
+                MapearUsuario(usuario, ahora))
+            {
+                FechaExpiracionRefresh = expiracionRefresh,
+                RefreshToken = $"{sesion.IdSesion:N}.{secretoRefresh}"
+            };
+        }
+
+        public async Task<LoginResponse> RenovarSesionAsync(string refreshToken)
+        {
+            var (idSesion, secreto) = LeerRefreshToken(refreshToken);
+            var sesion = await _repository.ObtenerSesionPorIdAsync(idSesion);
+            var ahora = DateTimeOffset.UtcNow;
+            if (sesion is null || !sesion.EstaVigente(ahora) ||
+                string.IsNullOrWhiteSpace(sesion.RefreshTokenHash))
+                throw SesionInvalida();
+
+            var hashActual = CalcularHash(secreto);
+            if (!CryptographicOperations.FixedTimeEquals(
+                    Convert.FromHexString(sesion.RefreshTokenHash),
+                    Convert.FromHexString(hashActual)))
+                throw SesionInvalida();
+
+            var usuario = await _repository.ObtenerUsuarioPorIdAsync(sesion.IdUsuario);
+            if (usuario is null || !usuario.Activo || usuario.Bloqueado)
+                throw SesionInvalida();
+
+            var jti = Guid.NewGuid().ToString("N");
+            var debeCambiarContrasena = usuario.RequiereCambioContrasena(
+                ahora,
+                _usuariosOptions.DiasVigenciaContrasena);
+            var jwt = _jwtGenerator.Generar(
+                usuario.IdUsuario,
+                usuario.NombreUsuario,
+                usuario.IdRol,
+                jti,
+                ahora,
+                debeCambiarContrasena);
+            var nuevoSecreto = CrearSecretoRefresh();
+            if (!await _repository.RotarSesionAsync(
+                    idSesion,
+                    hashActual,
+                    CalcularHash(nuevoSecreto),
+                    jti,
+                    ahora))
+                throw SesionInvalida();
+
+            return new LoginResponse(jwt.Token, jwt.FechaExpiracion, MapearUsuario(usuario, ahora))
+            {
+                FechaExpiracionRefresh = sesion.FechaExpiracion,
+                RefreshToken = $"{idSesion:N}.{nuevoSecreto}"
+            };
         }
 
         public async Task<UsuarioAutenticadoDTO> ValidarSesionAsync(string jti)
@@ -168,6 +226,16 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
 
             sesion.Revocar(DateTimeOffset.UtcNow);
             await _repository.GuardarCambiosAsync();
+        }
+
+        public async Task CerrarSesionConRefreshAsync(string refreshToken)
+        {
+            var (idSesion, secreto) = LeerRefreshToken(refreshToken);
+            if (!await _repository.RevocarSesionPorRefreshAsync(
+                    idSesion,
+                    CalcularHash(secreto),
+                    DateTimeOffset.UtcNow))
+                throw SesionInvalida();
         }
 
         public async Task CambiarContrasenaAsync(long idUsuario, CambiarContrasenaRequest request)
@@ -225,5 +293,23 @@ namespace TicketsHex.Application.CasosUso.AutenticacionCasosUso
 
         private static UsuarioNoAutenticadoException SesionInvalida() =>
             new("La sesión no es válida o expiró.", CodigosError.SesionInvalida);
+
+        private static string CrearSecretoRefresh() =>
+            Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+
+        private static string CalcularHash(string secreto) =>
+            Convert.ToHexString(SHA256.HashData(Encoding.ASCII.GetBytes(secreto)));
+
+        private static (Guid IdSesion, string Secreto) LeerRefreshToken(string refreshToken)
+        {
+            if (string.IsNullOrWhiteSpace(refreshToken))
+                throw SesionInvalida();
+            var partes = refreshToken.Split('.', 2);
+            if (partes.Length != 2 || partes[0].Length != 32 || partes[1].Length != 64 ||
+                !Guid.TryParseExact(partes[0], "N", out var idSesion) ||
+                !partes[1].All(Uri.IsHexDigit))
+                throw SesionInvalida();
+            return (idSesion, partes[1]);
+        }
     }
 }

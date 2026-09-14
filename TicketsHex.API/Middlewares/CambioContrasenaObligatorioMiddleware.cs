@@ -9,6 +9,7 @@ namespace TicketsHex.API.Middelwares
 
         private static readonly PathString RutaCambio = new("/api/auth/cambiar-contrasena");
         private static readonly PathString RutaLogin = new("/api/auth/login");
+        private static readonly PathString RutaRefresh = new("/api/auth/refresh");
         private static readonly PathString RutaInicializacion = new("/api/auth/inicializar");
         private static readonly PathString RutaHealth = new("/health");
         private static readonly PathString RutaJwks = new("/.well-known/jwks.json");
@@ -44,6 +45,7 @@ namespace TicketsHex.API.Middelwares
         private static bool EsRutaPermitida(PathString ruta) =>
             ruta.Equals(RutaCambio) ||
             ruta.Equals(RutaLogin) ||
+            ruta.Equals(RutaRefresh) ||
             ruta.Equals(RutaInicializacion) ||
             ruta.Equals(RutaHealth) ||
             ruta.Equals(RutaJwks) ||

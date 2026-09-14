@@ -128,6 +128,25 @@ namespace TicketsHex.Application.CasosUso.RepositorioCasosUso
             return repositorio.IdRepositorio;
         }
 
+        public async Task ActualizarRepositorioAsync(
+            Guid idRepositorio,
+            ActualizarRepositorioRequest request)
+        {
+            ValidarPlannerOLiderTecnico();
+            var repositorio = await ObtenerRepositorioAsync(idRepositorio);
+            var duplicado = await _repository.ObtenerRepositorioPorNombreAsync(request.Nombre);
+            if (duplicado is not null && duplicado.IdRepositorio != idRepositorio)
+                throw new ConflictoException(
+                    $"Ya existe el repositorio '{request.Nombre}'.",
+                    CodigosError.RecursoDuplicado);
+            repositorio.Actualizar(
+                request.Nombre,
+                request.Link,
+                request.Descripcion,
+                request.IdTipoRepositorio);
+            await _repository.ActualizarRepositorioAsync(repositorio);
+        }
+
         public async Task<Guid> CrearRamaAsync(Guid idRepositorio, CrearRamaRequest request)
         {
             ValidarPlannerOLiderTecnico();

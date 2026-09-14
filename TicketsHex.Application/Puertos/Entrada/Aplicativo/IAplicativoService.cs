@@ -9,6 +9,7 @@ namespace TicketsHex.Application.Puertos.Entrada.Aplicativo
         Task<IReadOnlyCollection<AplicativoTicketDTO>> ObtenerAplicativosTicketAsync(Guid idTicket);
         Task<IReadOnlyCollection<RepositorioAplicativoDTO>> ObtenerRepositoriosAplicativoAsync(Guid idAplicativo);
         Task<Guid> CrearAplicativoAsync(CrearAplicativoRequest request);
+        Task ActualizarAplicativoAsync(Guid idAplicativo, ActualizarAplicativoRequest request);
         Task<Guid> AsignarRepositorioAsync(Guid idAplicativo, AsignarRepositorioAplicativoRequest request);
         Task DesasignarRepositorioAsync(Guid idAplicativo, Guid idRepositorio);
         Task<Guid> AsignarAplicativoAsync(Guid idTicket, AsignarAplicativoTicketRequest request);

@@ -152,6 +152,60 @@ public sealed class ApiAutorizacionIntegrationTests
         Assert.Equal(10, factory.Authentication.UltimoUsuarioCambioContrasena);
     }
 
+    [Fact]
+    public async Task Login_entrega_refresh_solo_en_cookie_httponly()
+    {
+        await using var factory = new TicketsApiFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new LoginRequest("planner", "Valida#2026"));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var cookie = Assert.Single(response.Headers.GetValues("Set-Cookie"));
+        Assert.Contains("ticketshex_refresh=", cookie);
+        Assert.Contains("httponly", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("path=/api/auth", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("refresh-para-pruebas", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Refresh_requiere_cabecera_anticSRF_y_rota_cookie()
+    {
+        await using var factory = new TicketsApiFactory();
+        using var client = factory.CreateClient();
+        using var sinCabecera = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
+        sinCabecera.Headers.Add("Cookie", "ticketshex_refresh=refresh-para-pruebas");
+        var rechazada = await client.SendAsync(sinCabecera);
+
+        using var conCabecera = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
+        conCabecera.Headers.Add("Cookie", "ticketshex_refresh=refresh-para-pruebas");
+        conCabecera.Headers.Add("X-Refresh-Request", "1");
+        var aceptada = await client.SendAsync(conCabecera);
+
+        Assert.Equal(HttpStatusCode.BadRequest, rechazada.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, aceptada.StatusCode);
+        Assert.Equal("refresh-para-pruebas", factory.Authentication.UltimoRefreshToken);
+        Assert.Contains("ticketshex_refresh=", Assert.Single(aceptada.Headers.GetValues("Set-Cookie")));
+    }
+
+    [Fact]
+    public async Task Logout_acepta_refresh_sin_access_token_y_borra_cookie()
+    {
+        await using var factory = new TicketsApiFactory();
+        using var client = factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/auth/logout");
+        request.Headers.Add("Cookie", "ticketshex_refresh=refresh-para-pruebas");
+        request.Headers.Add("X-Refresh-Request", "1");
+
+        var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("refresh-para-pruebas", factory.Authentication.UltimoRefreshTokenCerrado);
+        Assert.Contains("ticketshex_refresh=", Assert.Single(response.Headers.GetValues("Set-Cookie")));
+    }
+
     private static Task<HttpResponseMessage> CambiarEstadoAsync(
         HttpClient client,
         Guid idTicket,
@@ -292,6 +346,8 @@ public sealed class ApiAutorizacionIntegrationTests
     private sealed class AutenticacionServiceFake : IAutenticacionService
     {
         public long? UltimoUsuarioCambioContrasena { get; private set; }
+        public string? UltimoRefreshToken { get; private set; }
+        public string? UltimoRefreshTokenCerrado { get; private set; }
         public Task<UsuarioAutenticadoDTO> ValidarSesionAsync(string jti)
         {
             var partes = jti.Split(':');
@@ -313,8 +369,28 @@ public sealed class ApiAutorizacionIntegrationTests
         public Task InicializarAsync(InicializarAutenticacionRequest request) =>
             throw new NotSupportedException();
         public Task<LoginResponse> IniciarSesionAsync(LoginRequest request) =>
-            throw new NotSupportedException();
+            Task.FromResult(CrearRespuesta("refresh-para-pruebas"));
+        public Task<LoginResponse> RenovarSesionAsync(string refreshToken)
+        {
+            UltimoRefreshToken = refreshToken;
+            return Task.FromResult(CrearRespuesta("refresh-rotado"));
+        }
         public Task CerrarSesionAsync(string jti) => throw new NotSupportedException();
+        public Task CerrarSesionConRefreshAsync(string refreshToken)
+        {
+            UltimoRefreshTokenCerrado = refreshToken;
+            return Task.CompletedTask;
+        }
+
+        private static LoginResponse CrearRespuesta(string refreshToken) => new(
+            "access-para-pruebas",
+            DateTimeOffset.UtcNow.AddMinutes(15),
+            new UsuarioAutenticadoDTO(
+                1, "planner", "Usuario HTTP", Rol.Planner, Area.Mantenimiento, false))
+        {
+            FechaExpiracionRefresh = DateTimeOffset.UtcNow.AddDays(7),
+            RefreshToken = refreshToken
+        };
     }
 
     private sealed class TicketRepositoryFake(Ticket ticket) : ITicketRepository

@@ -5,6 +5,7 @@ using TicketsHex.Application.Puertos.Salida;
 using TicketsHex.Domain.Entidades.Usuario;
 using TicketsHex.Domain.Enums;
 using TicketsHex.infrastructure.Seguridad;
+using System.Text.Json;
 using Xunit;
 
 namespace TicketsHex.Domain.Tests;
@@ -43,6 +44,70 @@ public class AutenticacionServiceTests
         var usuario = await contexto.Service.ValidarSesionAsync(
             ObtenerJti(segundoLogin.Token));
         Assert.Equal(contexto.Usuario.IdUsuario, usuario.IdUsuario);
+        await Assert.ThrowsAsync<UsuarioNoAutenticadoException>(() =>
+            contexto.Service.RenovarSesionAsync(primerLogin.RefreshToken!));
+    }
+
+    [Fact]
+    public async Task Refresh_rota_credencial_e_invalida_el_access_token_anterior()
+    {
+        var contexto = CrearContexto();
+        var login = await contexto.Service.IniciarSesionAsync(
+            new LoginRequest("planner", "Valida#2026"));
+
+        var renovado = await contexto.Service.RenovarSesionAsync(login.RefreshToken!);
+
+        Assert.NotEqual(login.Token, renovado.Token);
+        Assert.NotEqual(login.RefreshToken, renovado.RefreshToken);
+        Assert.Equal(login.FechaExpiracionRefresh, renovado.FechaExpiracionRefresh);
+        await Assert.ThrowsAsync<UsuarioNoAutenticadoException>(() =>
+            contexto.Service.ValidarSesionAsync(ObtenerJti(login.Token)));
+        await Assert.ThrowsAsync<UsuarioNoAutenticadoException>(() =>
+            contexto.Service.RenovarSesionAsync(login.RefreshToken!));
+        Assert.NotNull(await contexto.Service.ValidarSesionAsync(ObtenerJti(renovado.Token)));
+    }
+
+    [Fact]
+    public async Task Refresh_no_expone_credencial_en_respuesta_json()
+    {
+        var contexto = CrearContexto();
+        var login = await contexto.Service.IniciarSesionAsync(
+            new LoginRequest("planner", "Valida#2026"));
+
+        var json = JsonSerializer.Serialize(login);
+
+        Assert.NotNull(login.RefreshToken);
+        Assert.DoesNotContain(login.RefreshToken!, json);
+        Assert.DoesNotContain("RefreshToken", json);
+    }
+
+    [Fact]
+    public async Task Refresh_con_contrasena_expirada_sigue_emitiendo_token_restringido()
+    {
+        var contexto = CrearContexto();
+        contexto.Usuario.CambiarContrasena(
+            contexto.Hasher.CrearHash("Valida#2026"),
+            DateTimeOffset.UtcNow.AddDays(-30));
+        var login = await contexto.Service.IniciarSesionAsync(
+            new LoginRequest("planner", "Valida#2026"));
+
+        var renovado = await contexto.Service.RenovarSesionAsync(login.RefreshToken!);
+
+        Assert.True(renovado.Usuario.DebeCambiarContrasena);
+        Assert.True(contexto.GeneradorJwt.UltimoSoloCambioContrasena);
+    }
+
+    [Fact]
+    public async Task Logout_con_refresh_revoca_la_sesion_sin_access_token_vigente()
+    {
+        var contexto = CrearContexto();
+        var login = await contexto.Service.IniciarSesionAsync(
+            new LoginRequest("planner", "Valida#2026"));
+
+        await contexto.Service.CerrarSesionConRefreshAsync(login.RefreshToken!);
+
+        await Assert.ThrowsAsync<UsuarioNoAutenticadoException>(() =>
+            contexto.Service.RenovarSesionAsync(login.RefreshToken!));
     }
 
     [Fact]
@@ -92,6 +157,21 @@ public class AutenticacionServiceTests
             new CambiarContrasenaRequest("Valida#2026", "Nueva#2026"));
 
         Assert.False(contexto.Usuario.DebeCambiarContrasena);
+    }
+
+    [Fact]
+    public async Task Cambiar_contrasena_revoca_refresh_token()
+    {
+        var contexto = CrearContexto();
+        var login = await contexto.Service.IniciarSesionAsync(
+            new LoginRequest("planner", "Valida#2026"));
+
+        await contexto.Service.CambiarContrasenaAsync(
+            contexto.Usuario.IdUsuario,
+            new CambiarContrasenaRequest("Valida#2026", "Nueva#2026"));
+
+        await Assert.ThrowsAsync<UsuarioNoAutenticadoException>(() =>
+            contexto.Service.RenovarSesionAsync(login.RefreshToken!));
     }
 
     [Fact]
@@ -167,6 +247,41 @@ public class AutenticacionServiceTests
         public Task<SesionUsuario?> ObtenerSesionPorJtiAsync(string jti) =>
             Task.FromResult(_sesiones.FirstOrDefault(s =>
                 s.Jti == jti && s.FechaRevocacion is null));
+
+        public Task<SesionUsuario?> ObtenerSesionPorIdAsync(Guid idSesion) =>
+            Task.FromResult(_sesiones.FirstOrDefault(s => s.IdSesion == idSesion));
+
+        public Task<bool> RotarSesionAsync(
+            Guid idSesion,
+            string hashActual,
+            string hashNuevo,
+            string nuevoJti,
+            DateTimeOffset fechaActual)
+        {
+            var sesion = _sesiones.FirstOrDefault(s =>
+                s.IdSesion == idSesion &&
+                s.RefreshTokenHash == hashActual &&
+                s.EstaVigente(fechaActual));
+            if (sesion is null)
+                return Task.FromResult(false);
+            sesion.Rotar(nuevoJti, hashNuevo);
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> RevocarSesionPorRefreshAsync(
+            Guid idSesion,
+            string refreshTokenHash,
+            DateTimeOffset fechaActual)
+        {
+            var sesion = _sesiones.FirstOrDefault(s =>
+                s.IdSesion == idSesion &&
+                s.RefreshTokenHash == refreshTokenHash &&
+                s.FechaRevocacion is null);
+            if (sesion is null)
+                return Task.FromResult(false);
+            sesion.Revocar(fechaActual);
+            return Task.FromResult(true);
+        }
 
         public Task RegistrarIntentoFallidoAsync(long idUsuario, DateTimeOffset fecha)
         {

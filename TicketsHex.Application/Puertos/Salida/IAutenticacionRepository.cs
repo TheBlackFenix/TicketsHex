@@ -8,6 +8,17 @@ namespace TicketsHex.Application.Puertos.Salida
         Task<Usuario?> ObtenerUsuarioPorNombreAsync(string nombreUsuario);
         Task<bool> ExisteUsuarioConContrasenaAsync();
         Task<SesionUsuario?> ObtenerSesionPorJtiAsync(string jti);
+        Task<SesionUsuario?> ObtenerSesionPorIdAsync(Guid idSesion);
+        Task<bool> RotarSesionAsync(
+            Guid idSesion,
+            string hashActual,
+            string hashNuevo,
+            string nuevoJti,
+            DateTimeOffset fechaActual);
+        Task<bool> RevocarSesionPorRefreshAsync(
+            Guid idSesion,
+            string refreshTokenHash,
+            DateTimeOffset fechaActual);
         Task RegistrarIntentoFallidoAsync(long idUsuario, DateTimeOffset fecha);
         Task CrearUsuarioAsync(Usuario usuario);
         Task ReemplazarSesionAsync(

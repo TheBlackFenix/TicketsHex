@@ -219,11 +219,24 @@ try
         });
     builder.Services.AddHealthChecks();
     builder.Services.AddSignalR();
+    var originsPermitidos = builder.Configuration
+        .GetSection("Cors:AllowedOrigins")
+        .Get<string[]>() ?? [];
+    foreach (var origin in originsPermitidos)
+    {
+        if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri) ||
+            uri.AbsolutePath != "/" ||
+            uri.Query.Length > 0 ||
+            uri.Fragment.Length > 0 ||
+            uri.Scheme is not ("http" or "https"))
+            throw new InvalidOperationException(
+                "Cors:AllowedOrigins debe contener orígenes HTTP(S) completos, sin rutas ni comodines.");
+    }
     builder.Services.AddCors(options =>
     {
-        options.AddPolicy("AllowAll", policy =>
+        options.AddPolicy("Frontend", policy =>
             policy
-                .SetIsOriginAllowed(origin => true)
+                .WithOrigins(originsPermitidos)
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .AllowCredentials()
@@ -306,7 +319,7 @@ try
         app.UseSwaggerUI();
     }
     app.UseResponseCompression();
-    app.UseCors("AllowAll");
+    app.UseCors("Frontend");
     app.UseAuthentication();
     app.UseMiddleware<CambioContrasenaObligatorioMiddleware>();
     app.UseAuthorization();

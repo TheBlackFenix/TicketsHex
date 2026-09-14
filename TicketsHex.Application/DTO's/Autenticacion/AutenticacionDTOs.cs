@@ -1,4 +1,5 @@
 using TicketsHex.Domain.Enums;
+using System.Text.Json.Serialization;
 
 namespace TicketsHex.Application.DTO_s.Autenticacion
 {
@@ -9,7 +10,13 @@ namespace TicketsHex.Application.DTO_s.Autenticacion
     public sealed record LoginResponse(
         string Token,
         DateTimeOffset FechaExpiracion,
-        UsuarioAutenticadoDTO Usuario);
+        UsuarioAutenticadoDTO Usuario)
+    {
+        public DateTimeOffset? FechaExpiracionRefresh { get; init; }
+
+        [JsonIgnore]
+        public string? RefreshToken { get; init; }
+    }
 
     public sealed record UsuarioAutenticadoDTO(
         long IdUsuario,

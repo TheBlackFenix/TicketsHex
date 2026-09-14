@@ -35,6 +35,12 @@ services:
         value: 10
       - key: Jwt__ClockSkewSeconds
         value: 30
+      - key: Refresh__DiasVigencia
+        value: 7
+      - key: Refresh__CookieSecure
+        value: true
+      - key: Refresh__CookieSameSite
+        value: Lax
       - key: Usuarios__ContrasenaPorDefecto
         sync: false
         fromGroup: preview_env 

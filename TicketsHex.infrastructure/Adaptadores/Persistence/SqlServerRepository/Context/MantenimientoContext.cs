@@ -207,6 +207,7 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository.
                 b.ToTable("sesionesusuario");
                 b.HasKey(s => s.IdSesion);
                 b.Property(s => s.Jti).HasMaxLength(64).IsRequired();
+                b.Property(s => s.RefreshTokenHash).HasMaxLength(64);
                 b.HasIndex(s => s.Jti).IsUnique();
                 b.HasIndex(s => s.IdUsuario)
                     .IsUnique()

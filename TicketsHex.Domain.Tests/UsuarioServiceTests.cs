@@ -307,6 +307,12 @@ public class UsuarioServiceTests
         public Task<Usuario?> ObtenerUsuarioPorNombreAsync(string nombreUsuario) => Task.FromResult<Usuario?>(null);
         public Task<bool> ExisteUsuarioConContrasenaAsync() => Task.FromResult(false);
         public Task<SesionUsuario?> ObtenerSesionPorJtiAsync(string jti) => Task.FromResult<SesionUsuario?>(null);
+        public Task<SesionUsuario?> ObtenerSesionPorIdAsync(Guid idSesion) => Task.FromResult<SesionUsuario?>(null);
+        public Task<bool> RotarSesionAsync(
+            Guid idSesion, string hashActual, string hashNuevo, string nuevoJti,
+            DateTimeOffset fechaActual) => Task.FromResult(false);
+        public Task<bool> RevocarSesionPorRefreshAsync(
+            Guid idSesion, string refreshTokenHash, DateTimeOffset fechaActual) => Task.FromResult(false);
         public Task RegistrarIntentoFallidoAsync(long idUsuario, DateTimeOffset fecha) => Task.CompletedTask;
         public Task CrearUsuarioAsync(Usuario usuario) => Task.CompletedTask;
         public Task ReemplazarSesionAsync(SesionUsuario nuevaSesion, DateTimeOffset fechaRevocacion) => Task.CompletedTask;

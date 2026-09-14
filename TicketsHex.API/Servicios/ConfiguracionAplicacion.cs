@@ -18,11 +18,22 @@ namespace TicketsHex.API.Servicios
             var parametricos = configuration
                 .GetSection(ParametricosOptions.SectionName)
                 .Get<ParametricosOptions>() ?? new ParametricosOptions();
+            var refresh = configuration
+                .GetSection(RefreshOptions.SectionName)
+                .Get<RefreshOptions>() ?? new RefreshOptions();
 
             Validar(usuarios, notificaciones, parametricos);
+            if (refresh.DiasVigencia is < 1 or > 30)
+                throw new InvalidOperationException("Refresh:DiasVigencia debe estar entre 1 y 30.");
+            if (!Enum.TryParse<SameSiteMode>(refresh.CookieSameSite, true, out var sameSite) ||
+                sameSite is not (SameSiteMode.Lax or SameSiteMode.None or SameSiteMode.Strict))
+                throw new InvalidOperationException("Refresh:CookieSameSite debe ser Lax, None o Strict.");
+            if (sameSite == SameSiteMode.None && !refresh.CookieSecure)
+                throw new InvalidOperationException("Refresh:CookieSecure debe ser true cuando CookieSameSite es None.");
             services.AddSingleton(usuarios);
             services.AddSingleton(notificaciones);
             services.AddSingleton(parametricos);
+            services.AddSingleton(refresh);
         }
 
         public static void Validar(

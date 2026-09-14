@@ -14,6 +14,7 @@ namespace TicketsHex.Application.Puertos.Salida
         Task<bool> ExisteAsignacionAsync(Guid idTicket, Guid idRama);
         Task<bool> RepositorioPerteneceAAplicativoTicketAsync(Guid idTicket, Guid idRepositorio);
         Task GuardarRepositorioAsync(Repositorio repositorio);
+        Task ActualizarRepositorioAsync(Repositorio repositorio);
         Task GuardarRamaAsync(Rama rama);
         Task GuardarAsignacionAsync(RamaTicket asignacion);
         Task EliminarAsignacionAsync(Guid idTicket, Guid idRama);

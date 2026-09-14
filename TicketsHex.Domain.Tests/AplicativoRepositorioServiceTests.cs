@@ -45,6 +45,22 @@ public sealed class AplicativoRepositorioServiceTests
     }
 
     [Fact]
+    public async Task Actualiza_nombre_y_descripcion_de_aplicativo()
+    {
+        var aplicativos = new AplicativoRepositoryFake();
+        var service = CrearServicio(aplicativos, new RepositorioRamaRepositoryFake());
+        var id = await service.CrearAplicativoAsync(new CrearAplicativoRequest("POS", null));
+
+        await service.ActualizarAplicativoAsync(
+            id,
+            new ActualizarAplicativoRequest("POS Central", "Punto de venta"));
+
+        var actualizado = await aplicativos.ObtenerAplicativoAsync(id);
+        Assert.Equal("POS Central", actualizado!.Nombre);
+        Assert.Equal("Punto de venta", actualizado.Descripcion);
+    }
+
+    [Fact]
     public async Task Bloquea_retirar_aplicativo_si_deja_ramas_sin_respaldo()
     {
         var aplicativos = new AplicativoRepositoryFake();
@@ -170,6 +186,7 @@ public sealed class AplicativoRepositorioServiceTests
             Relaciones.AddRange(relaciones);
             return Task.CompletedTask;
         }
+        public Task ActualizarAplicativoAsync(Aplicativo aplicativo) => Task.CompletedTask;
         public Task GuardarRelacionRepositorioAsync(RepositorioAplicativo relacion)
         {
             Relaciones.Add(relacion);
@@ -219,6 +236,7 @@ public sealed class AplicativoRepositorioServiceTests
         public Task<bool> RepositorioPerteneceAAplicativoTicketAsync(Guid idTicket, Guid idRepositorio) =>
             Task.FromResult(false);
         public Task GuardarRepositorioAsync(Repositorio repositorio) => Task.CompletedTask;
+        public Task ActualizarRepositorioAsync(Repositorio repositorio) => Task.CompletedTask;
         public Task GuardarRamaAsync(Rama rama) => Task.CompletedTask;
         public Task GuardarAsignacionAsync(RamaTicket asignacion) => Task.CompletedTask;
         public Task EliminarAsignacionAsync(Guid idTicket, Guid idRama) => Task.CompletedTask;

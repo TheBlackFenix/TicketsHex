@@ -48,6 +48,12 @@ namespace TicketsHex.Application.DTO_s.Repositorio
         string? Descripcion,
         TipoRepositorio IdTipoRepositorio);
 
+    public sealed record ActualizarRepositorioRequest(
+        string Nombre,
+        string? Link,
+        string? Descripcion,
+        TipoRepositorio IdTipoRepositorio);
+
     public sealed record CrearRamaRequest(string Nombre);
 
     public sealed record AsignarRamaTicketRequest(

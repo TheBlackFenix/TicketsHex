@@ -63,6 +63,31 @@ public sealed class RepositorioRamaServiceTests
     }
 
     [Fact]
+    public async Task Actualiza_repositorio_sin_alterar_sus_ramas()
+    {
+        var configuracion = new RepositorioRamaRepositoryFake();
+        var service = new RepositorioRamaService(
+            configuracion,
+            new TicketRepositoryFake(),
+            new UsuarioActualFake(3, Rol.LiderTecnico),
+            new NotificacionPublisherFake());
+        var id = await service.CrearRepositorioAsync(
+            new CrearRepositorioRequest("repo", null, null, TipoRepositorio.Backend));
+        var idRama = await service.CrearRamaAsync(id, new CrearRamaRequest("main"));
+
+        await service.ActualizarRepositorioAsync(id, new ActualizarRepositorioRequest(
+            "repo-central",
+            "https://git.example.com/repo-central",
+            "Servicio central",
+            TipoRepositorio.Scripts));
+
+        var repositorio = await configuracion.ObtenerRepositorioAsync(id);
+        Assert.Equal("repo-central", repositorio!.Nombre);
+        Assert.Equal(TipoRepositorio.Scripts, repositorio.IdTipoRepositorio);
+        Assert.Equal(idRama, Assert.Single(repositorio.Ramas).IdRama);
+    }
+
+    [Fact]
     public async Task No_permite_asignar_una_rama_desde_otro_repositorio()
     {
         var configuracion = new RepositorioRamaRepositoryFake();
@@ -249,6 +274,8 @@ public sealed class RepositorioRamaServiceTests
             _repositorios.Add(repositorio);
             return Task.CompletedTask;
         }
+
+        public Task ActualizarRepositorioAsync(Repositorio repositorio) => Task.CompletedTask;
 
         public Task GuardarRamaAsync(Rama rama)
         {

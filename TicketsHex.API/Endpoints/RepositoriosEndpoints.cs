@@ -31,6 +31,15 @@ namespace TicketsHex.API.Endpoints
                     ApiResponse<Guid>.Ok(id, "Repositorio creado correctamente."));
             }).RequireAuthorization("PlannerOrLiderTecnico");
 
+            repositorios.MapPut("/{idRepositorio:guid}", async (
+                Guid idRepositorio,
+                ActualizarRepositorioRequest request,
+                IRepositorioRamaService service) =>
+            {
+                await service.ActualizarRepositorioAsync(idRepositorio, request);
+                return Results.Ok(ApiResponse<bool>.Ok(true, "Repositorio actualizado correctamente."));
+            }).RequireAuthorization("PlannerOrLiderTecnico");
+
             repositorios.MapGet("/{idRepositorio:guid}/ramas", async (
                 Guid idRepositorio,
                 IRepositorioRamaService service) =>
