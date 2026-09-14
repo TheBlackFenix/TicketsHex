@@ -40,6 +40,36 @@ namespace TicketsHex.infrastructure.Adaptadores.Persistence.SqlServerRepository
                     s.Jti == jti &&
                     s.FechaRevocacion == null);
 
+        public Task<SesionUsuario?> ObtenerSesionPorIdAsync(Guid idSesion) =>
+            _dbContext.SesionesUsuario.AsNoTracking()
+                .FirstOrDefaultAsync(s => s.IdSesion == idSesion);
+
+        public async Task<bool> RotarSesionAsync(
+            Guid idSesion,
+            string hashActual,
+            string hashNuevo,
+            string nuevoJti,
+            DateTimeOffset fechaActual) =>
+            await _dbContext.SesionesUsuario
+                .Where(s => s.IdSesion == idSesion &&
+                    s.RefreshTokenHash == hashActual &&
+                    s.FechaRevocacion == null &&
+                    s.FechaExpiracion > fechaActual)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(s => s.RefreshTokenHash, hashNuevo)
+                    .SetProperty(s => s.Jti, nuevoJti)) == 1;
+
+        public async Task<bool> RevocarSesionPorRefreshAsync(
+            Guid idSesion,
+            string refreshTokenHash,
+            DateTimeOffset fechaActual) =>
+            await _dbContext.SesionesUsuario
+                .Where(s => s.IdSesion == idSesion &&
+                    s.RefreshTokenHash == refreshTokenHash &&
+                    s.FechaRevocacion == null)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(s => s.FechaRevocacion, fechaActual)) == 1;
+
         public async Task RegistrarIntentoFallidoAsync(long idUsuario, DateTimeOffset fecha)
         {
             var maximoIntentos = _options.MaximoIntentosFallidos;

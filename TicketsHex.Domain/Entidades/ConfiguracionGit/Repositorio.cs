@@ -41,9 +41,12 @@ namespace TicketsHex.Domain.Entidades.ConfiguracionGit
         {
             if (!Enum.IsDefined(idTipoRepositorio))
                 throw new ArgumentException("El tipo de repositorio no es válido.", nameof(idTipoRepositorio));
-            Nombre = ValidarTexto(nombre, 100, "El nombre del repositorio");
-            Link = ValidarLink(link);
-            Descripcion = ValidarTextoOpcional(descripcion, 500, "La descripción");
+            var nombreValidado = ValidarTexto(nombre, 100, "El nombre del repositorio");
+            var linkValidado = ValidarLink(link);
+            var descripcionValidada = ValidarTextoOpcional(descripcion, 500, "La descripción");
+            Nombre = nombreValidado;
+            Link = linkValidado;
+            Descripcion = descripcionValidada;
             IdTipoRepositorio = idTipoRepositorio;
         }
 

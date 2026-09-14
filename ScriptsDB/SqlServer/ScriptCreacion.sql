@@ -91,6 +91,7 @@ CREATE TABLE dbo.sesionesusuario (
     idsesion UNIQUEIDENTIFIER PRIMARY KEY,
     idusuario BIGINT NOT NULL,
     jti VARCHAR(64) NOT NULL,
+    refreshtokenhash CHAR(64) NULL,
     fechacreacion DATETIMEOFFSET NOT NULL,
     fechaexpiracion DATETIMEOFFSET NOT NULL,
     fecharevocacion DATETIMEOFFSET NULL,

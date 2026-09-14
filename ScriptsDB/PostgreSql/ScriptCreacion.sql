@@ -86,6 +86,7 @@ CREATE TABLE sesionesusuario (
     idsesion UUID PRIMARY KEY,
     idusuario BIGINT NOT NULL REFERENCES usuarios(idusuario) ON DELETE CASCADE,
     jti VARCHAR(64) NOT NULL,
+    refreshtokenhash CHAR(64),
     fechacreacion TIMESTAMPTZ NOT NULL,
     fechaexpiracion TIMESTAMPTZ NOT NULL,
     fecharevocacion TIMESTAMPTZ
